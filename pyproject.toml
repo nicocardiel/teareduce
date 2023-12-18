@@ -1,6 +1,6 @@
 [build-system]
 # Minimum requirements for the build system to execute.
-requires = ["setuptools >= 61.0.0", "wheel", "numpy"]
+requires = ["setuptools >= 43.0.0", "wheel", "numpy"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -28,11 +28,16 @@ classifiers = [
 ]
 
 dependencies = [
-    "numpy >= 1.20",
     "astropy",
-    "scipy",
-    "matplotlib",
     "importlib_resources",  # required with python < 3.9
+    "matplotlib",
+    "numpy >= 1.20",
+    "scipy",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
 ]
 
 [project.urls]
@@ -41,3 +46,7 @@ Repository = "https://github.com/nicocardiel/teareduce.git"
 
 [tool.setuptools.dynamic]
 version = {attr = "teareduce.__version__"}
+
+# performs autodetection
+[tool.setuptools.packages.find]
+where = ["src"]
