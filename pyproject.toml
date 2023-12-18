@@ -1,0 +1,43 @@
+[build-system]
+# Minimum requirements for the build system to execute.
+requires = ["setuptools >= 61.0.0", "wheel", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "teareduce"
+dynamic = ["version"]
+description = "Utilities for astronomical data reduction"
+readme = "README.rst"
+requires-python = ">=3.8"
+license = {text = "GPL-3.0-or-later"}
+authors = [
+  {name = "Nicolás Cardiel", email = "cardiel@ucm.es"},
+]
+classifiers = [
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License (GPL)",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
+
+dependencies = [
+    "numpy >= 1.20",
+    "astropy",
+    "scipy",
+    "matplotlib",
+    "importlib_resources",  # required with python < 3.9
+]
+
+[project.urls]
+Homepage = "https://github.com/nicocardiel/teareduce"
+Repository = "https://github.com/nicocardiel/teareduce.git"
+
+[tool.setuptools.dynamic]
+version = {attr = "teareduce.__version__"}
