@@ -11,11 +11,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.polynomial import Polynomial
-from polfit import polfit_residuals_with_sigma_rejection
 from scipy import ndimage
 from tqdm.notebook import tqdm
 
 from .imshow import imshow
+from .polfit import polfit_residuals_with_sigma_rejection
 
 
 def fit_sdistortion(data, ns_min, ns_max, nc_min, nc_max,
