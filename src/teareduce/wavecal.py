@@ -19,7 +19,7 @@ import numpy as np
 from numpy.polynomial import Polynomial
 from pathlib import Path
 from scipy.ndimage import gaussian_filter1d
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 from .ctext import ctext
 from .imshow import imshow
