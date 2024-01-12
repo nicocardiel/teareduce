@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 name = "teareduce"
 dynamic = ["version"]
 description = "Utilities for astronomical data reduction"
-readme = "README.rst"
+readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "GPL-3.0-or-later"}
 authors = [
