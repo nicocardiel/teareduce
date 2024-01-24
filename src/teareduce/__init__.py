@@ -11,6 +11,7 @@ from .avoid_astropy_warnings import avoid_astropy_warnings
 from .cosmicrays import cr2images, apply_cr2images_ccddata, crmedian
 from .ctext import ctext
 from .draw_rectangle import draw_rectangle
+from .elapsed_time import elapsed_time
 from .imshow import imshow
 from .peaks_spectrum import find_peaks_spectrum, refine_peaks_spectrum
 from .polfit import polfit_residuals, polfit_residuals_with_sigma_rejection
