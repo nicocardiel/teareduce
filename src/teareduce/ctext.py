@@ -34,6 +34,12 @@ def ctext(s=None,
     bold : bool
         If True, add bold style
 
+    Returns
+    -------
+    result : str
+        String containing the ANSI code required to display the
+        coloured text.
+
     """
 
     colour = {
@@ -81,4 +87,7 @@ def ctext(s=None,
 
     final_style = ''.join(style_list)
 
-    return f'{final_style}{s}\x1B[0m'
+    result = f'{final_style}{s}\x1B[0m'
+
+    return result
+
