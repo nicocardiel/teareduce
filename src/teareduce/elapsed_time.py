@@ -9,6 +9,7 @@
 #
 
 import platform
+import sys
 from .version import version
 
 
@@ -32,6 +33,7 @@ def elapsed_time(time_ini, time_end, osinfo=True):
         print(f'release..........: {result.release}')
         print(f'machine..........: {result.machine}')
         print(f'node.............: {result.node}')
+        print(f'Python executable: {sys.executable}')
 
     print(f"teareduce version: {version}")
     print(f"Initial time.....: {time_ini}")
