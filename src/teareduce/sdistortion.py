@@ -54,6 +54,8 @@ def fit_sdistortion(data, ns_min, ns_max, nc_min, nc_max,
     -------
     data_straight : numpy array
         2D spectroscopic image corrected from S distortion.
+    poly_funct_peaks : `~numpy.polynomial.polynomial.Polynomial`
+        Fitted polynomial.
 
     """
 
@@ -177,4 +179,4 @@ def fit_sdistortion(data, ns_min, ns_max, nc_min, nc_max,
         plt.show()
 
     # return result
-    return data_straight
+    return data_straight, poly_funct_peaks
