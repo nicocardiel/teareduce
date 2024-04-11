@@ -14,6 +14,7 @@ from .ctext import ctext
 from .draw_rectangle import draw_rectangle
 from .elapsed_time import elapsed_time
 from .imshow import imshow
+from .numsplines import AdaptiveLSQUnivariateSpline
 from .peaks_spectrum import find_peaks_spectrum, refine_peaks_spectrum
 from .polfit import polfit_residuals, polfit_residuals_with_sigma_rejection
 from .robust_std import robust_std
