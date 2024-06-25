@@ -83,7 +83,11 @@ def imshow(fig=None, ax=None, data=None,
         xlabel = f'Wavelength ({cunitx})'
         aspect = 'auto'
     else:
-        extent = None
+        if 'extent' in kwargs:
+            extent = kwargs['extent']
+            del kwargs['extent']
+        else:
+            extent = None
         if 'aspect' in kwargs:
             aspect = kwargs['aspect']
             del kwargs['aspect']
