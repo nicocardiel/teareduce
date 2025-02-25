@@ -21,6 +21,7 @@ from .robust_std import robust_std
 from .sdistortion import fit_sdistortion
 from .sliceregion import SliceRegion1D, SliceRegion2D
 from .statsummary import ifc_statsummary, statsummary
+from .simulateccdexposure import SimulateCCDExposure
 from .version import version
 from .wavecal import TeaWaveCalibration, apply_wavecal_ccddata
 from .zscale import zscale
