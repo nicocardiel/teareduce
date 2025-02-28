@@ -159,28 +159,32 @@ class SimulateCCDExposure:
         subsequently modified using methods that allow these values to be
         changed in specific regions of the CCD.
 
+        The default parameter values are set to NaN if they are not
+        provided. The parameters must be either a single number, which
+        is expanded to fill the numpy.array, or a numpy.array with the
+        expected shape (NAXIS2, NAXIS1).
+
         Parameters
         ----------
         naxis1 : int
             NAXIS1 value.
         naxis2 : int
             NAXIS2 value.
-        bias : float
+        bias : float or numpy.ndarray
             Detector bias level.
-        gain : float
+        gain : float or numpy.ndarray
             Detector gain (electrons/ADU).
-        readout_noise : float
+        readout_noise : float or numpy.ndarray
             Readout noise (ADU).
-        dark : float
+        dark : float or numpy.ndarray
             Total dark current (ADU). This number should not be the
             dark current rate (ADU/s). The provided number must
             be the total dark current since the exposure time is not
             defined.
-        flatfield : float
+        flatfield : float or numpy.ndarray
             Pixel to pixel sensitivity.
-        data_model : float
+        data_model : float or numpy.ndarray
             Model of the source to be simulated.
-
         """
         # protections
         if naxis1 is None or naxis2 is None:
@@ -192,7 +196,12 @@ class SimulateCCDExposure:
         if naxis1 < 0 or naxis2 < 0:
             raise ValueError(f"Both {naxis1=} and {naxis2=} must be positive")
 
-        # check the parameters are either np.nan or a number (integer or float)
+        # image shape
+        self.naxis1 = naxis1
+        self.naxis2 = naxis2
+
+        # check that the input parameters are either a single number (integer or float)
+        # or a numpy.array with the expected shape
         parameters = {
             "bias": bias,
             "gain": gain,
@@ -202,18 +211,20 @@ class SimulateCCDExposure:
             "data_model": data_model
         }
         for parameter, value in parameters.items():
-            if not np.isnan(value) and not isinstance(value, (int, float)):
-                raise ValueError(f"{parameter}={value} must be numeric or np.nan")
-
-        # define the CCD parameters using a constant value for the full aray
-        self.bias = np.full(shape=(naxis2, naxis1), fill_value=bias, dtype=float)
-        self.gain = np.full(shape=(naxis2, naxis1), fill_value=gain, dtype=float)
-        self.readout_noise = np.full(shape=(naxis2, naxis1), fill_value=readout_noise, dtype=float)
-        self.dark = np.full(shape=(naxis2, naxis1), fill_value=dark, dtype=float)
-        self.flatfield = np.full(shape=(naxis2, naxis1), fill_value=flatfield, dtype=float)
-        self.data_model = np.full(shape=(naxis2, naxis1), fill_value=data_model, dtype=float)
-        self.naxis1 = naxis1
-        self.naxis2 = naxis2
+            if isinstance(value, (int, float)):
+                # constant value for the full array
+                setattr(self, parameter, np.full(shape=(naxis2, naxis1), fill_value=value, dtype=float))
+            elif isinstance(value, np.ndarray):
+                naxis2_, naxis1_ = value.shape
+                if naxis1_ == naxis1 and naxis2_ == naxis2:
+                    # array of the expected shape
+                    setattr(self, parameter, value)
+                else:
+                    msg = (f"Parameter {parameter}: NAXIS1={naxis1_}, NAXIS2={naxis2_} "
+                           f"are not compatible with expected values NAXIS1={naxis1}, NAXIS2={naxis2}")
+                    raise ValueError(msg)
+            else:
+                raise ValueError(f"Unexpected {parameter=}: {type(value)=}")
 
     def __repr__(self):
         output = f'{self.__class__.__name__}(\n'
