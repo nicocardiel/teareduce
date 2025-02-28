@@ -8,7 +8,6 @@
 #
 
 # ToDo: use astropy units?
-# ToDo: allow to define SimulateCCDExposure from numpy arrays
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -101,6 +100,10 @@ class SimulateCCDExposure:
 
     Attributes
     ----------
+    naxis1 : int
+        NAXIS1 value.
+    naxis2 : int
+        NAXIS2 value.
     bias : numpy.ndarray
         Detector bias level.
     gain : numpy.ndarray
@@ -116,10 +119,6 @@ class SimulateCCDExposure:
         Pixel to pixel sensitivity.
     data_model : numpy.ndarray
         Model of the source to be simulated (ADU).
-    naxis1 : int
-        NAXIS1 value.
-    naxis2 : int
-        NAXIS2 value.
 
     Methods
     -------
@@ -199,6 +198,12 @@ class SimulateCCDExposure:
         # image shape
         self.naxis1 = naxis1
         self.naxis2 = naxis2
+        self.bias = None
+        self.gain = None
+        self.readout_noise = None
+        self.dark = None
+        self.flatfield = None
+        self.data_model = None
 
         # check that the input parameters are either a single number (integer or float)
         # or a numpy.array with the expected shape
