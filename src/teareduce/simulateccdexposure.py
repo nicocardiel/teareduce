@@ -6,9 +6,8 @@
 # SPDX-License-Identifier: GPL-3.0+
 # License-Filename: LICENSE.txt
 #
-
-# ToDo: use astropy units?
-
+from astropy.units import Unit
+from astropy.units import Quantity
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -30,6 +29,8 @@ class SimulatedCCDResult:
     ----------
     data : numpy.ndarray or None
         Data array with the result of the simulated CCD exposure.
+    unit : astropy.units.Unit
+        Units of the simulated CCD exposure.
     imgtype : str
         Type of image to be generated. It must be one of
         VALID_IMAGE_TYPES.
@@ -44,7 +45,8 @@ class SimulatedCCDResult:
     imshow(**kwargs)
         Display simulated CCD image using tea.imshow().
     """
-    def __init__(self, data, imgtype, method, parameters):
+
+    def __init__(self, data, unit, imgtype, method, parameters):
         """
         Initialize the class attributes.
 
@@ -52,16 +54,19 @@ class SimulatedCCDResult:
         ----------
         data : numpy.ndarray or None
             Data array with the result of the simulated CCD exposure.
+        unit : astropy.units.Unit
+            Units of the simulated CCD exposure.
         imgtype : str
             Type of image to be generated. It must be one of
             VALID_IMAGE_TYPES.
         method : str
             Method used to generate the simulated CCD image.
             It must be one of VALID_METHODS.
-        parameters : dict
+        parameters : dict or None
             CCD parameters employed during the simulation procedure.
         """
         self.data = data
+        self.unit = unit
         self.imgtype = imgtype
         self.method = method
         self.parameters = parameters
@@ -69,6 +74,7 @@ class SimulatedCCDResult:
     def __repr__(self):
         output = f'{self.__class__.__name__}(\n'
         output += f'    data={self.data!r},\n'
+        output += f'    unit={self.unit!r},\n'
         output += f'    imgtype={self.imgtype!r},\n'
         output += f'    method={self.method!r},\n'
         output += f'    parameters={self.parameters!r}\n'
@@ -104,21 +110,21 @@ class SimulateCCDExposure:
         NAXIS1 value.
     naxis2 : int
         NAXIS2 value.
-    bias : numpy.ndarray
-        Detector bias level.
-    gain : numpy.ndarray
-        Detector gain (electrons/ADU).
-    readout_noise : numpy.ndarray
-        Readout noise (ADU).
-    dark : numpy.ndarray
-        Total dark current (ADU). This number should not be
-        the dark current rate (ADU/s). The provided number must
-        correspond to the total dark current since the exposure
-        time is not defined.
+    bias : Quantity
+        Numpy array with the detector bias level (ADU).
+    gain : Quantity
+        Numpy array with the detector gain (electrons/ADU).
+    readout_noise : Quantity
+        Numpy array with the readout noise (ADU).
+    dark : Quantity
+        Numpy array with the total dark current (ADU) for each pixel.
+        These numbers should not be the dark current rate (ADU/s).
+        The provided numbers must correspond to the total dark current
+        since the exposure time is not defined.
     flatfield : numpy.ndarray
-        Pixel to pixel sensitivity.
-    data_model : numpy.ndarray
-        Model of the source to be simulated (ADU).
+        Numpy array with the pixel to pixel sensitivity (without units).
+    data_model : Quantity
+        Numpy array with the model of the source to be simulated (ADU).
 
     Methods
     -------
@@ -140,28 +146,27 @@ class SimulateCCDExposure:
         initialize the random number generator.
 
     """
+
     def __init__(self,
                  naxis1=None,
                  naxis2=None,
-                 bias=np.nan,
-                 gain=np.nan,
-                 readout_noise=np.nan,
-                 dark=np.nan,
+                 bias=np.nan * Unit('adu'),
+                 gain=np.nan * Unit('electron') / Unit('adu'),
+                 readout_noise=np.nan * Unit('adu'),
+                 dark=np.nan * Unit('adu'),
                  flatfield=np.nan,
-                 data_model=np.nan):
+                 data_model=np.nan * Unit('adu')):
         """Initialize the class attributes.
 
-        The simulated array dimensions are mandatory. This function
-        initializes the 2D parameters assuming constant values.
-        If no parameters are provided, the default values are set to NaN.
-        The constant value of each parameter for the entire image can be
-        subsequently modified using methods that allow these values to be
-        changed in specific regions of the CCD.
+        The simulated array dimensions are mandatory. If any additional
+        parameter is not provided, all the pixel values are set to NaN.
+        The values of each parameter can be subsequently modified using
+        methods that allow these values to be changed in specific regions
+        of the CCD.
 
-        The default parameter values are set to NaN if they are not
-        provided. The parameters must be either a single number, which
-        is expanded to fill the numpy.array, or a numpy.array with the
-        expected shape (NAXIS2, NAXIS1).
+        The input parameters must be a Quantity whose value is either
+        a single number, which is expanded to fill the numpy.array,
+        or a numpy.array with the expected shape (NAXIS2, NAXIS1).
 
         Parameters
         ----------
@@ -169,21 +174,21 @@ class SimulateCCDExposure:
             NAXIS1 value.
         naxis2 : int
             NAXIS2 value.
-        bias : float or numpy.ndarray
-            Detector bias level.
-        gain : float or numpy.ndarray
+        bias : Quantity
+            Detector bias level (ADU).
+        gain : Quantity
             Detector gain (electrons/ADU).
-        readout_noise : float or numpy.ndarray
+        readout_noise : Quantity
             Readout noise (ADU).
-        dark : float or numpy.ndarray
+        dark : Quantity
             Total dark current (ADU). This number should not be the
             dark current rate (ADU/s). The provided number must
             be the total dark current since the exposure time is not
             defined.
         flatfield : float or numpy.ndarray
-            Pixel to pixel sensitivity.
-        data_model : float or numpy.ndarray
-            Model of the source to be simulated.
+            Pixel to pixel sensitivity (without units).
+        data_model : Quantity
+            Model of the source to be simulated (ADU).
         """
         # protections
         if naxis1 is None or naxis2 is None:
@@ -205,7 +210,8 @@ class SimulateCCDExposure:
         self.flatfield = None
         self.data_model = None
 
-        # check that the input parameters are either a single number (integer or float)
+        # check that each input parameter is a Quantity with the expected units,
+        # and that the quantity.value is either a single number (integer or float)
         # or a numpy.array with the expected shape
         parameters = {
             "bias": bias,
@@ -215,21 +221,40 @@ class SimulateCCDExposure:
             "flatfield": flatfield,
             "data_model": data_model
         }
-        for parameter, value in parameters.items():
+        for parameter, quantity in parameters.items():
+            if parameter == "gain":
+                expected_units = Unit('electron') / Unit('adu')
+            elif parameter == "flatfield":
+                expected_units = None
+            else:
+                expected_units = Unit('adu')
+            if expected_units is not None:
+                if not isinstance(quantity, Quantity):
+                    raise TypeError(f"{parameter} must be a Quantity: {expected_units=}")
+                if quantity.unit != expected_units:
+                    raise ValueError(f"{quantity.unit=} != {expected_units=}")
+                value = quantity.value
+            else:
+                if isinstance(quantity, Quantity):
+                    raise ValueError(f"'{parameter}' should not be a Quantity")
+                value = quantity
             if isinstance(value, (int, float)):
                 # constant value for the full array
-                setattr(self, parameter, np.full(shape=(naxis2, naxis1), fill_value=value, dtype=float))
+                if parameter == "flatfield":
+                    setattr(self, parameter, np.full(shape=(naxis2, naxis1), fill_value=value))
+                else:
+                    setattr(self, parameter, np.full(shape=(naxis2, naxis1), fill_value=value) * expected_units)
             elif isinstance(value, np.ndarray):
                 naxis2_, naxis1_ = value.shape
                 if naxis1_ == naxis1 and naxis2_ == naxis2:
                     # array of the expected shape
-                    setattr(self, parameter, value)
+                    setattr(self, parameter, quantity)
                 else:
                     msg = (f"Parameter {parameter}: NAXIS1={naxis1_}, NAXIS2={naxis2_} "
                            f"are not compatible with expected values NAXIS1={naxis1}, NAXIS2={naxis2}")
                     raise ValueError(msg)
             else:
-                raise ValueError(f"Unexpected {parameter=}: {type(value)=}")
+                raise ValueError(f"Unexpected {parameter=} with {type(value)=}")
 
     def __repr__(self):
         output = f'{self.__class__.__name__}(\n'
@@ -240,12 +265,27 @@ class SimulateCCDExposure:
         output += ')'
         return output
 
-    def _precheck_set_function(self, parameter, region):
+    def _precheck_set_function(self, parameter, quantity, region):
         """Auxiliary function to check function inputs.
 
         This function checks whether the parameters provided to
         the functions in charge of defining pixels values are correct.
 
+        Parameters
+        ----------
+        parameter : str
+            CCD parameter to set. It must be any of VALID_PARAMETERS.
+        quantity : Quantity
+            Float or numpy.array with units (except for flatfield).
+        region : SliceRegion2D or None
+            Region in which to define de parameter. When it is None, it
+            indicates that 'value' should be set for all pixels.
+
+        Returns
+        -------
+        region : SliceRegion2D
+            Updated region in which to define de parameter. When the input
+            value is None, the returned region will be the full frame.
         """
         full_frame = SliceRegion2D(f"[1:{self.naxis1}, 1:{self.naxis2}]", mode='fits')
         # protections
@@ -260,9 +300,22 @@ class SimulateCCDExposure:
                     raise RuntimeError(f"Region {region=} outside of frame {full_frame=}")
             else:
                 raise TypeError(f"The parameter {region=} must be an instance of SliceRegion2D")
+
+        if parameter == "gain":
+            expected_units = Unit('electron') / Unit('adu')
+        elif parameter == "flatfield":
+            expected_units = None
+        else:
+            expected_units = Unit('adu')
+        if expected_units is not None:
+            if not isinstance(quantity, Quantity):
+                raise TypeError(f"{parameter} must be a Quantity: {expected_units=}")
+            if quantity.unit != expected_units:
+                raise ValueError(f"{quantity.unit=} != {expected_units=}")
+
         return region
 
-    def set_constant(self, parameter, value, region=None):
+    def set_constant(self, parameter, constant, region=None):
         """
         Set the value of a particular parameter to a constant value.
 
@@ -273,23 +326,28 @@ class SimulateCCDExposure:
         ----------
         parameter : str
             CCD parameter to set. It must be any of VALID_PARAMETERS.
-        value : float
+        constant : Quantity or float
             Constant value for the parameter.
-        region : SliceRegion2D
+        region : SliceRegion2D or None
             Region in which to define de parameter. When it is None, it
             indicates that 'value' should be set for all pixels.
         """
         # protections
         parameter = parameter.lower()
-        region = self._precheck_set_function(parameter, region)
+        region = self._precheck_set_function(parameter, constant, region)
+        if parameter == "flatfield":
+            value = constant
+        else:
+            value = constant.value
+
         if not isinstance(value, (int, float)) or isinstance(value, np.ndarray):
-            raise TypeError("The parameter 'value' must be a single number")
+            raise TypeError("The parameter 'quantity' must be a single number")
 
         # set parameter
         try:
-            getattr(self, parameter)[region.python] = value
+            getattr(self, parameter)[region.python] = constant
         except AttributeError:
-            raise RuntimeError(f"The parameter {parameter=} must be an attribute of SimulateCCDExposure")
+            raise RuntimeError(f"Unexpected parameter '{parameter}' for SimulateCCDExposure")
 
     def set_array2d(self, parameter, array2d, region=None):
         """
@@ -303,28 +361,33 @@ class SimulateCCDExposure:
         ----------
         parameter : str
             CCD parameter to set. It must be any of VALID_PARAMETERS.
-        array2d : numpy.ndarray
+        array2d : Quantity
             Array of values to be used to define 'parameter'.
         region : SliceRegion2D
             Region in which to define de parameter. When it is None, it
-            indicates that 'array2d' has the same shape as the simulated
+            indicates that 'quantity' has the same shape as the simulated
             image.
         """
         # protections
         parameter = parameter.lower()
-        region = self._precheck_set_function(parameter, region)
-        if not isinstance(array2d, np.ndarray):
-            raise TypeError("The parameter 'array2d' must be a numpy array")
-        naxis2_, naxis1_ = array2d.shape
+        region = self._precheck_set_function(parameter, array2d, region)
+        if parameter == "flatfield":
+            value = array2d
+        else:
+            value = array2d.value
+
+        if not isinstance(value, np.ndarray):
+            raise TypeError("The parameter 'quantity' must be a numpy array of quantities")
+        naxis2_, naxis1_ = value.shape
         if self.naxis1 != naxis1_ or self.naxis2 != naxis2_:
-            print(f"{array2d.shape=}")
-            raise ValueError(f"The parameter 'array2d' must have shape ({self.naxis1=}, {self.naxis2=})")
+            print(f"{value.shape=}")
+            raise ValueError(f"The parameter 'quantity' must have shape ({self.naxis1=}, {self.naxis2=})")
 
         # set parameter
         try:
             getattr(self, parameter)[region.python] = array2d[region.python]
         except AttributeError:
-            raise RuntimeError(f"The parameter {parameter=} must be an attribute of SimulateCCDExposure")
+            raise RuntimeError(f"Unexpected parameter '{parameter}' for SimulateCCDExposure")
 
     def run(self, imgtype, method="Poisson", seed=None, return_all=False):
         """
@@ -364,12 +427,6 @@ class SimulateCCDExposure:
             raise ValueError(f'Unexpected {imgtype=}.\nValid image types: {VALID_IMAGE_TYPES}')
         if method not in VALID_METHODS:
             raise ValueError(f'Unexpected {method=}.\nValid methods: {VALID_METHODS}')
-        user_defined_attributes = [
-            attr for attr in dir(self) if not attr.startswith("__") and not callable(getattr(self, attr))
-        ]
-        for attr in user_defined_attributes:
-            if np.isnan(getattr(self, attr)).any():
-                raise ValueError(f"The parameter {attr=} contains NaN")
 
         rng = np.random.default_rng(seed)
 
@@ -380,38 +437,54 @@ class SimulateCCDExposure:
         else:
             parameters = None
 
+        # initialize result instance
         result = SimulatedCCDResult(
             data=None,
+            unit=Unit('adu'),
             imgtype=imgtype,
             method=method,
             parameters=parameters
         )
 
         # BIAS and Readout Noise
+        if np.isnan(self.bias.value).any():
+            raise ValueError(f"The parameter 'bias' contains NaN")
+        if np.isnan(self.readout_noise.value).any():
+            raise ValueError(f"The parameter 'readout_noise' contains NaN")
         image2d = rng.normal(
-            loc=self.bias,
-            scale=self.readout_noise
+            loc=self.bias.value,
+            scale=self.readout_noise.value
         )
         if imgtype == "bias":
             result.data = image2d
             return result
 
         # DARK
-        image2d += self.dark
+        if np.isnan(self.dark.value).any():
+            raise ValueError(f"The parameter 'dark' contains NaN")
+        image2d += self.dark.value
         if imgtype == "dark":
             result.data = image2d
             return result
 
         # OBJECT
+        if np.isnan(self.flatfield).any():
+            raise ValueError(f"The parameter 'flatfield' contains NaN")
+        if np.isnan(self.data_model.value).any():
+            raise ValueError(f"The parameter 'data_model' contains NaN")
+        if np.isnan(self.gain.value).any():
+            raise ValueError(f"The parameter 'gain' contains NaN")
         if method.lower() == "poisson":
             # transform data_model from ADU to electrons,
             # generate Poisson distribution
             # and transform back from electrons to ADU
-            image2d += self.flatfield * rng.poisson(self.data_model * self.gain) / self.gain
+            image2d += self.flatfield * rng.poisson(
+                self.data_model.value * self.gain.value
+            ) / self.gain.value
         elif method.lower() == "gaussian":
             image2d += self.flatfield * rng.normal(
-                loc=self.data_model,
-                scale=np.sqrt(self.data_model/self.gain)
+                loc=self.data_model.value,
+                scale=np.sqrt(self.data_model.value/self.gain.value)
             )
         else:
             raise RuntimeError(f"Unknown method: {method}")
