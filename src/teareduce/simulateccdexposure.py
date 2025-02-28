@@ -9,12 +9,57 @@
 
 # ToDo: use astropy units?
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from .sliceregion import SliceRegion2D
+from .imshow import imshow
 
 VALID_PARAMETERS = ["bias", "gain", "readout_noise", "dark", "flatfield", "data_model"]
-VALID_IMGTYPES = ["bias", "dark", "object"]
+VALID_IMAGE_TYPES = ["bias", "dark", "object"]
+VALID_METHODS = ["poisson", "gaussian"]
+
+
+class SimulatedCCDResult:
+    """Result of executing SimulateCCDExposure.run().
+
+    Auxiliary class to store the result and all the relevant
+    parameters employed when generating the simulated CCD image.
+
+    Attributes
+    ----------
+    data : numpy.ndarray or None
+        Data array with the result of the simulated CCD exposure.
+    imgtype : str
+        Type of image to be generated. It must be one of
+        VALID_IMAGE_TYPES.
+    parameters : dict
+        CCD parameters employed during the simulation procedure.
+    """
+    def __init__(self, data, imgtype, parameters):
+        """
+        Initialize the class attributes.
+
+        Parameters
+        ----------
+        data : numpy.ndarray or None
+            Data array with the result of the simulated CCD exposure.
+        imgtype : str
+            Type of image to be generated. It must be one of
+            VALID_IMAGE_TYPES.
+        parameters : dict
+            CCD parameters employed during the simulation procedure.
+        """
+        self.data = data
+        self.imgtype = imgtype
+        self.parameters = parameters
+
+    def plot(self):
+        # ToDo: pasar diccionario de parametros para imshow
+        fig, ax = plt.subplots()
+        imshow(fig, ax, self.data)
+        plt.tight_layout()
+        plt.show()
 
 
 class SimulateCCDExposure:
@@ -42,8 +87,6 @@ class SimulateCCDExposure:
         Pixel to pixel sensitivity.
     data_model : numpy.ndarray
         Model of the source to be simulated (ADU).
-    result : numpy.ndarray
-        Simulated CCD exposure (ADU).
     naxis1 : int
         NAXIS1 value.
     naxis2 : int
@@ -63,7 +106,7 @@ class SimulateCCDExposure:
         region.
     run(imgtype, seed, method)
         Execute the generation of the simulated CCD exposure of
-        type 'imgtype', where 'imgtype' is one of VALID_IMGTYPES.
+        type 'imgtype', where 'imgtype' is one of VALID_IMAGE_TYPES.
         The signal can be generated using either method: Poisson
         or Gaussian. It is possible to set the seed in order to
         initialize the random number generator.
@@ -140,7 +183,6 @@ class SimulateCCDExposure:
         self.dark = np.full(shape=(naxis2, naxis1), fill_value=dark, dtype=float)
         self.flatfield = np.full(shape=(naxis2, naxis1), fill_value=flatfield, dtype=float)
         self.data_model = np.full(shape=(naxis2, naxis1), fill_value=data_model, dtype=float)
-        self.result = None
         self.naxis1 = naxis1
         self.naxis2 = naxis2
 
@@ -230,12 +272,12 @@ class SimulateCCDExposure:
         except AttributeError:
             raise RuntimeError(f"The parameter {parameter=} must be an attribute of SimulateCCDExposure")
 
-    def run(self, imgtype, seed=None, method="Poisson"):
+    def run(self, imgtype, method="Poisson", seed=None):
         """
         Execute the generation of the simulated CCD exposure.
 
         This function generates an image of type 'imgtype', which must
-        be one of VALID_IMGTYPES. The signal can be generated using
+        be one of VALID_IMAGE_TYPES. The signal can be generated using
         either method: Poisson or Gaussian. It is possible to set the
         seed in order to initialize the random number generator.
 
@@ -243,59 +285,73 @@ class SimulateCCDExposure:
         ----------
         imgtype : str
             Type of image to be generated. It must be one of
-            VALID_IMGTYPES.
+            VALID_IMAGE_TYPES.
+        method : str
+            Method to generate the simulated data. It must be one of
+            VALID_METHODS.
         seed : int, optional
             Seed for the random number generator. The default is None.
-        method : str
-            Method to generate the simulated data. It can be either
-            'Poisson' or 'Gaussian'.
 
         Returns
         -------
-        result : numpy.ndarray
-            Simulated image of type 'imgtype'. This array is also stored
-            as an attribute of SimulateCCDExposure.
+        result : SimulatedCCDResult
+            Instance of SimulatedCCDResult to store the simulated image
+            and its associated metadata.
         """
         # protections
-        if imgtype.lower() not in VALID_IMGTYPES:
-            raise ValueError(f'Unexpected {imgtype=}')
-        if method.lower() not in ["poisson", "gaussian"]:
-            raise ValueError(f'Unexpected {method=}')
+        imgtype = imgtype.lower()
+        method = method.lower()
+        if imgtype not in VALID_IMAGE_TYPES:
+            raise ValueError(f'Unexpected {imgtype=}.\nValid image types: {VALID_IMAGE_TYPES}')
+        if method not in VALID_METHODS:
+            raise ValueError(f'Unexpected {method=}.\nValid methods: {VALID_METHODS}')
         user_defined_attributes = [
             attr for attr in dir(self) if not attr.startswith("__") and not callable(getattr(self, attr))
         ]
-        user_defined_attributes.remove('result')
         for attr in user_defined_attributes:
             if np.isnan(getattr(self, attr)).any():
                 raise ValueError(f"The parameter {attr=} contains NaN")
 
         rng = np.random.default_rng(seed)
 
+        parameters = dict()
+        for attr in user_defined_attributes:
+            parameters[attr] = getattr(self, attr)
+
+        result = SimulatedCCDResult(
+            data=None,
+            imgtype=imgtype,
+            parameters=parameters
+        )
+
         # BIAS and Readout Noise
-        self.result = rng.normal(
+        image2d = rng.normal(
             loc=self.bias,
             scale=self.readout_noise
         )
         if imgtype == "bias":
-            return self.result
+            result.data = image2d
+            return result
 
         # DARK
-        self.result += self.dark
+        image2d += self.dark
         if imgtype == "dark":
-            return self.result
+            result.data = image2d
+            return result
 
         # OBJECT
         if method.lower() == "poisson":
             # transform data_model from ADU to electrons,
             # generate Poisson distribution
             # and transform back from electrons to ADU
-            self.result += self.flatfield * rng.poisson(self.data_model * self.gain) / self.gain
+            image2d += self.flatfield * rng.poisson(self.data_model * self.gain) / self.gain
         elif method.lower() == "gaussian":
-            self.result += self.flatfield * rng.normal(
+            image2d += self.flatfield * rng.normal(
                 loc=self.data_model,
                 scale=np.sqrt(self.data_model/self.gain)
             )
         else:
             raise RuntimeError(f"Unknown method: {method}")
 
-        return self.result
+        result.data = image2d
+        return result
