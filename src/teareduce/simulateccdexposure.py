@@ -7,24 +7,110 @@
 # License-Filename: LICENSE.txt
 #
 
-# ToDo: include documentation
 # ToDo: use astropy units?
+# ToDo: hacer que SliceRegionXD no necesite utilizar np.s_() sino una cadena de texto?
 
 import numpy as np
 
 from .sliceregion import SliceRegion2D
 
-VALID_PARAMETERS = ["gain", "readout_noise", "bias", "dark", "flatfield", "data_model"]
+VALID_PARAMETERS = ["bias", "gain", "readout_noise", "dark", "flatfield", "data_model"]
 VALID_IMGTYPES = ["bias", "dark", "object"]
 
 
 class SimulateCCDExposure:
-    def __init__(
-            self, naxis1=None, naxis2=None,
-            gain=np.nan, readout_noise=np.nan,
-            bias=np.nan, dark=np.nan,
-            flatfield=np.nan
-    ):
+    """Simulated image generator from first principles.
+
+    CCD exposures are simulated making use of basic CCD parameters,
+    such as gain, readout noise, bias, dark and flat field.
+    A data model can also be employed to simulate more realising
+    CCD exposures.
+
+    Attributes
+    ----------
+    bias : numpy.ndarray
+        Detector bias level.
+    gain : numpy.ndarray
+        Detector gain (electrons/ADU).
+    readout_noise : numpy.ndarray
+        Readout noise (ADU).
+    dark : numpy.ndarray
+        Total dark current (ADU). This number should not be
+        the dark current rate (ADU/s), i.e., the provided number must
+        correspond to the total dark current, since the exposure
+        time is not defined.
+    flatfield : numpy.ndarray
+        Pixel to pixel sensitivity.
+    data_model : numpy.ndarray
+        Model of the source to be simulated (ADU).
+    result : numpy.ndarray
+        Simulated CCD exposure (ADU).
+    naxis1 : int
+        NAXIS1 value.
+    naxis2 : int
+        NAXIS2 value.
+
+    Methods
+    -------
+    set_constant(parameter, value, region)
+        Set the value of a particular CCD parameter to a constant
+        value. The parameter can be any of VALID_PARAMETERS. The
+        constant value can be employed for all pixels or in a specific
+        region.
+    set_array2d(parameter, value, region)
+        Set the value of a particular CCD parameter to a 2D array.
+        The parameter can be any of VALID_PARAMETERS. The 2D array
+        may correspond to the whole simulated array or to a specific
+        region.
+    run(imgtype, seed, method)
+        Execute the generation of the simulated CCD exposure of
+        type 'imgtype', where 'imgtype' is one of VALID_IMGTYPES.
+        The signal can be generated using either method: Poisson
+        or Gaussian. It is possible to set the seed in order to
+        initialize the random number generator.
+
+    """
+    def __init__(self,
+                 naxis1=None,
+                 naxis2=None,
+                 bias=np.nan,
+                 gain=np.nan,
+                 readout_noise=np.nan,
+                 dark=np.nan,
+                 flatfield=np.nan,
+                 data_model=np.nan):
+        """Initialize the class attributes.
+
+        The simulated array dimensions are mandatory. This function
+        initializes the 2D parameters assuming constant values.
+        If no parameters are provided, the default values are set to NaN.
+        The constant value of each parameter for the entire image can be
+        subsequently modified using methods that allow these values to be
+        changed in specific regions of the CCD.
+
+        Parameters
+        ----------
+        naxis1 : int
+            NAXIS1 value.
+        naxis2 : int
+            NAXIS2 value.
+        bias : float
+            Detector bias level.
+        gain : float
+            Detector gain (electrons/ADU).
+        readout_noise : float
+            Readout noise (ADU).
+        dark : float
+            Total dark current (ADU). This number should not be the
+            dark current rate (ADU/s), i.e., the provided number must
+            be the total dark current, since the exposure time is not
+            defined.
+        flatfield : float
+            Pixel to pixel sensitivity.
+        data_model : float
+            Model of the source to be simulated.
+
+        """
         # protections
         if naxis1 is None or naxis2 is None:
             raise RuntimeError("Basic image parameters (naxis1, naxis2) must be provided")
@@ -34,12 +120,28 @@ class SimulateCCDExposure:
         self.readout_noise = np.full(shape=(naxis2, naxis1), fill_value=readout_noise, dtype=float)
         self.dark = np.full(shape=(naxis2, naxis1), fill_value=dark, dtype=float)
         self.flatfield = np.full(shape=(naxis2, naxis1), fill_value=flatfield, dtype=float)
-        self.data_model = np.full(shape=(naxis2, naxis1), fill_value=0, dtype=float)
+        self.data_model = np.full(shape=(naxis2, naxis1), fill_value=data_model, dtype=float)
         self.result = None
         self.naxis1 = naxis1
         self.naxis2 = naxis2
 
-    def set_constant(self, parameter=None, value=np.nan, region=None):
+    def set_constant(self, parameter, value, region=None):
+        """
+        Set the value of a particular parameter to a constant value.
+
+        The parameter can be any of VALID_PARAMETERS. The constant
+        value can be employed for all pixels or in a specific region.
+
+        Parameters
+        ----------
+        parameter : str
+            CCD parameter to set. It must be any of VALID_PARAMETERS.
+        value : float
+            Constant value for the parameter.
+        region : SliceRegion2D
+            Region in which to define de parameter. When it is None, it
+            indicates that 'value' should be set for all pixels.
+        """
         full_frame = SliceRegion2D(np.s_[1:self.naxis1, 1:self.naxis2], mode='fits')
         # protections
         if parameter.lower() not in VALID_PARAMETERS:
@@ -62,7 +164,25 @@ class SimulateCCDExposure:
         except AttributeError:
             raise RuntimeError(f"The parameter {parameter=} must be an attribute of SimulateCCDExposure")
 
-    def set_array2d(self, parameter=None, array2d=None, region=None):
+    def set_array2d(self, parameter, array2d, region=None):
+        """
+        Set the value of a particular parameter to a 2D array.
+
+        The parameter can be any of VALID_PARAMETERS. The 2D array
+        may correspond to the whole simulated array or to a specific
+        region.
+
+        Parameters
+        ----------
+        parameter : str
+            CCD parameter to set. It must be any of VALID_PARAMETERS.
+        array2d : numpy.ndarray
+            Array of values to be used to define 'parameter'.
+        region : SliceRegion2D
+            Region in which to define de parameter. When it is None, it
+            indicates that 'array2d' has the same shape as the simulated
+            image.
+        """
         full_frame = SliceRegion2D(np.s_[1:self.naxis1, 1:self.naxis2], mode='fits')
         # protections
         if parameter.lower() not in VALID_PARAMETERS:
@@ -90,7 +210,32 @@ class SimulateCCDExposure:
         except AttributeError:
             raise RuntimeError(f"The parameter {parameter=} must be an attribute of SimulateCCDExposure")
 
-    def run(self, seed=None, imgtype=None, method="Poisson"):
+    def run(self, imgtype, seed=None, method="Poisson"):
+        """
+        Execute the generation of the simulated CCD exposure.
+
+        This function generates an image of type 'imgtype', which must
+        be one of VALID_IMGTYPES. The signal can be generated using
+        either method: Poisson or Gaussian. It is possible to set the
+        seed in order to initialize the random number generator.
+
+        Parameters
+        ----------
+        imgtype : str
+            Type of image to be generated. It must be one of
+            VALID_IMGTYPES.
+        seed : int, optional
+            Seed for the random number generator. The default is None.
+        method : str
+            Method to generate the simulated data. It can be either
+            'Poisson' or 'Gaussian'.
+
+        Returns
+        -------
+        result : numpy.ndarray
+            Simulated image of type 'imgtype'. This array is also stored
+            as an attribute of SimulateCCDExposure.
+        """
         # protections
         if imgtype.lower() not in VALID_IMGTYPES:
             raise ValueError(f'Unexpected {imgtype=}')
