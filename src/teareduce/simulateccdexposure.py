@@ -8,7 +8,6 @@
 #
 
 # ToDo: use astropy units?
-# ToDo: hacer que SliceRegionXD no necesite utilizar np.s_() sino una cadena de texto?
 
 import numpy as np
 
@@ -145,6 +144,28 @@ class SimulateCCDExposure:
         self.naxis1 = naxis1
         self.naxis2 = naxis2
 
+    def _precheck_set_function(self, parameter, region):
+        """Auxiliary function to check function inputs.
+
+        This function checks whether the parameters provided to
+        the functions in charge of defining pixels values are correct.
+
+        """
+        full_frame = SliceRegion2D(f"[1:{self.naxis1}, 1:{self.naxis2}]", mode='fits')
+        # protections
+        if parameter not in VALID_PARAMETERS:
+            raise RuntimeError(f"Invalid {parameter=}\n{VALID_PARAMETERS=}")
+        if region is None:
+            region = full_frame
+        else:
+            if isinstance(region, SliceRegion2D):
+                # check region is within NAXIS1, NAXIS2 rectangle
+                if not region.within(full_frame):
+                    raise RuntimeError(f"Region {region=} outside of frame {full_frame=}")
+            else:
+                raise TypeError(f"The parameter {region=} must be an instance of SliceRegion2D")
+        return region
+
     def set_constant(self, parameter, value, region=None):
         """
         Set the value of a particular parameter to a constant value.
@@ -162,19 +183,9 @@ class SimulateCCDExposure:
             Region in which to define de parameter. When it is None, it
             indicates that 'value' should be set for all pixels.
         """
-        full_frame = SliceRegion2D(np.s_[1:self.naxis1, 1:self.naxis2], mode='fits')
         # protections
-        if parameter.lower() not in VALID_PARAMETERS:
-            raise RuntimeError(f"Invalid {parameter=}\n{VALID_PARAMETERS=}")
-        if region is None:
-            region = full_frame
-        else:
-            if isinstance(region, SliceRegion2D):
-                # check region is within NAXIS1, NAXIS2 rectangle
-                if not region.within(full_frame):
-                    raise RuntimeError(f"Region {region=} outside of frame {full_frame=}")
-            else:
-                raise TypeError(f"The parameter {region=} must be an instance of SliceRegion2D")
+        parameter = parameter.lower()
+        region = self._precheck_set_function(parameter, region)
         if not isinstance(value, (int, float)) or isinstance(value, np.ndarray):
             raise TypeError("The parameter 'value' must be a single number")
 
@@ -203,22 +214,11 @@ class SimulateCCDExposure:
             indicates that 'array2d' has the same shape as the simulated
             image.
         """
-        full_frame = SliceRegion2D(np.s_[1:self.naxis1, 1:self.naxis2], mode='fits')
         # protections
-        if parameter.lower() not in VALID_PARAMETERS:
-            raise RuntimeError(f"Invalid {parameter=}\n{VALID_PARAMETERS=}")
-        if region is None:
-            region = full_frame
-        else:
-            if isinstance(region, SliceRegion2D):
-                # check region is within NAXIS1, NAXIS2 rectangle
-                if not region.within(full_frame):
-                    raise RuntimeError(f"Region {region=} outside of frame {full_frame=}")
-            else:
-                raise TypeError(f"The parameter {region=} must be an instance of SliceRegion2D")
+        parameter = parameter.lower()
+        region = self._precheck_set_function(parameter, region)
         if not isinstance(array2d, np.ndarray):
             raise TypeError("The parameter 'array2d' must be a numpy array")
-
         naxis2_, naxis1_ = array2d.shape
         if self.naxis1 != naxis1_ or self.naxis2 != naxis2_:
             print(f"{array2d.shape=}")

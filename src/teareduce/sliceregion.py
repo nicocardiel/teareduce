@@ -107,8 +107,8 @@ class SliceRegion1D:
 
         Parameters
         ----------
-        other : slice
-            SliceRegion1D instance for which we want to determine
+        other : SliceRegion1D
+            New instance for which we want to determine
             if it is within the parent SliceRegion1D instance.
 
         Returns
@@ -237,8 +237,8 @@ class SliceRegion2D:
 
         Parameters
         ----------
-        other : slice
-            SliceRegion2D instance for which we want to determine
+        other : SliceRegion2D
+            New instance for which we want to determine
             if it is within the parent SliceRegion2D instance.
 
         Returns
