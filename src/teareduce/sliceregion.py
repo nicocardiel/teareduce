@@ -54,9 +54,7 @@ class SliceRegion1D:
                 raise ValueError(f"Invalid {region!r}. It must match '[num:num]'")
             # extract numbers and generate np.s_[num:num]
             numbers_str = re.findall(r'\d+', region)
-            print(f'{numbers_str=}')
             numbers_int = list(map(int, numbers_str))
-            print(f'{numbers_int=}')
             region = np.s_[numbers_int[0]:numbers_int[1]]
 
         if isinstance(region, slice):
@@ -177,9 +175,7 @@ class SliceRegion2D:
                 raise ValueError(f"Invalid {region!r}. It must match '[num:num, num:num]'")
             # extract numbers and generate np.s_[num:num, num:num]
             numbers_str = re.findall(r'\d+', region)
-            print(f'{numbers_str=}')
             numbers_int = list(map(int, numbers_str))
-            print(f'{numbers_int=}')
             region = np.s_[numbers_int[0]:numbers_int[1], numbers_int[2]:numbers_int[3]]
 
         if isinstance(region, tuple) and len(region) == 2:

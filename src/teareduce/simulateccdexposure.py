@@ -35,8 +35,8 @@ class SimulateCCDExposure:
         Readout noise (ADU).
     dark : numpy.ndarray
         Total dark current (ADU). This number should not be
-        the dark current rate (ADU/s), i.e., the provided number must
-        correspond to the total dark current, since the exposure
+        the dark current rate (ADU/s). The provided number must
+        correspond to the total dark current since the exposure
         time is not defined.
     flatfield : numpy.ndarray
         Pixel to pixel sensitivity.
@@ -101,8 +101,8 @@ class SimulateCCDExposure:
             Readout noise (ADU).
         dark : float
             Total dark current (ADU). This number should not be the
-            dark current rate (ADU/s), i.e., the provided number must
-            be the total dark current, since the exposure time is not
+            dark current rate (ADU/s). The provided number must
+            be the total dark current since the exposure time is not
             defined.
         flatfield : float
             Pixel to pixel sensitivity.
