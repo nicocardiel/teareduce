@@ -114,7 +114,27 @@ class SimulateCCDExposure:
         # protections
         if naxis1 is None or naxis2 is None:
             raise RuntimeError("Basic image parameters (naxis1, naxis2) must be provided")
+        if not isinstance(naxis1, int):
+            raise ValueError(f"{naxis1=} must be an integer")
+        if not isinstance(naxis2, int):
+            raise ValueError(f"{naxis2=} must be an integer")
+        if naxis1 < 0 or naxis2 < 0:
+            raise ValueError(f"Both {naxis1=} and {naxis2=} must be positive")
 
+        # check the parameters are either np.nan or a number (integer or float)
+        parameters = {
+            "bias": bias,
+            "gain": gain,
+            "readout_noise": readout_noise,
+            "dark": dark,
+            "flatfield": flatfield,
+            "data_model": data_model
+        }
+        for parameter, value in parameters.items():
+            if not np.isnan(value) and not isinstance(value, (int, float)):
+                raise ValueError(f"{parameter}={value} must be numeric or np.nan")
+
+        # define the CCD parameters using a constant value for the full aray
         self.bias = np.full(shape=(naxis2, naxis1), fill_value=bias, dtype=float)
         self.gain = np.full(shape=(naxis2, naxis1), fill_value=gain, dtype=float)
         self.readout_noise = np.full(shape=(naxis2, naxis1), fill_value=readout_noise, dtype=float)
