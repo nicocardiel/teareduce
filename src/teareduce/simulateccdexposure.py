@@ -8,6 +8,7 @@
 #
 
 # ToDo: use astropy units?
+# ToDo: allow to define SimulateCCDExposure from numpy arrays
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,10 +34,18 @@ class SimulatedCCDResult:
     imgtype : str
         Type of image to be generated. It must be one of
         VALID_IMAGE_TYPES.
-    parameters : dict
+    method : str
+        Method used to generate the simulated CCD image.
+        It must be one of VALID_METHODS.
+    parameters : dict or None
         CCD parameters employed during the simulation procedure.
+
+    Methods
+    -------
+    imshow(**kwargs)
+        Display simulated CCD image using tea.imshow().
     """
-    def __init__(self, data, imgtype, parameters):
+    def __init__(self, data, imgtype, method, parameters):
         """
         Initialize the class attributes.
 
@@ -47,17 +56,37 @@ class SimulatedCCDResult:
         imgtype : str
             Type of image to be generated. It must be one of
             VALID_IMAGE_TYPES.
+        method : str
+            Method used to generate the simulated CCD image.
+            It must be one of VALID_METHODS.
         parameters : dict
             CCD parameters employed during the simulation procedure.
         """
         self.data = data
         self.imgtype = imgtype
+        self.method = method
         self.parameters = parameters
 
-    def plot(self):
-        # ToDo: pasar diccionario de parametros para imshow
+    def __repr__(self):
+        output = f'{self.__class__.__name__}(\n'
+        output += f'    data={self.data!r},\n'
+        output += f'    imgtype={self.imgtype!r},\n'
+        output += f'    method={self.method!r},\n'
+        output += f'    parameters={self.parameters!r}\n'
+        output += ')'
+        return output
+
+    def imshow(self, **kwargs):
+        """Plot simulated CCD image
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Additional keyword arguments to be passed to
+            teareduce.imshow().
+        """
         fig, ax = plt.subplots()
-        imshow(fig, ax, self.data)
+        imshow(fig, ax, self.data, **kwargs)
         plt.tight_layout()
         plt.show()
 
@@ -186,6 +215,15 @@ class SimulateCCDExposure:
         self.naxis1 = naxis1
         self.naxis2 = naxis2
 
+    def __repr__(self):
+        output = f'{self.__class__.__name__}(\n'
+        output += f'    naxis1={self.naxis1},\n'
+        output += f'    naxis2={self.naxis2},\n'
+        for parameter in VALID_PARAMETERS:
+            output += f'    {parameter}={getattr(self, parameter)!r},\n'
+        output += ')'
+        return output
+
     def _precheck_set_function(self, parameter, region):
         """Auxiliary function to check function inputs.
 
@@ -272,7 +310,7 @@ class SimulateCCDExposure:
         except AttributeError:
             raise RuntimeError(f"The parameter {parameter=} must be an attribute of SimulateCCDExposure")
 
-    def run(self, imgtype, method="Poisson", seed=None):
+    def run(self, imgtype, method="Poisson", seed=None, return_all=False):
         """
         Execute the generation of the simulated CCD exposure.
 
@@ -291,12 +329,17 @@ class SimulateCCDExposure:
             VALID_METHODS.
         seed : int, optional
             Seed for the random number generator. The default is None.
+        return_all : bool, optional
+            If True, return all the parameters in VALID_PARAMETERS
+            in the 'parameters' attribute of the returned result.
+            The default is False.
 
         Returns
         -------
         result : SimulatedCCDResult
             Instance of SimulatedCCDResult to store the simulated image
-            and its associated metadata.
+            and the associated parameters employed to define how to
+            generate the simulated CCD exposure.
         """
         # protections
         imgtype = imgtype.lower()
@@ -314,13 +357,17 @@ class SimulateCCDExposure:
 
         rng = np.random.default_rng(seed)
 
-        parameters = dict()
-        for attr in user_defined_attributes:
-            parameters[attr] = getattr(self, attr)
+        if return_all:
+            parameters = dict()
+            for attr in VALID_PARAMETERS:
+                parameters[attr] = getattr(self, attr)
+        else:
+            parameters = None
 
         result = SimulatedCCDResult(
             data=None,
             imgtype=imgtype,
+            method=method,
             parameters=parameters
         )
 
