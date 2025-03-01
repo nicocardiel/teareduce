@@ -8,11 +8,10 @@
 #
 from astropy.units import Unit
 from astropy.units import Quantity
-import matplotlib.pyplot as plt
 import numpy as np
 
 from .sliceregion import SliceRegion2D
-from .imshow import imshow
+from .imshow import imshowme
 
 VALID_PARAMETERS = ["bias", "gain", "readout_noise", "dark", "flatfield", "data_model"]
 VALID_IMAGE_TYPES = ["bias", "dark", "object"]
@@ -81,19 +80,18 @@ class SimulatedCCDResult:
         output += ')'
         return output
 
-    def imshow(self, **kwargs):
+    def imshowme(self, **kwargs):
         """Plot simulated CCD image
+
+        This function simplys call teareduce.imshowme()
 
         Parameters
         ----------
         **kwargs : dict
             Additional keyword arguments to be passed to
-            teareduce.imshow().
+            teareduce.imshowme().
         """
-        fig, ax = plt.subplots()
-        imshow(fig, ax, self.data, **kwargs)
-        plt.tight_layout()
-        plt.show()
+        return imshowme(self.data, **kwargs)
 
 
 class SimulateCCDExposure:

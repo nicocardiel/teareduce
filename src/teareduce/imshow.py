@@ -8,11 +8,37 @@
 #
 
 import astropy.units as u
+from astropy.units import Unit
+from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
+def imshowme(data, **kwargs):
+    """Simple execution of teareduce.imshow.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        2D array to be displayed
+    return_objects : bool
+        If True, returns Figure, Axes and AxesImage objects.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        Instance of Figure.
+    ax : matplotlib.axes.Axes
+        Instance of Axes.
+    img : matplotlib AxesImage
+        Instance returned by ax.imshow()
+    """
+    fig, ax = plt.subplots()
+    img = imshow(fig=fig, ax=ax, data=data, **kwargs)
+    return fig, ax, img
+
+
 def imshow(fig=None, ax=None, data=None,
-           crpix1=1, crval1=None, cdelt1=None, cunit1=None, cunitx=u.Angstrom,
+           crpix1=1, crval1=None, cdelt1=None, cunit1=None, cunitx=Unit('Angstrom'),
            xlabel=None, ylabel=None, title=None,
            colorbar=True, cblabel='Number of counts',
            **kwargs):
@@ -25,9 +51,9 @@ def imshow(fig=None, ax=None, data=None,
     Parameters
     ----------
     fig : matplotlib.figure.Figure
-        Figure object.
+        Instance of Figure.
     ax : matplotlib.axes.Axes
-        Axes object.
+        Instance of Axes.
     data : numpy array
         2D array to be displayed.
     crpix1 : astropy.units.Quantity
@@ -77,8 +103,9 @@ def imshow(fig=None, ax=None, data=None,
         naxis2, naxis1 = data.shape
         xmin, xmax = -0.5, naxis1 - 0.5
         ymin, ymax = -0.5, naxis2 - 0.5
-        xminwv = crval1 + (xmin * u.pixel - crpix1 + 1 * u.pixel) * cdelt1
-        xmaxwv = crval1 + (xmax * u.pixel - crpix1 + 1 * u.pixel) * cdelt1
+        u_pixel = Unit('pixel')
+        xminwv = crval1 + (xmin * u_pixel - crpix1 + 1 * u_pixel) * cdelt1
+        xmaxwv = crval1 + (xmax * u_pixel - crpix1 + 1 * u_pixel) * cdelt1
         extent = [xminwv.to(cunitx).value, xmaxwv.to(cunitx).value, ymin, ymax]
         xlabel = f'Wavelength ({cunitx})'
         aspect = 'auto'
@@ -114,3 +141,5 @@ def imshow(fig=None, ax=None, data=None,
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
         fig.colorbar(img, cax=cax, label=cblabel)
+
+    return img
