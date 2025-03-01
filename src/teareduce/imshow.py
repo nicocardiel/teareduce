@@ -7,7 +7,6 @@
 # License-Filename: LICENSE.txt
 #
 
-import astropy.units as u
 from astropy.units import Unit
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -20,8 +19,6 @@ def imshowme(data, **kwargs):
     ----------
     data : numpy.ndarray
         2D array to be displayed
-    return_objects : bool
-        If True, returns Figure, Axes and AxesImage objects.
 
     Returns
     -------
