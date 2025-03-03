@@ -13,13 +13,11 @@ import numpy as np
 from .sliceregion import SliceRegion2D
 from .imshow import imshowme
 
-VALID_BITPIX = [16]
+VALID_BITPIX = [8, 16, 32, 64]
 VALID_PARAMETERS = ["bias", "gain", "readout_noise", "dark", "flatfield", "data_model"]
 VALID_IMAGE_TYPES = ["bias", "dark", "object"]
 VALID_METHODS = ["poisson", "gaussian"]
 
-
-# ToDo: implement bitpix=16
 
 class ImageParameter():
     """Auxiliary class to hold image parameters.
@@ -91,7 +89,7 @@ class SimulatedCCDResult:
         Display simulated CCD image using tea.imshow().
     """
 
-    def __init__(self, data, unit, imgtype, method, parameters):
+    def __init__(self, data, unit, bitpix, imgtype, method, parameters):
         """
         Initialize the class attributes.
 
@@ -101,6 +99,8 @@ class SimulatedCCDResult:
             Data array with the result of the simulated CCD exposure.
         unit : astropy.units.Unit
             Units of the simulated CCD exposure.
+        bitpix : int
+            BITPIX of the simulated CCD exposure.
         imgtype : str
             Type of image to be generated. It must be one of
             VALID_IMAGE_TYPES.
@@ -112,6 +112,7 @@ class SimulatedCCDResult:
         """
         self.data = data
         self.unit = unit
+        self.bitpix = bitpix
         self.imgtype = imgtype
         self.method = method
         self.parameters = parameters
@@ -120,6 +121,7 @@ class SimulatedCCDResult:
         output = f'{self.__class__.__name__}(\n'
         output += f'    data={self.data!r},\n'
         output += f'    unit={self.unit!r},\n'
+        output += f'    bitpix={self.bitpix!r},\n'
         output += f'    imgtype={self.imgtype!r},\n'
         output += f'    method={self.method!r},\n'
         output += f'    parameters={self.parameters!r}\n'
@@ -333,7 +335,7 @@ class SimulateCCDExposure:
         output = f'{self.__class__.__name__}(\n'
         output += f'    naxis1={self.naxis1},\n'
         output += f'    naxis2={self.naxis2},\n'
-        output += f'    bitpix={self.naxis2},\n'
+        output += f'    bitpix={self.bitpix},\n'
         for parameter in VALID_PARAMETERS:
             output += f'    {parameter}={getattr(self, parameter)!r},\n'
         output += ')'
@@ -515,6 +517,7 @@ class SimulateCCDExposure:
         result = SimulatedCCDResult(
             data=None,
             unit=Unit('adu'),
+            bitpix=self.bitpix,
             imgtype=imgtype,
             method=method,
             parameters=parameters
@@ -563,9 +566,15 @@ class SimulateCCDExposure:
         else:
             raise RuntimeError(f"Unknown method: {method}")
 
+        # round to integer
+        image2d = np.round(image2d)
         # saturated pixels
-        if self.bitpix == 16:
-            image2d[self.data_model.value >= 65535] = 65535
+        if self.bitpix in [8, 16, 32, 64]:
+            saturation = 2**self.bitpix - 1
+            image2d[self.data_model.value >= saturation] = saturation
+            image2d[image2d >= saturation] = saturation
+        else:
+            raise ValueError(f"The parameter 'bitpix' must be one of {VALID_BITPIX}")
 
         result.data = image2d
         return result
