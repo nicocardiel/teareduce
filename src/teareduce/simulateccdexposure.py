@@ -13,9 +13,55 @@ import numpy as np
 from .sliceregion import SliceRegion2D
 from .imshow import imshowme
 
+VALID_BITPIX = [16]
 VALID_PARAMETERS = ["bias", "gain", "readout_noise", "dark", "flatfield", "data_model"]
 VALID_IMAGE_TYPES = ["bias", "dark", "object"]
 VALID_METHODS = ["poisson", "gaussian"]
+
+
+# ToDo: implement bitpix=16
+
+class ImageParameter():
+    """Auxiliary class to hold image parameters.
+
+    Attributes
+    ----------
+    name : str
+        Parameter name.
+    value : int or float
+        Value of the parameter (without units).
+    unit : astropy.units.Unit or None
+        Expected unit of the parameter.
+    dtype : type
+        Expected type of the parameter value.
+    """
+    def __init__(self, name, quantity, expected_unit, expected_type):
+        """Initialize the class attributes.
+
+        Parameters
+        ----------
+        name : str
+            Parameter name.
+        quantity : astropy.units.Quantity or float
+            Parameter value (with units when required)
+        expected_unit : astropy.units.Unit or None
+            Expected unit of the parameter.
+        expected_type : type
+            Expected type of the parameter value.
+        """
+        if expected_unit is not None:
+            if not isinstance(quantity, Quantity):
+                raise TypeError(f"{name} must be a Quantity: {expected_unit=}")
+            if quantity.unit != expected_unit:
+                raise ValueError(f"{quantity.unit=} != {expected_unit=}")
+            self.value = quantity.value
+        else:
+            if isinstance(quantity, Quantity):
+                raise TypeError(f"{quantity=} should not be a Quantity but a float or a numpy array")
+            self.value = quantity
+        self.name = name
+        self.unit = expected_unit
+        self.dtype = expected_type
 
 
 class SimulatedCCDResult:
@@ -102,12 +148,17 @@ class SimulateCCDExposure:
     A data model can also be employed to simulate more realising
     CCD exposures.
 
+    The saturated pixels in 'data_model' are returned as 2**bitpix - 1
+    in the simulated image (for instance, 65535 when bitpix=16).
+
     Attributes
     ----------
     naxis1 : int
         NAXIS1 value.
     naxis2 : int
         NAXIS2 value.
+    bitpix : int
+        BITPIX value.
     bias : Quantity
         Numpy array with the detector bias level (ADU).
     gain : Quantity
@@ -148,6 +199,7 @@ class SimulateCCDExposure:
     def __init__(self,
                  naxis1=None,
                  naxis2=None,
+                 bitpix=16,
                  bias=np.nan * Unit('adu'),
                  gain=np.nan * Unit('electron') / Unit('adu'),
                  readout_noise=np.nan * Unit('adu'),
@@ -172,6 +224,8 @@ class SimulateCCDExposure:
             NAXIS1 value.
         naxis2 : int
             NAXIS2 value.
+        bitpix : int
+            BITPIX value.
         bias : Quantity
             Detector bias level (ADU).
         gain : Quantity
@@ -197,10 +251,15 @@ class SimulateCCDExposure:
             raise ValueError(f"{naxis2=} must be an integer")
         if naxis1 < 0 or naxis2 < 0:
             raise ValueError(f"Both {naxis1=} and {naxis2=} must be positive")
+        if not isinstance(bitpix, int):
+            raise ValueError(f"{bitpix=} must be an integer")
+        if bitpix not in VALID_BITPIX:
+            raise ValueError(f"BITPIX {bitpix} must be {VALID_BITPIX=}")
 
         # image shape
         self.naxis1 = naxis1
         self.naxis2 = naxis2
+        self.bitpix = bitpix
         self.bias = None
         self.gain = None
         self.readout_noise = None
@@ -209,55 +268,72 @@ class SimulateCCDExposure:
         self.data_model = None
 
         # check that each input parameter is a Quantity with the expected units,
-        # and that the quantity.value is either a single number (integer or float)
-        # or a numpy.array with the expected shape
-        parameters = {
-            "bias": bias,
-            "gain": gain,
-            "readout_noise": readout_noise,
-            "dark": dark,
-            "flatfield": flatfield,
-            "data_model": data_model
-        }
-        for parameter, quantity in parameters.items():
-            if parameter == "gain":
-                expected_units = Unit('electron') / Unit('adu')
-            elif parameter == "flatfield":
-                expected_units = None
-            else:
-                expected_units = Unit('adu')
-            if expected_units is not None:
-                if not isinstance(quantity, Quantity):
-                    raise TypeError(f"{parameter} must be a Quantity: {expected_units=}")
-                if quantity.unit != expected_units:
-                    raise ValueError(f"{quantity.unit=} != {expected_units=}")
-                value = quantity.value
-            else:
-                if isinstance(quantity, Quantity):
-                    raise ValueError(f"'{parameter}' should not be a Quantity")
-                value = quantity
-            if isinstance(value, (int, float)):
+        parameter_list = [
+            ImageParameter(
+                name="bias",
+                quantity=bias,
+                expected_unit=Unit('adu'),
+                expected_type=int),
+            ImageParameter(
+                name="gain",
+                quantity=gain,
+                expected_unit=Unit('electron') / Unit('adu'),
+                expected_type=float),
+            ImageParameter(
+                name="readout_noise",
+                quantity=readout_noise,
+                expected_unit=Unit('adu'),
+                expected_type=float),
+            ImageParameter(
+                name="dark",
+                quantity=dark,
+                expected_unit=Unit('adu'),
+                expected_type=float),
+            ImageParameter(
+                name="flatfield",
+                quantity=flatfield,
+                expected_unit=None,
+                expected_type=float),
+            ImageParameter(
+                name="data_model",
+                quantity=data_model,
+                expected_unit=Unit('adu'),
+                expected_type=float),
+        ]
+        # check that the parameter values are defined either as a
+        # single number (integer or float) or as a numpy.array with
+        # the expected shape
+        for p in parameter_list:
+            if isinstance(p.value, (int, float)):
                 # constant value for the full array
-                if parameter == "flatfield":
-                    setattr(self, parameter, np.full(shape=(naxis2, naxis1), fill_value=value))
+                if p.unit is None:
+                    setattr(self, p.name, np.full(shape=(naxis2, naxis1), fill_value=p.value))
                 else:
-                    setattr(self, parameter, np.full(shape=(naxis2, naxis1), fill_value=value) * expected_units)
-            elif isinstance(value, np.ndarray):
-                naxis2_, naxis1_ = value.shape
+                    setattr(self, p.name, np.full(shape=(naxis2, naxis1), fill_value=p.value) * p.unit)
+            elif isinstance(p.value, np.ndarray):
+                if p.value.ndim != 2:
+                    raise ValueError(f"Unexpected number of dimensions {p.value.ndim} for {p.name}")
+                if not isinstance(p.value[0, 0], (int, float)):
+                    raise ValueError(f"Unexpected value {p.value[0, 0]} for {p.name}: it should be an int or float")
+                naxis2_, naxis1_ = p.value.shape
                 if naxis1_ == naxis1 and naxis2_ == naxis2:
                     # array of the expected shape
-                    setattr(self, parameter, quantity)
+                    if p.unit is None:
+                        setattr(self, p.name, p.value)
+                    else:
+                        setattr(self, p.name, p.value * p.unit)
                 else:
-                    msg = (f"Parameter {parameter}: NAXIS1={naxis1_}, NAXIS2={naxis2_} "
+                    msg = (f"Parameter {p.name}: NAXIS1={naxis1_}, NAXIS2={naxis2_} "
                            f"are not compatible with expected values NAXIS1={naxis1}, NAXIS2={naxis2}")
                     raise ValueError(msg)
             else:
-                raise ValueError(f"Unexpected {parameter=} with {type(value)=}")
+                raise ValueError(f"Unexpected {p.name=} with {type(p.value)=}")
 
     def __repr__(self):
         output = f'{self.__class__.__name__}(\n'
         output += f'    naxis1={self.naxis1},\n'
         output += f'    naxis2={self.naxis2},\n'
+        output += f'    bitpix={self.naxis2},\n'
         for parameter in VALID_PARAMETERS:
             output += f'    {parameter}={getattr(self, parameter)!r},\n'
         output += ')'
@@ -486,6 +562,10 @@ class SimulateCCDExposure:
             )
         else:
             raise RuntimeError(f"Unknown method: {method}")
+
+        # saturated pixels
+        if self.bitpix == 16:
+            image2d[self.data_model.value >= 65535] = 65535
 
         result.data = image2d
         return result
