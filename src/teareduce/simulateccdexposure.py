@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: GPL-3.0+
 # License-Filename: LICENSE.txt
 #
+from astropy.io import fits
 from astropy.units import Unit
 from astropy.units import Quantity
 import numpy as np
@@ -13,13 +14,13 @@ import numpy as np
 from .sliceregion import SliceRegion2D
 from .imshow import imshowme
 
-VALID_BITPIX = [8, 16, 32, 64]
+VALID_BITPIX = {8: np.uint8, 16: np.uint16, 32: np.uint32, 64: np.uint64}
 VALID_PARAMETERS = ["bias", "gain", "readout_noise", "dark", "flatfield", "data_model"]
 VALID_IMAGE_TYPES = ["bias", "dark", "object"]
 VALID_METHODS = ["poisson", "gaussian"]
 
 
-class ImageParameter():
+class ImageParameter:
     """Auxiliary class to hold image parameters.
 
     Attributes
@@ -80,8 +81,9 @@ class SimulatedCCDResult:
     method : str
         Method used to generate the simulated CCD image.
         It must be one of VALID_METHODS.
-    parameters : dict or None
-        CCD parameters employed during the simulation procedure.
+    origin : SimulateCCDExposure
+        Instance of SimulateCCDExposure employed to generate
+        the simulated CCD image.
 
     Methods
     -------
@@ -89,7 +91,7 @@ class SimulatedCCDResult:
         Display simulated CCD image using tea.imshow().
     """
 
-    def __init__(self, data, unit, bitpix, imgtype, method, parameters):
+    def __init__(self, data, unit, imgtype, method, origin):
         """
         Initialize the class attributes.
 
@@ -99,32 +101,29 @@ class SimulatedCCDResult:
             Data array with the result of the simulated CCD exposure.
         unit : astropy.units.Unit
             Units of the simulated CCD exposure.
-        bitpix : int
-            BITPIX of the simulated CCD exposure.
         imgtype : str
             Type of image to be generated. It must be one of
             VALID_IMAGE_TYPES.
         method : str
             Method used to generate the simulated CCD image.
             It must be one of VALID_METHODS.
-        parameters : dict or None
-            CCD parameters employed during the simulation procedure.
+        origin : SimulateCCDExposure
+            Instance of SimulateCCDExposure employed to generate
+            the simulated CCD image.
         """
         self.data = data
         self.unit = unit
-        self.bitpix = bitpix
         self.imgtype = imgtype
         self.method = method
-        self.parameters = parameters
+        self.origin = origin
 
     def __repr__(self):
         output = f'{self.__class__.__name__}(\n'
         output += f'    data={self.data!r},\n'
         output += f'    unit={self.unit!r},\n'
-        output += f'    bitpix={self.bitpix!r},\n'
         output += f'    imgtype={self.imgtype!r},\n'
         output += f'    method={self.method!r},\n'
-        output += f'    parameters={self.parameters!r}\n'
+        output += f'    origin={self.origin!r},\n'
         output += ')'
         return output
 
@@ -140,6 +139,50 @@ class SimulatedCCDResult:
             teareduce.imshowme().
         """
         return imshowme(self.data, **kwargs)
+
+    def writeto(self, filename, overwrite=False, save_params=False):
+        """Write simulated result to FITS file.
+
+        Parameters
+        ----------
+        filename : path-like or file-like
+            File to write to.
+        overwrite : bool, optional
+            If True, overwrite the output file if it exists. Raises an
+            OSError if False and the output file exists.
+        save_params : bool, optional
+            If True, save the simulated CCD parameters to a file.
+        """
+
+        hdu_data = fits.PrimaryHDU(self.data)
+        hdu_data.header["UNIT"] = str(self.unit)
+        hdu_data.header["IMGTYPE"] = self.imgtype
+        hdu_data.header["METHOD"] = self.method
+
+        if save_params:
+            hdu_bias = fits.ImageHDU(self.origin.bias.data, name='BIAS')
+            hdu_bias.header["UNIT"] = str(self.origin.bias.unit)
+
+            hdu_gain = fits.ImageHDU(self.origin.gain.data, name='GAIN')
+            hdu_gain.header["UNIT"] = str(self.origin.gain.unit)
+
+            hdu_readout_noise = fits.ImageHDU(self.origin.readout_noise.data, name='RNOISE')
+            hdu_readout_noise.header["UNIT"] = str(self.origin.readout_noise.unit)
+
+            hdu_dark = fits.ImageHDU(self.origin.dark.data, name='DARK')
+            hdu_dark.header["UNIT"] = str(self.origin.dark.unit)
+
+            hdu_flatfield = fits.ImageHDU(self.origin.flatfield.data, name='FLATFIELD')
+
+            hdu_data_model = fits.ImageHDU(self.origin.data_model.data, name='DATAMODEL')
+            hdu_data_model.header["UNIT"] = str(self.origin.data_model.unit)
+
+            hdul = fits.HDUList([hdu_data, hdu_bias, hdu_gain, hdu_readout_noise,
+                                 hdu_dark, hdu_flatfield, hdu_data_model])
+        else:
+            hdul = fits.HDUList([hdu_data])
+
+        hdul.writeto(filename, overwrite=overwrite)
 
 
 class SimulateCCDExposure:
@@ -201,7 +244,7 @@ class SimulateCCDExposure:
     def __init__(self,
                  naxis1=None,
                  naxis2=None,
-                 bitpix=16,
+                 bitpix=None,
                  bias=np.nan * Unit('adu'),
                  gain=np.nan * Unit('electron') / Unit('adu'),
                  readout_noise=np.nan * Unit('adu'),
@@ -253,10 +296,12 @@ class SimulateCCDExposure:
             raise ValueError(f"{naxis2=} must be an integer")
         if naxis1 < 0 or naxis2 < 0:
             raise ValueError(f"Both {naxis1=} and {naxis2=} must be positive")
+        if bitpix is None:
+            raise ValueError(f"{bitpix=} must be provided")
         if not isinstance(bitpix, int):
             raise ValueError(f"{bitpix=} must be an integer")
-        if bitpix not in VALID_BITPIX:
-            raise ValueError(f"BITPIX {bitpix} must be {VALID_BITPIX=}")
+        if bitpix not in VALID_BITPIX.keys():
+            raise ValueError(f"BITPIX {bitpix} must be {VALID_BITPIX.keys()=}")
 
         # image shape
         self.naxis1 = naxis1
@@ -517,10 +562,9 @@ class SimulateCCDExposure:
         result = SimulatedCCDResult(
             data=None,
             unit=Unit('adu'),
-            bitpix=self.bitpix,
             imgtype=imgtype,
             method=method,
-            parameters=parameters
+            origin=self
         )
 
         # BIAS and Readout Noise
@@ -574,7 +618,7 @@ class SimulateCCDExposure:
             image2d[self.data_model.value >= saturation] = saturation
             image2d[image2d >= saturation] = saturation
         else:
-            raise ValueError(f"The parameter 'bitpix' must be one of {VALID_BITPIX}")
+            raise ValueError(f"The parameter 'bitpix' must be one of {VALID_BITPIX.keys()}")
 
-        result.data = image2d
+        result.data = image2d.astype(VALID_BITPIX[self.bitpix])
         return result
