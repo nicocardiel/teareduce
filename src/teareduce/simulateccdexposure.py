@@ -354,7 +354,7 @@ class SimulateCCDExposure:
             if isinstance(p.value, (int, float)):
                 # constant value for the full array
                 if p.unit is None:
-                    setattr(self, p.name, np.full(shape=(naxis2, naxis1), fill_value=p.value))
+                    setattr(self, p.name, np.full(shape=(naxis2, naxis1), fill_value=float(p.value)))
                 else:
                     setattr(self, p.name, np.full(shape=(naxis2, naxis1), fill_value=p.value) * p.unit)
             elif isinstance(p.value, np.ndarray):
@@ -466,7 +466,10 @@ class SimulateCCDExposure:
 
         # set parameter
         try:
-            getattr(self, parameter)[region.python] = constant
+            if isinstance(constant, Quantity):
+                getattr(self, parameter)[region.python] = constant
+            else:
+                getattr(self, parameter)[region.python] = float(constant)
         except AttributeError:
             raise RuntimeError(f"Unexpected parameter '{parameter}' for SimulateCCDExposure")
 
@@ -493,7 +496,7 @@ class SimulateCCDExposure:
         parameter = parameter.lower()
         region = self._precheck_set_function(parameter, array2d, region)
         if parameter == "flatfield":
-            value = array2d
+            value = array2d.astype(float)
         else:
             value = array2d.value
 
