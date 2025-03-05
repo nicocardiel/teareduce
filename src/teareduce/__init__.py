@@ -25,6 +25,7 @@ from .statsummary import ifc_statsummary, statsummary
 from .simulateccdexposure import SimulateCCDExposure
 from .version import version
 from .wavecal import TeaWaveCalibration, apply_wavecal_ccddata
+from .write_array_to_fits import write_array_to_fits
 from .zscale import zscale
 
 __version__ = version
