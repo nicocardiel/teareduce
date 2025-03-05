@@ -15,6 +15,7 @@ from .draw_rectangle import draw_rectangle
 from .elapsed_time import elapsed_time
 from .elapsed_time import elapsed_time_since
 from .imshow import imshow
+from .imshow import imshowme
 from .numsplines import AdaptiveLSQUnivariateSpline
 from .peaks_spectrum import find_peaks_spectrum, refine_peaks_spectrum
 from .polfit import polfit_residuals, polfit_residuals_with_sigma_rejection
