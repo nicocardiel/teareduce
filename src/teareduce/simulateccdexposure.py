@@ -91,7 +91,7 @@ class SimulatedCCDResult:
         Display simulated CCD image using tea.imshow().
     """
 
-    def __init__(self, data, unit, imgtype, method, origin):
+    def __init__(self, data, unit, imgtype, method, origin, seed):
         """
         Initialize the class attributes.
 
@@ -110,12 +110,15 @@ class SimulatedCCDResult:
         origin : SimulateCCDExposure
             Instance of SimulateCCDExposure employed to generate
             the simulated CCD image.
+        seed : int or None
+            Random number generator seed.
         """
         self.data = data
         self.unit = unit
         self.imgtype = imgtype
         self.method = method
         self.origin = origin
+        self.seed = seed
 
     def __repr__(self):
         output = f'{self.__class__.__name__}(\n'
@@ -124,6 +127,7 @@ class SimulatedCCDResult:
         output += f'    imgtype={self.imgtype!r},\n'
         output += f'    method={self.method!r},\n'
         output += f'    origin={self.origin!r},\n'
+        output += f'    seed={self.seed!r},\n'
         output += ')'
         return output
 
@@ -196,6 +200,13 @@ class SimulateCCDExposure:
     The saturated pixels in 'data_model' are returned as 2**bitpix - 1
     in the simulated image (for instance, 65535 when bitpix=16).
 
+    By initializing the seed of the random number generator
+    when instantiating this class, there is in principle no need to
+    use another seed for the run() method. This is useful for
+    generating reproducible sets of consecutive exposures. In any case,
+    it is also possible to provide a particular seed to the run()
+    method in order to initialize the execution of single exposures.
+
     Attributes
     ----------
     naxis1 : int
@@ -219,6 +230,10 @@ class SimulateCCDExposure:
         Numpy array with the pixel to pixel sensitivity (without units).
     data_model : Quantity
         Numpy array with the model of the source to be simulated (ADU).
+    seed : int or None
+        Random number generator seed.
+    _rng : np.random.RandomState
+        Random number generator.
 
     Methods
     -------
@@ -250,7 +265,8 @@ class SimulateCCDExposure:
                  readout_noise=np.nan * Unit('adu'),
                  dark=np.nan * Unit('adu'),
                  flatfield=np.nan,
-                 data_model=np.nan * Unit('adu')):
+                 data_model=np.nan * Unit('adu'),
+                 seed=None,):
         """Initialize the class attributes.
 
         The simulated array dimensions are mandatory. If any additional
@@ -286,6 +302,8 @@ class SimulateCCDExposure:
             Pixel to pixel sensitivity (without units).
         data_model : Quantity
             Model of the source to be simulated (ADU).
+        seed : int or None
+            Random number generator seed.
         """
         # protections
         if naxis1 is None or naxis2 is None:
@@ -313,6 +331,8 @@ class SimulateCCDExposure:
         self.dark = None
         self.flatfield = None
         self.data_model = None
+        self.seed = seed
+        self._rng = np.random.default_rng(seed)
 
         # check that each input parameter is a Quantity with the expected units,
         parameter_list = [
@@ -383,6 +403,7 @@ class SimulateCCDExposure:
         output += f'    bitpix={self.bitpix},\n'
         for parameter in VALID_PARAMETERS:
             output += f'    {parameter}={getattr(self, parameter)!r},\n'
+        output += f'    seed={self.seed},\n'
         output += ')'
         return output
 
@@ -548,7 +569,8 @@ class SimulateCCDExposure:
         if method not in VALID_METHODS:
             raise ValueError(f'Unexpected {method=}.\nValid methods: {VALID_METHODS}')
 
-        rng = np.random.default_rng(seed)
+        if seed is not None:
+            self._rng = np.random.default_rng(seed)
 
         # initialize result instance
         result = SimulatedCCDResult(
@@ -556,7 +578,8 @@ class SimulateCCDExposure:
             unit=Unit('adu'),
             imgtype=imgtype,
             method=method,
-            origin=self
+            origin=self,
+            seed=seed
         )
 
         # BIAS and Readout Noise
@@ -564,7 +587,7 @@ class SimulateCCDExposure:
             raise ValueError(f"The parameter 'bias' contains NaN")
         if np.isnan(self.readout_noise.value).any():
             raise ValueError(f"The parameter 'readout_noise' contains NaN")
-        image2d = rng.normal(
+        image2d = self._rng.normal(
             loc=self.bias.value,
             scale=self.readout_noise.value
         )
@@ -591,11 +614,11 @@ class SimulateCCDExposure:
             # transform data_model from ADU to electrons,
             # generate Poisson distribution
             # and transform back from electrons to ADU
-            image2d += self.flatfield * rng.poisson(
+            image2d += self.flatfield * self._rng.poisson(
                 self.data_model.value * self.gain.value
             ) / self.gain.value
         elif method.lower() == "gaussian":
-            image2d += self.flatfield * rng.normal(
+            image2d += self.flatfield * self._rng.normal(
                 loc=self.data_model.value,
                 scale=np.sqrt(self.data_model.value/self.gain.value)
             )
