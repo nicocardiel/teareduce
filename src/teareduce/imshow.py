@@ -9,6 +9,8 @@
 
 from astropy.units import Unit
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.axes import Axes
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
@@ -86,6 +88,13 @@ def imshow(fig=None, ax=None, data=None,
 
     """
 
+    # protections
+    if not isinstance(fig, Figure):
+        raise ValueError("Unexpected 'fig' argument")
+    if not isinstance(ax, Axes):
+        raise ValueError("Unexpected 'ax' argument")
+
+    # default labels
     if xlabel is None:
         xlabel = 'X axis (array index)'
 
