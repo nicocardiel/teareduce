@@ -513,7 +513,7 @@ class SimulateCCDExposure:
         except AttributeError:
             raise RuntimeError(f"Unexpected parameter '{parameter}' for SimulateCCDExposure")
 
-    def run(self, imgtype, method="Poisson", seed=None, return_all=False):
+    def run(self, imgtype, method="Poisson", seed=None):
         """
         Execute the generation of the simulated CCD exposure.
 
@@ -532,10 +532,6 @@ class SimulateCCDExposure:
             VALID_METHODS.
         seed : int, optional
             Seed for the random number generator. The default is None.
-        return_all : bool, optional
-            If True, return all the parameters in VALID_PARAMETERS
-            in the 'parameters' attribute of the returned result.
-            The default is False.
 
         Returns
         -------
@@ -553,13 +549,6 @@ class SimulateCCDExposure:
             raise ValueError(f'Unexpected {method=}.\nValid methods: {VALID_METHODS}')
 
         rng = np.random.default_rng(seed)
-
-        if return_all:
-            parameters = dict()
-            for attr in VALID_PARAMETERS:
-                parameters[attr] = getattr(self, attr)
-        else:
-            parameters = None
 
         # initialize result instance
         result = SimulatedCCDResult(

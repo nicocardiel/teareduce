@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2024 Universidad Complutense de Madrid
+# Copyright 2024-2025 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
@@ -8,6 +8,7 @@
 # License-Filename: LICENSE.txt
 #
 
+from datetime import datetime
 import platform
 import sys
 from .version import version
@@ -39,3 +40,18 @@ def elapsed_time(time_ini, time_end, osinfo=True):
     print(f"Initial time.....: {time_ini}")
     print(f"Final time.......: {time_end}")
     print(f"Elapsed time.....: {time_end - time_ini}")
+
+
+def elapsed_time_since(time_ini, osinfo=True):
+    """Display elapsed time and OS info since a given time.
+
+    Parameters
+    ----------
+    time_ini : datetime instance
+        Initial time.
+    osinfo : bool
+        If True, display OS info.
+    """
+
+    time_end = datetime.now()
+    elapsed_time(time_ini, time_end)

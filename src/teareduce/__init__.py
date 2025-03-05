@@ -13,6 +13,7 @@ from .cosmicrays import cr2images, apply_cr2images_ccddata, crmedian
 from .ctext import ctext
 from .draw_rectangle import draw_rectangle
 from .elapsed_time import elapsed_time
+from .elapsed_time import elapsed_time_since
 from .imshow import imshow
 from .numsplines import AdaptiveLSQUnivariateSpline
 from .peaks_spectrum import find_peaks_spectrum, refine_peaks_spectrum
