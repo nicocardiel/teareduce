@@ -145,7 +145,7 @@ def imshow(fig=None, ax=None, data=None,
 
     if colorbar:
         divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.05)
+        cax = divider.append_axes("right", size="5%", pad=0.05, axes_class=Axes)
         fig.colorbar(img, cax=cax, label=cblabel)
 
     return img
