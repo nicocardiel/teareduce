@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2023-2024 Universidad Complutense de Madrid
+# Copyright 2023-2025 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 # License-Filename: LICENSE.txt
 #
+"""Module to define the version of the teareduce package."""
 
-version = '0.4.1'
+VERSION = '0.4.2'
 
 
 def main():
-    print('Version: ' + version)
+    """Prints the version of the teareduce package."""
+    print('Version: ' + VERSION)
 
 
 if __name__ == "__main__":

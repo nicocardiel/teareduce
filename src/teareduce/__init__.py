@@ -21,12 +21,12 @@ from .peaks_spectrum import find_peaks_spectrum, refine_peaks_spectrum
 from .polfit import polfit_residuals, polfit_residuals_with_sigma_rejection
 from .robust_std import robust_std
 from .sdistortion import fit_sdistortion
-from .sliceregion import SliceRegion1D, SliceRegion2D
+from .sliceregion import SliceRegion1D, SliceRegion2D, SliceRegion3D
 from .statsummary import ifc_statsummary, statsummary
 from .simulateccdexposure import SimulateCCDExposure
-from .version import version
+from .version import VERSION
 from .wavecal import TeaWaveCalibration, apply_wavecal_ccddata
 from .write_array_to_fits import write_array_to_fits
 from .zscale import zscale
 
-__version__ = version
+__version__ = VERSION
