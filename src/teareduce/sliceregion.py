@@ -64,9 +64,9 @@ class SliceRegion1D:
             region = np.s_[numbers_int[0]:numbers_int[1]]
 
         if isinstance(region, slice):
-            for number in [slice.start, slice.stop]:
+            for number in [region.start, region.stop]:
                 if number is None:
-                    raise ValueError(f'Invalid {slice!r}: you must specify start:stop in slice by number')
+                    raise ValueError(f'Invalid {region!r}: you must specify start:stop in slice by number')
         else:
             raise ValueError(f'Object {region} of type {type(region)} is not a slice')
 

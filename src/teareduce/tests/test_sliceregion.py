@@ -34,7 +34,7 @@ def test_slice_region_creation():
 
 def test_slice_values():
     """Test the values of the slices in different modes."""
-    
+
     array1d = np.arange(10)
 
     region1d = SliceRegion1D(np.s_[1:3], mode='python')
