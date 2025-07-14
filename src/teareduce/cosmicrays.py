@@ -1,5 +1,5 @@
 #
-# Copyright 2022-2024 Universidad Complutense de Madrid
+# Copyright 2022-2025 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
@@ -20,14 +20,17 @@ from .robust_std import robust_std
 from .sliceregion import SliceRegion2D
 
 
-def cr2images(data1, data2=None, ioffx=0, ioffy=0,
+def cr2images(data1, data2=None,
+              single_mode=False,
+              ioffx=0, ioffy=0,
               tsigma_peak=10, tsigma_tail=3, maxsize=None,
               list_skipped_regions=None,
               image_region=None,
               median_size=None,
               return_masks=False,
               debug_level=0,
-              zoom_region_imshow=None):
+              zoom_region_imshow=None,
+              aspect='equal'):
     """Remove cosmic rays from differences between 2 images.
 
     The input images must have the same shape. If only 1 image
@@ -42,6 +45,10 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
         Second image. If None, a median filtered version of 'data1'
         is employed. In this case, the parameter 'median_size' must
         be properly set.
+    single_mode : bool
+        If True, the function is used in single mode, i.e., only the
+        first image is cleaned (default=False). When the second image
+        is None, this parameter is automatically set to True.
     ioffx : int
         Integer offset (pixels) to place the second image on top of
         the first image in the horizontal direction (axis=1) in the
@@ -55,9 +62,13 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
     tsigma_tail : float
         Times sigma to detect additional pixels affected by cosmic
         rays.
-    maxsize : int
-        Maximum number of pixels affected by a single cosmic ray.
-        Above this number the detection is ignored.
+    maxsize : int or None
+        If not None, this parameter sets the maximum number of pixels
+        affected by cosmic rays in a single region. If the number of
+        pixels affected by a single cosmic ray is larger
+        than this value, the region is not cleaned. If None, all
+        regions are cleaned regardless of the number of pixels
+        affected by single cosmic rays.
     list_skipped_regions : list or None
         List of SliceRegion2D instances indicating image regions where
         detected cosmic rays will not be removed. The indices refer
@@ -80,6 +91,8 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
     zoom_region_imshow : SliceRegion2D instance or None
         If not None, display intermediate images, zooming in the
         indicated region.
+    aspect : str
+        Aspect ratio of the displayed images. Default is 'equal'.
 
     Returns
     -------
@@ -103,11 +116,9 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
         if (ioffx != 0) or (ioffy != 0):
             raise ValueError(f'ERROR: ioffx={ioffx} and ioffy={ioffy} must be zero!')
         if median_size is None:
-            raise ValueError(f'ERROR: you must specify median_size when only one image is available')
+            raise ValueError('ERROR: you must specify median_size when only one image is available')
         data2 = ndimage.median_filter(data1, size=median_size)
         single_mode = True
-    else:
-        single_mode = False
 
     if list_skipped_regions is not None and image_region is not None:
         raise ValueError('list_skipped_regions and useful_region are incompatible')
@@ -183,9 +194,6 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
     if shape1 != shape2:
         raise ValueError('ERROR: overlapping regions have different shape')
 
-    if maxsize is None:
-        maxsize = shape1[0] * shape1[1]
-
     # difference between the two overlapping regions
     diff = subdata1 - subdata2
     if debug_level > 0:
@@ -200,8 +208,20 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
         print(f'>>> Robust_std: {std:.3f}')
 
     # search for positive peaks (CR in data1)
+    if debug_level > 0:
+        print(f'>>> Searching for positive peaks (CR in data1) with tsigma_peak={tsigma_peak}')
     labels_pos_peak, no_cr_pos_peak = ndimage.label(diff > median + tsigma_peak * std)
+    if debug_level > 0:
+        print(f'>>> Found {no_cr_pos_peak} positive peaks')
+    # search for additional pixels affected by cosmic rays (tail)
+    if debug_level > 0:
+        print(f'>>> Searching for positive tails (CR in data1) with tsigma_tail={tsigma_tail}')
     labels_pos_tail, no_cr_pos_tail = ndimage.label(diff > median + tsigma_tail * std)
+    if debug_level > 0:
+        print(f'>>> Found {no_cr_pos_tail} positive tails')
+    # merge positive peaks and tails
+    if debug_level > 0:
+        print('>>> Merging positive peaks and tails')
     # set all CR peak pixels to 1
     mask_pos_peak = np.zeros_like(labels_pos_peak)
     mask_pos_peak[labels_pos_peak > 0] = 1
@@ -211,13 +231,21 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
     mask_pos_clean = np.zeros_like(labels_pos_peak)
     for icr in np.unique(labels_pos_tail_in_peak):
         if icr > 0:
-            npix_affected = np.sum(labels_pos_tail == icr)
-            if npix_affected <= maxsize:
+            if maxsize is None:
                 mask_pos_clean[labels_pos_tail == icr] = 1
+            else:
+                npix_affected = np.sum(labels_pos_tail == icr)
+                if npix_affected <= maxsize:
+                    mask_pos_clean[labels_pos_tail == icr] = 1
+
     # replace pixels affected by cosmic rays
+    if debug_level > 0:
+        print(f'>>> Replacing {np.sum(mask_pos_clean)} pixels affected by cosmic rays in data1')
     data1c = data1.copy()
     for item in np.argwhere(mask_pos_clean):
         data1c[item[0] + i1, item[1] + j1] = data2[item[0] + ii1, item[1] + jj1] + median
+    if debug_level > 0:
+        print('>>> Finished replacing pixels affected by cosmic rays in data1')
 
     if single_mode:
         data2c = data2.copy()
@@ -229,8 +257,20 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
         no_cr_neg_tail = 0
     else:
         # search for negative peaks (CR in data2)
+        if debug_level > 0:
+            print(f'>>> Searching for negative peaks (CR in data2) with tsigma_peak={tsigma_peak}')
         labels_neg_peak, no_cr_neg_peak = ndimage.label(diff < median - tsigma_peak * std)
+        if debug_level > 0:
+            print(f'>>> Found {no_cr_neg_peak} negative peaks')
+        # search for additional pixels affected by cosmic rays (tail)
+        if debug_level > 0:
+            print(f'>>> Searching for negative tails (CR in data2) with tsigma_tail={tsigma_tail}')
         labels_neg_tail, no_cr_neg_tail = ndimage.label(diff < median - tsigma_tail * std)
+        if debug_level > 0:
+            print(f'>>> Found {no_cr_neg_tail} negative tails')
+        # merge negative peaks and tails
+        if debug_level > 0:
+            print('>>> Merging negative peaks and tails')
         # set all CR peak pixels to 1
         mask_neg_peak = np.zeros_like(labels_neg_peak)
         mask_neg_peak[labels_neg_peak > 0] = 1
@@ -240,13 +280,20 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
         mask_neg_clean = np.zeros_like(labels_neg_peak)
         for icr in np.unique(labels_neg_tail_in_peak):
             if icr > 0:
-                npix_affected = np.sum(labels_neg_tail == icr)
-                if npix_affected <= maxsize:
+                if maxsize is None:
                     mask_neg_clean[labels_neg_tail == icr] = 1
+                else:
+                    npix_affected = np.sum(labels_neg_tail == icr)
+                    if npix_affected <= maxsize:
+                        mask_neg_clean[labels_neg_tail == icr] = 1
         # replace pixels affected by cosmic rays
+        if debug_level > 0:
+            print(f'>>> Replacing {np.sum(mask_neg_clean)} pixels affected by cosmic rays in data2')
         data2c = data2.copy()
         for item in np.argwhere(mask_neg_clean):
             data2c[item[0] + ii1, item[1] + jj1] = data1[item[0] + i1, item[1] + j1] - median
+        if debug_level > 0:
+            print('>>> Finished replacing pixels affected by cosmic rays in data2')
 
     # insert result in arrays with the original data shape
     mask_data1c = np.zeros((naxis2, naxis1), dtype=int)
@@ -269,7 +316,7 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
             hmin = max(min(diff.flatten()), median - 10*tsigma_peak*std)
             hmax = min(max(diff.flatten()), median + 10*tsigma_peak*std)
             bins = np.linspace(hmin, hmax, 100)
-            fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(12, 6))
+            fig, ax = plt.subplots(ncols=1, nrows=1)   # figsize=(12, 6)
             ax.hist(diff[zoom_region_imshow.python].flatten(), bins=bins)
             ax.set_xlabel('ADU')
             ax.set_ylabel('Number of pixels')
@@ -277,10 +324,10 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
             ax.set_yscale('log')
             plt.show()
             # display diff
-            fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(15, 15*naxis2/naxis1))
+            fig, ax = plt.subplots(ncols=1, nrows=1)  # figsize=(15, 15*naxis2/naxis1)
             vmin = median - tsigma_peak * std
             vmax = median + tsigma_peak * std
-            imshow(fig, ax, diff, vmin=vmin, vmax=vmax, cmap='seismic')
+            imshow(fig, ax, diff, vmin=vmin, vmax=vmax, cmap='seismic', aspect=aspect)
             ax.set_xlim([zoom_region_imshow.python[1].start, zoom_region_imshow.python[1].stop])
             ax.set_ylim([zoom_region_imshow.python[0].start, zoom_region_imshow.python[0].stop])
             ax.set_title('diff: overlapping data1 - data2')
@@ -291,7 +338,7 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
             data1, labels_pos_peak, labels_pos_tail, labels_pos_tail_in_peak, data1, data1c
         ]
         title_list1 = [
-            'data1', 'labels_pos_peak', 'labels_pos_tail', 'labels_pos_tail_in_peak', 
+            'data1', 'labels_pos_peak', 'labels_pos_tail', 'labels_pos_tail_in_peak',
             'data1 with C.R.', 'data1c'
         ]
         if debug_level == 1:
@@ -305,7 +352,7 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
                 data2, labels_neg_peak, labels_neg_tail, labels_neg_tail_in_peak, data2, data2c
             ]
             title_list2 = [
-                'data2', 'labels_neg_peak', 'labels_neg_tail', 'labels_neg_tail_in_peak', 
+                'data2', 'labels_neg_peak', 'labels_neg_tail', 'labels_neg_tail_in_peak',
                 'data2 with C.R.', 'data2c'
             ]
             if debug_level == 1:
@@ -329,7 +376,7 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
             for iplot, (image, title) in enumerate(zip(image_list, title_list)):
                 imgplot = image[zoom_region_imshow.python]
                 naxis2_, naxis1_ = imgplot.shape
-                fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(15, 15*naxis2_/naxis1_))
+                fig, ax = plt.subplots(ncols=1, nrows=1)  # figsize=(15, 15*naxis2_/naxis1_)
                 median_ = np.median(imgplot)
                 std_ = robust_std(imgplot)
                 if std_ == 0:
@@ -340,7 +387,7 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
                     vmin = median_ - 2 * std_
                     vmax = median_ + 5 * std_
                     cmap = 'gray'
-                imshow(fig, ax, image, vmin=vmin, vmax=vmax, cmap=cmap)
+                imshow(fig, ax, image, vmin=vmin, vmax=vmax, cmap=cmap, aspect=aspect)
                 ax.set_xlim([zoom_region_imshow.python[1].start, zoom_region_imshow.python[1].stop - 1])
                 ax.set_ylim([zoom_region_imshow.python[0].start, zoom_region_imshow.python[0].stop - 1])
                 ax.set_title(title)
@@ -385,7 +432,7 @@ def cr2images(data1, data2=None, ioffx=0, ioffy=0,
 def apply_cr2images_ccddata(infile1, infile2=None, outfile1=None, outfile2=None,
                             ioffx=0, ioffy=0, tsigma_peak=10, tsigma_tail=3,
                             list_skipped_regions=None, image_region=None,
-                            median_size=None, debug_level=0, zoom_region_imshow=None):
+                            median_size=None, debug_level=0, zoom_region_imshow=None, aspect='equal'):
     """Apply cr2images() to FITS files storing CCDData.
 
     The FITS file must contain:
@@ -444,6 +491,8 @@ def apply_cr2images_ccddata(infile1, infile2=None, outfile1=None, outfile2=None,
     zoom_region_imshow : SliceRegion2D instance or None
         If not None, display intermediate images, zooming in the
         indicated region.
+    aspect : str
+        Aspect ratio of the displayed images. Default is 'equal'.
 
     """
 
@@ -451,7 +500,7 @@ def apply_cr2images_ccddata(infile1, infile2=None, outfile1=None, outfile2=None,
         if (ioffx != 0) or (ioffy != 0):
             raise ValueError(f'ERROR: ioffx={ioffx} and ioffy={ioffy} must be zero!')
         if median_size is None:
-            raise ValueError(f'ERROR: you must specify median_size when only one image is available')
+            raise ValueError('ERROR: you must specify median_size when only one image is available')
 
     history_list = ['using cr2images:']
 
@@ -472,7 +521,8 @@ def apply_cr2images_ccddata(infile1, infile2=None, outfile1=None, outfile2=None,
             image_region=image_region,
             return_masks=True,
             debug_level=debug_level,
-            zoom_region_imshow=zoom_region_imshow
+            zoom_region_imshow=zoom_region_imshow,
+            aspect=aspect
         )
         ccdimage1_clean.mask[mask_data1c.astype(bool)] = True
         ccdimage2_clean.mask[mask_data2c.astype(bool)] = True
@@ -495,7 +545,8 @@ def apply_cr2images_ccddata(infile1, infile2=None, outfile1=None, outfile2=None,
             image_region=image_region,
             return_masks=True,
             debug_level=debug_level,
-            zoom_region_imshow=zoom_region_imshow
+            zoom_region_imshow=zoom_region_imshow,
+            aspect=aspect
         )
         ccdimage1_clean.mask[mask_data1c.astype(bool)] = True
         ccdimage2_uncertainty_array = ndimage.median_filter(ccdimage1.uncertainty.array, size=median_size)
