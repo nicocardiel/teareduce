@@ -584,9 +584,9 @@ class SimulateCCDExposure:
 
         # BIAS and Readout Noise
         if np.isnan(self.bias.value).any():
-            raise ValueError(f"The parameter 'bias' contains NaN")
+            raise ValueError("The parameter 'bias' contains NaN")
         if np.isnan(self.readout_noise.value).any():
-            raise ValueError(f"The parameter 'readout_noise' contains NaN")
+            raise ValueError("The parameter 'readout_noise' contains NaN")
         image2d = self._rng.normal(
             loc=self.bias.value,
             scale=self.readout_noise.value
@@ -597,7 +597,7 @@ class SimulateCCDExposure:
 
         # DARK
         if np.isnan(self.dark.value).any():
-            raise ValueError(f"The parameter 'dark' contains NaN")
+            raise ValueError("The parameter 'dark' contains NaN")
         image2d += self.dark.value
         if imgtype == "dark":
             result.data = image2d
@@ -605,11 +605,11 @@ class SimulateCCDExposure:
 
         # OBJECT
         if np.isnan(self.flatfield).any():
-            raise ValueError(f"The parameter 'flatfield' contains NaN")
+            raise ValueError("The parameter 'flatfield' contains NaN")
         if np.isnan(self.data_model.value).any():
-            raise ValueError(f"The parameter 'data_model' contains NaN")
+            raise ValueError("The parameter 'data_model' contains NaN")
         if np.isnan(self.gain.value).any():
-            raise ValueError(f"The parameter 'gain' contains NaN")
+            raise ValueError("The parameter 'gain' contains NaN")
         if method.lower() == "poisson":
             # transform data_model from ADU to electrons,
             # generate Poisson distribution
