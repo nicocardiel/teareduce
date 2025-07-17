@@ -2,8 +2,7 @@
 # Minimum requirements for the build system to execute.
 # (include packages imported in the different modules; otherwise
 # a ModuleNotFoundError is raised when using $ pip install -e .)
-requires = ["setuptools >= 43.0.0", "wheel", "numpy",
-            "astropy", "matplotlib", "scipy", "lmfit", "tqdm"]
+requires = ["setuptools >= 43.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -11,17 +10,17 @@ name = "teareduce"
 dynamic = ["version"]
 description = "Utilities for astronomical data reduction"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = {text = "GPL-3.0-or-later"}
 authors = [
   {name = "Nicolás Cardiel", email = "cardiel@ucm.es"},
 ]
 classifiers = [
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: Science/Research",
@@ -32,7 +31,6 @@ classifiers = [
 
 dependencies = [
     "astropy",
-    "importlib_resources",  # required with python < 3.9
     "lmfit",
     "matplotlib",
     "numpy >= 1.20",
