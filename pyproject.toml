@@ -2,7 +2,8 @@
 # Minimum requirements for the build system to execute.
 # (include packages imported in the different modules; otherwise
 # a ModuleNotFoundError is raised when using $ pip install -e .)
-requires = ["setuptools >= 43.0.0", "wheel"]
+requires = ["setuptools >= 43.0.0", "wheel",
+            "astropy", "matplotlib", "scipy", "lmfit", "tqdm"]
 build-backend = "setuptools.build_meta"
 
 [project]
