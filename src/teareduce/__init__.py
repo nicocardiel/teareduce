@@ -14,6 +14,8 @@ from .ctext import ctext
 from .draw_rectangle import draw_rectangle
 from .elapsed_time import elapsed_time
 from .elapsed_time import elapsed_time_since
+from .histogram1d import hist_step
+from .histogram1d import plot_hist_step
 from .imshow import imshow
 from .imshow import imshowme
 from .numsplines import AdaptiveLSQUnivariateSpline
