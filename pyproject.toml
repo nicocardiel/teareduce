@@ -2,8 +2,7 @@
 # Minimum requirements for the build system to execute.
 # (include packages imported in the different modules; otherwise
 # a ModuleNotFoundError is raised when using $ pip install -e .)
-requires = ["setuptools >= 61.0.0", "wheel",
-            "astropy", "matplotlib", "numpy>=1.22","scipy", "lmfit", "tqdm"]
+requires = ["setuptools >= 61.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -48,7 +47,7 @@ Homepage = "https://github.com/nicocardiel/teareduce"
 Repository = "https://github.com/nicocardiel/teareduce.git"
 
 [tool.setuptools.dynamic]
-version = {attr = "teareduce.__version__"}
+version = {attr = "teareduce.version.VERSION"}
 
 # performs autodetection
 [tool.setuptools.packages.find]
