@@ -1,5 +1,14 @@
 # teareduce
-Utilities for astronomical data reduction
+
+Utilities for astronomical data reduction.
+
+This package is not intended to be a general-purpose image reduction code. It
+only includes specific operations required in certain steps of the traditional
+astronomical image reduction process that, at the time of its creation, were
+not available in more established packages such as
+[ccdproc](https://ccdproc.readthedocs.io/en/latest/). In addition, it also
+offers alternative ways to perform certain tasks that we have found to be more
+practical for use in Master’s level classes.
 
 ## Installing the code
 
@@ -41,5 +50,14 @@ The latest development version is available through [GitHub](https://github.com/
 (venv_teareduce) $ ipython
 In [1]: import teareduce as tea
 In [2]: print(tea.__version__)
-0.2.1
+0.4.3
 ```
+
+### Testing the installation
+
+The documentation for this package is available at [this
+link](https://guaix.fis.ucm.es/~tea/teareduce-cookbook/_build/html/intro.html).
+It includes Juypter notebooks that can be easily downloaded and demonstrate the
+practical use of the defined functionality.
+
+
