@@ -101,6 +101,7 @@ def imshow(fig=None, ax=None, data=None,
     if ylabel is None:
         ylabel = 'Y axis (array index)'
 
+    wavecalib = False
     if crpix1 is not None and crval1 is not None and cdelt1 is not None and cunit1 is not None:
         if 'extent' in kwargs:
             raise ValueError('extent parameter can not be used with a wavelength calibration scale')
@@ -112,9 +113,12 @@ def imshow(fig=None, ax=None, data=None,
         u_pixel = Unit('pixel')
         xminwv = crval1 + (xmin * u_pixel - crpix1 + 1 * u_pixel) * cdelt1
         xmaxwv = crval1 + (xmax * u_pixel - crpix1 + 1 * u_pixel) * cdelt1
-        extent = [xminwv.to(cunitx).value, xmaxwv.to(cunitx).value, ymin, ymax]
+        xminwv = xminwv.to(cunitx).value
+        xmaxwv = xmaxwv.to(cunitx).value
+        extent = [xminwv, xmaxwv, ymin, ymax]
         xlabel = f'Wavelength ({cunitx})'
         aspect = 'auto'
+        wavecalib = True
     else:
         if 'extent' in kwargs:
             extent = kwargs['extent']
@@ -142,6 +146,19 @@ def imshow(fig=None, ax=None, data=None,
         ax.set_ylabel(ylabel)
     if title is not None:
         ax.set_title(title)
+
+    # if a wavelength calibration is provided, display the index scale
+    # on the top horizontal axis
+    if wavecalib:
+
+        def index2coord(i):
+            return xminwv + (xmaxwv - xminwv) * i / (naxis1 - 1)
+
+        def coord2index(x):
+            return (naxis1 - 1) * (x - xminwv) / (xmaxwv - xminwv)
+
+        ax_top = ax.secondary_xaxis('top', functions=(coord2index, index2coord))
+        ax_top.set_xlabel('X axis (array index)')
 
     if colorbar:
         divider = make_axes_locatable(ax)
