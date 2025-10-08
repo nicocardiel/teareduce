@@ -30,10 +30,12 @@ def imshowme(data, **kwargs):
         Instance of Axes.
     img : matplotlib AxesImage
         Instance returned by ax.imshow()
+    cax : matplotlib.axes.Axes or None
+        Instance of the color bar Axes, or None if colorbar is False.
     """
     fig, ax = plt.subplots()
-    img = imshow(fig=fig, ax=ax, data=data, **kwargs)
-    return fig, ax, img
+    img, cax = imshow(fig=fig, ax=ax, data=data, **kwargs)
+    return fig, ax, img, cax
 
 
 def imshow(fig=None, ax=None, data=None,
@@ -85,7 +87,8 @@ def imshow(fig=None, ax=None, data=None,
     ------
     img : matplotlib AxesImage
         Instance returned by ax.imshow()
-
+    cax : matplotlib.axes.Axes or None
+        Instance of the color bar Axes, or None if colorbar is False.
     """
 
     # protections
@@ -164,5 +167,7 @@ def imshow(fig=None, ax=None, data=None,
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05, axes_class=Axes)
         fig.colorbar(img, cax=cax, label=cblabel)
+    else:
+        cax = None
 
-    return img
+    return img, cax
