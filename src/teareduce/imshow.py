@@ -31,11 +31,14 @@ def imshowme(data, **kwargs):
     img : matplotlib AxesImage
         Instance returned by ax.imshow()
     cax : matplotlib.axes.Axes or None
-        Instance of the color bar Axes, or None if colorbar is False.
+        Instance of Axes where the color bar is drawn, or None if
+        colorbar is False.
+    cbar : matplotlib.colorbar.Colorbar or None
+        Instance of Colorbar, or None if colorbar is False.
     """
     fig, ax = plt.subplots()
-    img, cax = imshow(fig=fig, ax=ax, data=data, **kwargs)
-    return fig, ax, img, cax
+    img, cax, cbar = imshow(fig=fig, ax=ax, data=data, **kwargs)
+    return fig, ax, img, cax, cbar
 
 
 def imshow(fig=None, ax=None, data=None,
@@ -88,7 +91,10 @@ def imshow(fig=None, ax=None, data=None,
     img : matplotlib AxesImage
         Instance returned by ax.imshow()
     cax : matplotlib.axes.Axes or None
-        Instance of the color bar Axes, or None if colorbar is False.
+        Instance of Axes where the color bar is drawn, or None if
+        colorbar is False.
+    cbar : matplotlib.colorbar.Colorbar or None
+        Instance of Colorbar, or None if colorbar is False.
     """
 
     # protections
@@ -166,8 +172,9 @@ def imshow(fig=None, ax=None, data=None,
     if colorbar:
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05, axes_class=Axes)
-        fig.colorbar(img, cax=cax, label=cblabel)
+        cbar = fig.colorbar(img, cax=cax, label=cblabel)
     else:
         cax = None
+        cbar = None
 
-    return img, cax
+    return img, cax, cbar
