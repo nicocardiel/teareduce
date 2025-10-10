@@ -41,7 +41,7 @@ def imshowme(data, **kwargs):
     return fig, ax, img, cax, cbar
 
 
-def imshow(fig=None, ax=None, data=None,
+def imshow(fig=None, ax=None, data=None, ds9mode=False,
            crpix1=1, crval1=None, cdelt1=None, cunit1=None, cunitx=Unit('Angstrom'),
            xlabel=None, ylabel=None, title=None,
            colorbar=True, cblabel='Number of counts',
@@ -60,6 +60,10 @@ def imshow(fig=None, ax=None, data=None,
         Instance of Axes.
     data : numpy array
         2D array to be displayed.
+    ds9mode : bool
+        If True, the extent parameter is set to
+        [0.5, NAXIS1+0.5, 0.5, NAXIS2+0.5]
+        to mimic the DS9 display.
     crpix1 : astropy.units.Quantity
         Float number providing the CRPIX1 value: the reference pixel
         for which CRVAL1 is given.
@@ -103,13 +107,6 @@ def imshow(fig=None, ax=None, data=None,
     if not isinstance(ax, Axes):
         raise ValueError("Unexpected 'ax' argument")
 
-    # default labels
-    if xlabel is None:
-        xlabel = 'X axis (array index)'
-
-    if ylabel is None:
-        ylabel = 'Y axis (array index)'
-
     wavecalib = False
     if crpix1 is not None and crval1 is not None and cdelt1 is not None and cunit1 is not None:
         if 'extent' in kwargs:
@@ -129,11 +126,25 @@ def imshow(fig=None, ax=None, data=None,
         aspect = 'auto'
         wavecalib = True
     else:
-        if 'extent' in kwargs:
-            extent = kwargs['extent']
-            del kwargs['extent']
+        if ds9mode:
+            if 'extent' in kwargs:
+                raise ValueError('extent parameter can not be used with ds9mode=True')
+            naxis2, naxis1 = data.shape
+            extent = [0.5, naxis1 + 0.5, 0.5, naxis2 + 0.5]
+            if xlabel is None:
+                xlabel = 'X pixel (from 1 to NAXIS1)'
+            if ylabel is None:
+                ylabel = 'Y pixel (from 1 to NAXIS2)'
         else:
-            extent = None
+            if xlabel is None:
+                xlabel = 'X axis (array index)'
+            if ylabel is None:
+                ylabel = 'Y axis (array index)'
+            if 'extent' in kwargs:
+                extent = kwargs['extent']
+                del kwargs['extent']
+            else:
+                extent = None
         if 'aspect' in kwargs:
             aspect = kwargs['aspect']
             del kwargs['aspect']
