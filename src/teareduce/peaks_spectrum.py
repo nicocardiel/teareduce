@@ -58,12 +58,12 @@ def find_peaks_spectrum(sx, nwinwidth, deltaflux=0, threshold=0, debugplot=False
               'pixels will be ignored')
 
     xpeaks = []  # list to store the peaks
-    
+
     if sx_shape[0] < nwinwidth:
         print('find_peaks_spectrum> sx shape......:', sx_shape)
         print('find_peaks_spectrum> nwinwidth.....:', nwinwidth)
         raise ValueError('sx.shape < nwinwidth')
-    
+
     i = nmed
     while i < sx_shape[0] - nmed:
         if sx[i] > threshold:
@@ -93,7 +93,7 @@ def find_peaks_spectrum(sx, nwinwidth, deltaflux=0, threshold=0, debugplot=False
                 i += 1
         else:
             i += 1
-    
+
     ixpeaks = np.array(xpeaks)
 
     if debugplot:

@@ -1,5 +1,5 @@
 #
-# Copyright 2022-2024 Universidad Complutense de Madrid
+# Copyright 2022-2025 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
@@ -12,8 +12,8 @@ import numpy as np
 
 def zscale(image, factor=0.25):
     """Compute z1 and z2 cuts in a similar way to Iraf.
-    
-    If the total number of pixels is less than 10, the function simply 
+
+    If the total number of pixels is less than 10, the function simply
     returns the minimum and the maximum values.
 
     Parameters
@@ -48,5 +48,5 @@ def zscale(image, factor=0.25):
         z1 = max(z1, q000)
         z2 = q500+(zslope*npixels/2)/factor
         z2 = min(z2, q1000)
-    
+
     return z1, z2

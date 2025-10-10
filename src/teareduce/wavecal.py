@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2015-2024 Universidad Complutense de Madrid
+# Copyright 2015-2025 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
@@ -30,10 +30,10 @@ from .sliceregion import SliceRegion1D
 
 class TeaWaveCalibration:
     """Auxiliary class to compute and apply wavelength calibration.
-    
+
     It is assumed that the wavelength and spatial directions correspond
     to the X (array columns) and Y (array rows) axes, respectively.
-    
+
     Attributes
     ----------
     ns_window : int
@@ -44,7 +44,7 @@ class TeaWaveCalibration:
         Standard deviation for Gaussian kernel to smooth median spectrum.
         A value of 0 means that no smoothing is performed.
     nx_window : int
-        Number of pixels (spectral direction) of the window where the 
+        Number of pixels (spectral direction) of the window where the
         peaks are sought. It must be odd.
     delta_flux : float
         Minimum difference between the flux at the line center and the
@@ -293,7 +293,7 @@ class TeaWaveCalibration:
             Standard deviation for Gaussian kernel to smooth median spectrum.
             A value of 0 means that no smoothing is performed.
         nx_window : int or None
-            Number of pixels (spectral direction) of the window where the 
+            Number of pixels (spectral direction) of the window where the
             peaks are sought. It must be odd.
         delta_flux : float
             Minimum difference between the flux at the line center and the
@@ -335,7 +335,7 @@ class TeaWaveCalibration:
             self.delta_flux = delta_flux
         if method is not None:
             self.method = method
-        
+
         naxis2, naxis1 = data.shape
 
         if self._naxis1 is None:
@@ -343,7 +343,7 @@ class TeaWaveCalibration:
         else:
             if naxis1 != self._naxis1:
                 raise ValueError(f'Unexpected naxis1: {naxis1}')
-        
+
         if self._naxis2 is None:
             self._naxis2 = naxis2
         else:
@@ -363,7 +363,7 @@ class TeaWaveCalibration:
 
         # initial median spectrum
         xpeaks, ixpeaks, sp_median_smooth = self._find_peaks_scan(
-            data=data, 
+            data=data,
             ns1=ns1,
             ns2=ns2,
             plot_peaks=plot_peaks,
@@ -420,12 +420,12 @@ class TeaWaveCalibration:
                              xpeaks_reference=None,
                              ns_range=None,
                              direction='up',
-                             ns_window = None,
-                             threshold = None,
-                             sigma_smooth = None,
-                             nx_window = None,
-                             delta_flux = None,
-                             method = None,
+                             ns_window=None,
+                             threshold=None,
+                             sigma_smooth=None,
+                             nx_window=None,
+                             delta_flux=None,
+                             method=None,
                              plots=False,
                              title=None,
                              pdf_output=None,
@@ -455,7 +455,7 @@ class TeaWaveCalibration:
             Standard deviation for Gaussian kernel to smooth median spectrum.
             A value of 0 means that no smoothing is performed.
         nx_window : int or None
-            Number of pixels (spectral direction) of the window where the 
+            Number of pixels (spectral direction) of the window where the
             peaks are sought. It must be odd.
         delta_flux : float
             Minimum difference between the flux at the line center and the
@@ -540,7 +540,7 @@ class TeaWaveCalibration:
             color_previous = ['blue', 'cyan']
             fig, ax = plt.subplots(figsize=(15, 15*naxis2/naxis1))
             vmin, vmax = np.percentile(data, [5, 95])
-            img = imshow(fig, ax, data, vmin=vmin, vmax=vmax, cmap='gray', title=title, aspect='auto')
+            imshow(fig, ax, data, vmin=vmin, vmax=vmax, cmap='gray', title=title, aspect='auto')
             # display previously identified lines
             yplot = np.arange(naxis2)[self._valid_scans]
             for i in range(self._nlines_reference):
@@ -549,18 +549,17 @@ class TeaWaveCalibration:
         else:
             fig = None
             ax = None
-            img = None
 
         # search for peaks in the 2D image
         dict_xpeaks = dict()
-        for ns in tqdm(range(ns_min_fits, ns_max_fits + ns_step, ns_step), 
+        for ns in tqdm(range(ns_min_fits, ns_max_fits + ns_step, ns_step),
                        desc='Finding peaks', disable=disable_tqdm):
             ns1 = ns - self.ns_window // 2
             ns1 = max([ns1, min(ns_min_fits, ns_max_fits)])
             ns2 = ns + self.ns_window // 2
             ns2 = min([ns2, max(ns_min_fits, ns_max_fits)])
             xpeaks, ixpeaks, sp_median_smooth = self._find_peaks_scan(
-                data=data, 
+                data=data,
                 ns1=ns1,
                 ns2=ns2,
                 plot_peaks=False,
@@ -585,7 +584,7 @@ class TeaWaveCalibration:
                 xpeaks_predicted = np.median(self._xpeaks_all_lines_array[(ns1-1):ns2, :], axis=0)
             for i in range(self._nlines_reference):
                 value = xpeaks_predicted[i]
-                # if there is no peak near to the expected location 
+                # if there is no peak near to the expected location
                 # (within a distance given by self.nx_window) the line
                 # is probably weak and we need to avoid jumping into
                 # another line
@@ -661,7 +660,7 @@ class TeaWaveCalibration:
         self.peak_wavelengths = wavelengths
 
     @u.quantity_input(xpeaks=u.pixel)
-    def overplot_identified_lines(self, xpeaks, spectrum, 
+    def overplot_identified_lines(self, xpeaks, spectrum,
                                   title=None, fontsize_title=16, fontsize_wave=10,
                                   pdf_output=None, pdf_only=False):
         """Overplot identified lines
@@ -790,7 +789,7 @@ class TeaWaveCalibration:
         xfit = np.arange(self._naxis2)[self._valid_scans]
         if len(xfit) <= self.degree_cdistortion:
             raise ValueError(f'Insufficient number of points to fit a polynomial of degree {self.degree_cdistortion}')
-        for i in tqdm(range(self._nlines_reference), 
+        for i in tqdm(range(self._nlines_reference),
                       desc='Fitting C distortion', disable=disable_tqdm):
             yfit = self._xpeaks_all_lines_array[self._valid_scans, i]
             poly, yres, reject = polfit_residuals_with_sigma_rejection(
@@ -1124,11 +1123,11 @@ class TeaWaveCalibration:
                 raise ValueError('You must set plots=True to make use of pdf_output')
 
         return poly_fits_yx, residual_std_yx, \
-               poly_fits_xy, residual_std_xy, \
-               crval1_linear, cdelt1_linear, crmax1_linear
+            poly_fits_xy, residual_std_xy, \
+            crval1_linear, cdelt1_linear, crmax1_linear
 
     def fit_wavelengths(self, degree_wavecalib=None,
-                        output_filename=None, history_list=None, 
+                        output_filename=None, history_list=None,
                         plots=False, title=None,
                         pdf_output=None, pdf_only=False,
                         silent_mode=False, disable_tqdm=True):
@@ -1320,9 +1319,9 @@ class TeaWaveCalibration:
         # crval1, cdelt1, crmax1, residual_std
         fig, axarr = plt.subplots(nrows=1, ncols=5, figsize=(15, 3))
         axarr = axarr.flatten()
-        for i, item in enumerate(['_array_crval1_linear', 
+        for i, item in enumerate(['_array_crval1_linear',
                                   '_array_cdelt1_linear',
-                                  '_array_crmax1_linear', 
+                                  '_array_crmax1_linear',
                                   '_array_residual_std_wav',
                                   '_array_residual_std_pix']):
             ax = axarr[i]
@@ -1357,8 +1356,7 @@ class TeaWaveCalibration:
         nrows = int(ncoeff / npprow)
         if ncoeff % npprow != 0:
             nrows += 1
-        fig, axarr = plt.subplots(nrows=nrows, ncols=npprow, 
-                                  figsize=(figwidth, 3*nrows))
+        fig, axarr = plt.subplots(nrows=nrows, ncols=npprow, figsize=(figwidth, 3*nrows))
         axarr = axarr.flatten()
         for ax in axarr:
             ax.axis('off')
@@ -1435,7 +1433,7 @@ class TeaWaveCalibration:
 
         old_x_borders_fits = np.arange(naxis1 + 1) + 0.5  # FITS convention
 
-        for k in tqdm(range(naxis2), 
+        for k in tqdm(range(naxis2),
                       desc='Applying wavelength calibration',
                       disable=disable_tqdm):
             poly = Polynomial(self._array_poly_wav[k])
@@ -1678,4 +1676,3 @@ def apply_wavecal_ccddata(infile, wcalibfile, outfile,
             cdelt1=cdelt1,
             title=f'{title_}(UNCERT extension)'
         )
-

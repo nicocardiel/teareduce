@@ -56,11 +56,11 @@ def draw_rectangle(ax, image_data, x1, x2, y1, y2,
     ax.plot((x1, x2), (y2, y2), color, lw=1)
 
     if text:
-        ax.text((x1+x2)/2, y1+(y2-y1)/8, 
-                '{:.{prec}f}'.format(mean, prec=ndigits), 
-                ha='center', va='center', color=color, fontsize=fontsize)        
+        ax.text((x1+x2)/2, y1+(y2-y1)/8,
+                '{:.{prec}f}'.format(mean, prec=ndigits),
+                ha='center', va='center', color=color, fontsize=fontsize)
         ax.text((x1+x2)/2, y2-(y2-y1)/8,
-                '{:.{prec}f}'.format(std, prec=ndigits), 
+                '{:.{prec}f}'.format(std, prec=ndigits),
                 ha='center', va='top', color=color, fontsize=fontsize)
 
     return mean, std

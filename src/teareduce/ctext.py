@@ -9,8 +9,8 @@
 
 
 def ctext(s=None,
-          fg=None, 
-          bg=None, 
+          fg=None,
+          bg=None,
           under=False,
           rev=False,
           faint=False,
@@ -95,4 +95,3 @@ def ctext(s=None,
     result = f'{final_style}{s}\x1B[0m'
 
     return result
-

@@ -22,7 +22,7 @@ def statsummary(x=None, rm_nan=False, show=True):
     Parameters
     ----------
     x : numpy array or None
-        Input array with values which statistical properties are 
+        Input array with values which statistical properties are
         requested.
     rm_nan : bool
         If True, filter out NaN values before computing statistics.
@@ -42,9 +42,9 @@ def statsummary(x=None, rm_nan=False, show=True):
 
     # protections
     if x is None:
-        return ['npoints', 'minimum', 'maximum', 
-                'mean', 'median', 'std', 'robust_std', 
-                'percentile16', 'percentile25', 'percentile75', 'percentile84'] 
+        return ['npoints', 'minimum', 'maximum',
+                'mean', 'median', 'std', 'robust_std',
+                'percentile16', 'percentile25', 'percentile75', 'percentile84']
 
     if isinstance(x, np.ndarray):
         xx = np.copy(x.flatten())

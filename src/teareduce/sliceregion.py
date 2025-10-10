@@ -8,7 +8,7 @@
 #
 """Auxiliary classes to handle slicing regions in 1D, 2D, and 3D.
 
-These classes provide a way to define and manipulate slices in a 
+These classes provide a way to define and manipulate slices in a
 consistent manner, following both FITS and Python conventions.
 """
 
@@ -16,9 +16,10 @@ import re
 
 import numpy as np
 
+
 class SliceRegion1D:
     """Store indices for slicing of 1D regions.
-    
+
     The attributes .python and .fits provide the indices following
     the Python and the FITS convention, respectively.
 
