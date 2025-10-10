@@ -1,5 +1,5 @@
 #
-# Copyright 2022-2024 Universidad Complutense de Madrid
+# Copyright 2022-2025 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #

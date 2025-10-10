@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2015-2024 Universidad Complutense de Madrid
+# Copyright 2015-2025 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
