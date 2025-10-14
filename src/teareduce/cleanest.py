@@ -11,6 +11,7 @@
 
 import argparse
 import tkinter as tk
+from tkinter import filedialog
 from tkinter import simpledialog
 
 from astropy.io import fits
@@ -31,14 +32,27 @@ matplotlib.use("TkAgg")
 
 
 class ReviewCosmicRay():
-    """Class to review cosmic ray masked pixels."""
+    """Class to review suspected cosmic ray pixels."""
 
-    def __init__(self, root, data, la_clean_data, mask):
+    def __init__(self, root, data, mask_fixed, mask_crfound):
+        """Initialize the review window.
+
+        Parameters
+        ----------
+        root : tk.Tk
+            The main Tkinter window.
+        data : 2D numpy array
+            The original image data.
+        mask_fixed : 2D numpy array
+            Mask of previously corrected pixels.
+        mask_crfound : 2D numpy array
+            Mask of new pixels identified as cosmic rays.
+        """
         self.root = root
         self.data = data
         self.data_original = data.copy()
-        self.la_clean_data = la_clean_data
-        self.mask = mask
+        self.mask_fixed = mask_fixed
+        self.mask_crfound = mask_crfound
         self.first_plot = True
         self.degree = 1    # Degree of polynomial for interpolation
         self.npoints = 2   # Number of points at each side of the CR pixel for interpolation
@@ -46,10 +60,10 @@ class ReviewCosmicRay():
         # structure is a cross [0,1,0;1,1,1;0,1,0], but we want to consider
         # diagonal connections too, so we define a 3x3 square.
         structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
-        self.cr_labels, self.num_features = ndimage.label(self.mask, structure=structure)
+        self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
         # Make a copy of the original labels to allow pixel re-marking
         self.cr_labels_original = self.cr_labels.copy()
-        print(f"Number of cosmic ray pixels detected: {np.sum(self.mask)}")
+        print(f"Number of cosmic ray pixels detected: {np.sum(self.mask_crfound)}")
         print(f"Number of cosmic rays detected: {self.num_features}")
         if self.num_features == 0:
             print('No CR hits found!')
@@ -246,6 +260,7 @@ class ReviewCosmicRay():
                     for i in range(jmin, jmax + 1):
                         if 0 <= i < self.data.shape[1]:
                             self.data[ycr, i] = np.polyval(p, i)
+                            self.mask_fixed[ycr, i] = True
                 else:
                     print(f"Not enough points to fit at y={ycr+1}")
                     self.update_display()
@@ -295,6 +310,7 @@ class ReviewCosmicRay():
                     for i in range(imin, imax + 1):
                         if 0 <= i < self.data.shape[1]:
                             self.data[i, xcr] = np.polyval(p, i)
+                            self.mask_fixed[i, xcr] = True
                 else:
                     print(f"Not enough points to fit at x={xcr+1}")
                     self.update_display()
@@ -370,6 +386,7 @@ class ReviewCosmicRay():
             ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
             for iy, ix in zip(ycr_list, xcr_list):
                 self.data[iy, ix] = C[0] * ix + C[1] * iy + C[2]
+                self.mask_fixed[iy, ix] = True
         else:
             print("Not enough points to fit a plane")
             self.update_display()
@@ -477,7 +494,7 @@ class ReviewCosmicRay():
 class CosmicRayCleanerApp():
     """Main application class for cosmic ray cleaning."""
 
-    def __init__(self, root, fits_file_path, extension=0):
+    def __init__(self, root, input_fits, extension=0, output_fits=None):
         """
         Initialize the application.
 
@@ -485,25 +502,59 @@ class CosmicRayCleanerApp():
         ----------
         root : tk.Tk
             The main Tkinter window.
-        fits_file_path : str
+        input_fits : str
             Path to the FITS file to be cleaned.
         extension : int, optional
             FITS extension to use (default is 0).
+        output_fits : str, optional
+            Path to save the cleaned FITS file (default is None, which prompts
+            for a save location).
         """
         self.root = root
         self.root.title("Cosmic Ray Cleaner")
         self.root.geometry("800x700+50+0")
-        self.fits_file_path = fits_file_path
+        self.input_fits = input_fits
         self.extension = extension
+        self.output_fits = output_fits
         self.load_fits_file()
         self.create_widgets()
 
     def load_fits_file(self):
         try:
-            with fits.open(self.fits_file_path) as hdul:
+            with fits.open(self.input_fits, mode='readonly') as hdul:
                 self.data = hdul[self.extension].data
+                if 'CRMASK' in hdul:
+                    self.mask_fixed = hdul['CRMASK'].data.astype(bool)
+                else:
+                    self.mask_fixed = np.zeros(self.data.shape, dtype=bool)
         except Exception as e:
             print(f"Error loading FITS file: {e}")
+
+    def save_fits_file(self):
+        if self.output_fits is None:
+            base, ext = os.path.splitext(self.input_fits)
+            suggested_name = f"{base}_cleaned"
+        else:
+            suggested_name, _ = os.path.splitext(self.output_fits)
+        self.output_fits = filedialog.asksaveasfilename(
+            initialdir=os.getcwd(),
+            title="Save cleaned FITS file",
+            defaultextension=".fits",
+            filetypes=[("FITS files", "*.fits"), ("All files", "*.*")],
+            initialfile=suggested_name
+        )
+        try:
+            with fits.open(self.input_fits, mode='readonly') as hdul:
+                hdul[self.extension].data = self.data
+                if 'CRMASK' in hdul:
+                    hdul['CRMASK'].data = self.mask_fixed.astype(np.uint8)
+                else:
+                    crmask_hdu = fits.ImageHDU(self.mask_fixed.astype(np.uint8), name='CRMASK')
+                    hdul.append(crmask_hdu)
+                hdul.writeto(self.output_fits, overwrite=True)
+            print(f"Cleaned data saved to {self.output_fits}")
+        except Exception as e:
+            print(f"Error saving FITS file: {e}")
 
     def create_widgets(self):
         # Row 1
@@ -511,6 +562,8 @@ class CosmicRayCleanerApp():
         self.button_frame1.grid(row=0, column=0, pady=5)
         self.run_lacosmic_button = tk.Button(self.button_frame1, text="Run L.A.Cosmic", command=self.run_lacosmic)
         self.run_lacosmic_button.pack(side=tk.LEFT, padx=5)
+        self.save_button = tk.Button(self.button_frame1, text="Save cleaned FITS", command=self.save_fits_file)
+        self.save_button.pack(side=tk.LEFT, padx=5)
 
         # Row 2
         self.button_frame2 = tk.Frame(self.root)
@@ -584,8 +637,13 @@ class CosmicRayCleanerApp():
         self.run_lacosmic_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.DISABLED)
         # Parameters for L.A.Cosmic can be adjusted as needed
-        la_cleaned_data, mask = cosmicray_lacosmic(self.data, sigclip=4.5, sigfrac=0.3, objlim=5.0, verbose=True)
-        ReviewCosmicRay(self.root, self.data, la_cleaned_data, mask)
+        _, mask_crfound = cosmicray_lacosmic(self.data, sigclip=4.5, sigfrac=0.3, objlim=5.0, verbose=True)
+        ReviewCosmicRay(
+            root=self.root,
+            data=self.data,
+            mask_fixed=self.mask_fixed,
+            mask_crfound=mask_crfound
+        )
         print("L.A.Cosmic cleaning applied.")
         self.run_lacosmic_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.NORMAL)
@@ -608,20 +666,25 @@ class CosmicRayCleanerApp():
 
 def main():
     parser = argparse.ArgumentParser(description="Interactive cosmic ray cleaner for FITS images.")
-    parser.add_argument("fits_file", help="Path to the FITS file to be cleaned.")
+    parser.add_argument("input_fits", help="Path to the FITS file to be cleaned.")
     parser.add_argument("--extension", type=int, default=0,
                         help="FITS extension to use (default: 0).")
+    parser.add_argument("--output_fits", type=str, default=None,
+                        help="Path to save the cleaned FITS file")
     args = parser.parse_args()
 
-    if not os.path.isfile(args.fits_file):
-        print(f"Error: File '{args.fits_file}' does not exist.")
+    if not os.path.isfile(args.input_fits):
+        print(f"Error: File '{args.input_fits}' does not exist.")
+        return
+    if args.output_fits is not None and os.path.isfile(args.output_fits):
+        print(f"Error: Output file '{args.output_fits}' already exists.")
         return
 
     # Initialize Tkinter root
     root = tk.Tk()
 
     # Create and run the application
-    CosmicRayCleanerApp(root, args.fits_file, args.extension)
+    CosmicRayCleanerApp(root, args.input_fits, args.extension, args.output_fits)
 
     # Execute
     root.mainloop()
