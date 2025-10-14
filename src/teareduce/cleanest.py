@@ -36,9 +36,12 @@ class ReviewCosmicRay():
     def __init__(self, root, data, la_clean_data, mask):
         self.root = root
         self.data = data
+        self.data_original = data.copy()
         self.la_clean_data = la_clean_data
         self.mask = mask
         self.first_plot = True
+        self.degree = 1    # Degree of polynomial for interpolation
+        self.npoints = 2   # Number of points at each side of the CR pixel for interpolation
         # Label connected components in the mask; note that by default,
         # structure is a cross [0,1,0;1,1,1;0,1,0], but we want to consider
         # diagonal connections too, so we define a 3x3 square.
@@ -57,21 +60,23 @@ class ReviewCosmicRay():
     def create_widgets(self):
         self.review_window = tk.Toplevel(self.root)
         self.review_window.title("Review Cosmic Rays")
-        self.review_window.geometry("800x700")
+        self.review_window.geometry("800x700+850+0")
 
         self.button_frame1 = tk.Frame(self.review_window)
         self.button_frame1.pack(pady=5)
-        self.remove_cr_button = tk.Button(self.button_frame1, text="Remove CR", command=self.remove_cr)
-        self.remove_cr_button.pack(side=tk.LEFT, padx=5)
-        self.restore_cr_button = tk.Button(self.button_frame1, text="Restore CR", command=self.restore_cr)
+        self.remove_crosses_button = tk.Button(self.button_frame1, text="remove all X's", command=self.remove_crosses)
+        self.remove_crosses_button.pack(side=tk.LEFT, padx=5)
+        self.restore_cr_button = tk.Button(self.button_frame1, text="[r]estore CR", command=self.restore_cr)
         self.restore_cr_button.pack(side=tk.LEFT, padx=5)
-        self.previous_button = tk.Button(self.button_frame1, text="Previous CR", command=self.previous_cr)
-        self.previous_button.pack(side=tk.LEFT, padx=5)
-        self.next_button = tk.Button(self.button_frame1, text="Next CR", command=self.next_cr)
+        self.restore_cr_button.config(state=tk.DISABLED)
+        self.next_button = tk.Button(self.button_frame1, text="[c]ontinue", command=self.continue_cr)
         self.next_button.pack(side=tk.LEFT, padx=5)
 
         self.button_frame2 = tk.Frame(self.review_window)
         self.button_frame2.pack(pady=5)
+        self.ndeg_label = tk.Button(self.button_frame2, text=f"deg={self.degree}, n={self.npoints}",
+                                    command=self.set_ndeg)
+        self.ndeg_label.pack(side=tk.LEFT, padx=5)
         self.x_interp_button = tk.Button(self.button_frame2, text="[x] interp.", command=self.x_interp)
         self.x_interp_button.pack(side=tk.LEFT, padx=5)
         self.y_interp_button = tk.Button(self.button_frame2, text="[y] interp.", command=self.y_interp)
@@ -90,7 +95,7 @@ class ReviewCosmicRay():
         self.set_minmax_button.pack(side=tk.LEFT, padx=5)
         self.set_zscale_button = tk.Button(self.button_frame3, text="zscale [/]", command=self.set_zscale)
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
-        self.exit_button = tk.Button(self.button_frame3, text="Exit review", command=self.exit_review)
+        self.exit_button = tk.Button(self.button_frame3, text="[e]xit review", command=self.exit_review)
         self.exit_button.pack(side=tk.LEFT, padx=5)
 
         self.fig, self.ax = plt.subplots(figsize=(8, 5))
@@ -115,9 +120,10 @@ class ReviewCosmicRay():
     def update_display(self):
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         ycr_list_original, xcr_list_original = np.where(self.cr_labels_original == self.cr_index)
-        print(f"Cosmic ray {self.cr_index}: "
-              f"Number of pixels = {len(xcr_list)}, "
-              f"Centroid = ({np.mean(xcr_list):.2f}, {np.mean(ycr_list):.2f})")
+        if self.first_plot:
+            print(f"Cosmic ray {self.cr_index}: "
+                  f"Number of pixels = {len(xcr_list)}, "
+                  f"Centroid = ({np.mean(xcr_list):.2f}, {np.mean(ycr_list):.2f})")
         # Use original positions to define the region to display in order
         # to avoid image shifts when some pixels are unmarked or new ones are marked
         i0 = int(np.mean(ycr_list_original) + 0.5)
@@ -141,13 +147,14 @@ class ReviewCosmicRay():
         for xcr, ycr in zip(xcr_list, ycr_list):
             xcr += 1  # from index to pixel
             ycr += 1  # from index to pixel
-            print(xcr, ycr)
             self.ax.plot([xcr - 0.5, xcr + 0.5], [ycr + 0.5, ycr - 0.5], 'r-')
             self.ax.plot([xcr - 0.5, xcr + 0.5], [ycr - 0.5, ycr + 0.5], 'r-')
         self.ax.set_xlim(xlim)
         self.ax.set_ylim(ylim)
         self.ax.set_title(f"Cosmic ray #{self.cr_index}/{self.num_features}")
-        self.fig.tight_layout()
+        if self.first_plot:
+            self.first_plot = False
+            self.fig.tight_layout()
         self.canvas.draw()
 
     def set_vmin(self):
@@ -173,7 +180,7 @@ class ReviewCosmicRay():
 
     def get_vmax(self):
         return float(self.vmax_button.cget("text").split(":")[1])
-    
+
     def set_minmax(self):
         vmin_new = np.min(self.data[self.region])
         vmax_new = np.max(self.data[self.region])
@@ -191,23 +198,122 @@ class ReviewCosmicRay():
         self.image_review.set_clim(vmax=vmax_new)
         self.canvas.draw()
 
+    def set_ndeg(self):
+        new_degree = simpledialog.askinteger("Set degree", "Enter new degree (min=0):",
+                                             initialvalue=self.degree, minvalue=0)
+        if new_degree is None:
+            return
+        new_npoints = simpledialog.askinteger("Set n", f"Enter new n (min={2*new_degree}):",
+                                              initialvalue=self.npoints, minvalue=2*new_degree)
+        if new_npoints is None:
+            return
+        self.degree = new_degree
+        self.npoints = new_npoints
+        self.ndeg_label.config(text=f"deg={self.degree}, n={self.npoints}")
+
     def x_interp(self):
         print(f"X-interpolation of cosmic ray {self.cr_index}")
+        ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
+        ycr_min = np.min(ycr_list)
+        ycr_max = np.max(ycr_list)
+        xfit_all = []
+        yfit_all = []
+        for ycr in range(ycr_min, ycr_max + 1):
+            xmarked = xcr_list[np.where(ycr_list == ycr)]
+            jmin = np.min(xmarked)
+            jmax = np.max(xmarked)
+            # mark intermediate pixels too
+            for ix in range(jmin, jmax + 1):
+                self.cr_labels[ycr, ix] = self.cr_index
+            xmarked = xcr_list[np.where(ycr_list == ycr)]
+            xfit = []
+            zfit = []
+            for i in range(jmin - self.npoints, jmin):
+                if 0 <= i < self.data.shape[1]:
+                    xfit.append(i)
+                    xfit_all.append(i)
+                    yfit_all.append(ycr)
+                    zfit.append(self.data[ycr, i])
+            for i in range(jmax + 1, jmax + 1 + self.npoints):
+                if 0 <= i < self.data.shape[1]:
+                    xfit.append(i)
+                    xfit_all.append(i)
+                    yfit_all.append(ycr)
+                    zfit.append(self.data[ycr, i])
+            if len(xfit) > self.degree:
+                p = np.polyfit(xfit, zfit, self.degree)
+                for i in range(jmin, jmax + 1):
+                    if 0 <= i < self.data.shape[1]:
+                        self.data[ycr, i] = np.polyval(p, i)
+            else:
+                print(f"Not enough points to fit at y={ycr+1}")
+        self.restore_cr_button.config(state=tk.NORMAL)
+        self.remove_crosses_button.config(state=tk.DISABLED)
+        self.x_interp_button.config(state=tk.DISABLED)
+        self.y_interp_button.config(state=tk.DISABLED)
+        self.s_interp_button.config(state=tk.DISABLED)
         self.update_display()
+        if len(xfit_all) > 0:
+            self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
+            self.canvas.draw()
 
     def y_interp(self):
         print(f"Y-interpolation of cosmic ray {self.cr_index}")
+        ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
+        xcr_min = np.min(xcr_list)
+        xcr_max = np.max(xcr_list)
+        xfit_all = []
+        yfit_all = []
+        for xcr in range(xcr_min, xcr_max + 1):
+            ymarked = ycr_list[np.where(xcr_list == xcr)]
+            imin = np.min(ymarked)
+            imax = np.max(ymarked)
+            # mark intermediate pixels too
+            for iy in range(imin, imax + 1):
+                self.cr_labels[iy, xcr] = self.cr_index
+            ymarked = ycr_list[np.where(xcr_list == xcr)]
+            yfit = []
+            zfit = []
+            for i in range(imin - self.npoints, imin):
+                if 0 <= i < self.data.shape[0]:
+                    yfit.append(i)
+                    yfit_all.append(i)
+                    xfit_all.append(xcr)
+                    zfit.append(self.data[i, xcr])
+            for i in range(imax + 1, imax + 1 + self.npoints):
+                if 0 <= i < self.data.shape[0]:
+                    yfit.append(i)
+                    yfit_all.append(i)
+                    xfit_all.append(xcr)
+                    zfit.append(self.data[i, xcr])
+            if len(yfit) > self.degree:
+                p = np.polyfit(yfit, zfit, self.degree)
+                for i in range(imin, imax + 1):
+                    if 0 <= i < self.data.shape[1]:
+                        self.data[i, xcr] = np.polyval(p, i)
+            else:
+                print(f"Not enough points to fit at x={xcr+1}")
+        self.restore_cr_button.config(state=tk.NORMAL)
+        self.remove_crosses_button.config(state=tk.DISABLED)
+        self.x_interp_button.config(state=tk.DISABLED)
+        self.y_interp_button.config(state=tk.DISABLED)
+        self.s_interp_button.config(state=tk.DISABLED)
         self.update_display()
+        if len(xfit_all) > 0:
+            self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
+            self.canvas.draw()
 
     def s_interp(self):
         print(f"S-interpolation of cosmic ray {self.cr_index}")
+        ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         self.update_display()
 
-    def remove_cr(self):
+    def remove_crosses(self):
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         for iy, ix in zip(ycr_list, xcr_list):
             self.cr_labels[iy, ix] = 0
         print(f"Removed all pixels of cosmic ray {self.cr_index}")
+        self.remove_crosses_button.config(state=tk.DISABLED)
         self.x_interp_button.config(state=tk.DISABLED)
         self.y_interp_button.config(state=tk.DISABLED)
         self.s_interp_button.config(state=tk.DISABLED)
@@ -216,27 +322,24 @@ class ReviewCosmicRay():
     def restore_cr(self):
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         for iy, ix in zip(ycr_list, xcr_list):
-            self.cr_labels[iy, ix] = 0
-        ycr_list, xcr_list = np.where(self.cr_labels_original == self.cr_index)
-        if len(xcr_list) > 0:
-            for iy, ix in zip(ycr_list, xcr_list):
-                self.cr_labels[iy, ix] = self.cr_index
+            self.data[iy, ix] = self.data_original[iy, ix]
             self.x_interp_button.config(state=tk.NORMAL)
             self.y_interp_button.config(state=tk.NORMAL)
             self.s_interp_button.config(state=tk.NORMAL)
         print(f"Restored all pixels of cosmic ray {self.cr_index}")
+        self.remove_crosses_button.config(state=tk.NORMAL)
+        self.restore_cr_button.config(state=tk.DISABLED)
         self.update_display()
 
-    def previous_cr(self):
-        self.cr_index -= 1
-        if self.cr_index == 0:
-            self.cr_index = self.num_features
-        self.update_display()
-
-    def next_cr(self):
+    def continue_cr(self):
         self.cr_index += 1
         if self.cr_index > self.num_features:
             self.cr_index = 1
+        self.first_plot = True
+        self.restore_cr_button.config(state=tk.DISABLED)
+        self.x_interp_button.config(state=tk.NORMAL)
+        self.y_interp_button.config(state=tk.NORMAL)
+        self.s_interp_button.config(state=tk.NORMAL)
         self.update_display()
 
     def exit_review(self):
@@ -245,20 +348,26 @@ class ReviewCosmicRay():
     def on_key(self, event):
         if event.key == 'q':
             pass  # Ignore the "q" key to prevent closing the window
-        if event.key == 'x':
-            self.x_interp()
+        elif event.key == 'r':
+            if self.restore_cr_button.cget("state") != "disabled":
+                self.restore_cr()
+        elif event.key == 'x':
+            if self.x_interp_button.cget("state") != "disabled":
+                self.x_interp()
         elif event.key == 'y':
-            self.y_interp()
+            if self.y_interp_button.cget("state") != "disabled":
+                self.y_interp()
         elif event.key == 's':
-            self.s_interp()
-        elif event.key == 'left':
-            self.previous_cr()
-        elif event.key == 'right':
-            self.next_cr()
+            if self.s_interp_button.cget("state") != "disabled":
+                self.s_interp()
+        elif event.key == 'right' or event.key == 'c':
+            self.continue_cr()
         elif event.key == ',':
             self.set_minmax()
         elif event.key == '/':
             self.set_zscale()
+        elif event.key == 'e':
+            self.exit_review()
         else:
             print(f"Key pressed: {event.key}")
 
@@ -268,13 +377,23 @@ class ReviewCosmicRay():
             print(f"Clicked at image coordinates: ({x:.2f}, {y:.2f})")
             ix = int(x+0.5) - 1  # from pixel to index
             iy = int(y+0.5) - 1  # from pixel to index
-            print(f'{ix=}, {iy=}, {self.cr_labels[iy, ix]=}, {self.cr_index=}')
             if int(self.cr_labels[iy, ix]) == self.cr_index:
                 self.cr_labels[iy, ix] = 0
                 print(f"Pixel ({ix+1}, {iy+1}) unmarked as cosmic ray.")
             else:
                 self.cr_labels[iy, ix] = self.cr_index
                 print(f"Pixel ({ix+1}, {iy+1}) marked as cosmic ray.")
+            xcr_list, ycr_list = np.where(self.cr_labels == self.cr_index)
+            if len(xcr_list) == 0:
+                self.x_interp_button.config(state=tk.DISABLED)
+                self.y_interp_button.config(state=tk.DISABLED)
+                self.s_interp_button.config(state=tk.DISABLED)
+                self.remove_crosses_button.config(state=tk.DISABLED)
+            else:
+                self.x_interp_button.config(state=tk.NORMAL)
+                self.y_interp_button.config(state=tk.NORMAL)
+                self.s_interp_button.config(state=tk.NORMAL)
+                self.remove_crosses_button.config(state=tk.NORMAL)
             # Update the display to reflect the change
             self.update_display()
 
