@@ -43,7 +43,7 @@ class SliceRegion1D:
         Check if slice 'other' is within the parent slice.
     """
 
-    def __init__(self, region, mode=None):
+    def __init__(self, region, mode=None, naxis1=None):
         """Initialize SliceRegion1D.
 
         Parameters
@@ -54,6 +54,9 @@ class SliceRegion1D:
         mode : str
             Convention mode employed to define the slice.
             The two possible modes are 'fits' and 'python'.
+        naxis1 : int
+            The axis 1 size (length) of the data being sliced.
+            If provided, it is used to validate the slice region.
         """
         if isinstance(region, str):
             pattern = r'^\s*\[\s*\d+\s*:\s*\d+\s*\]\s*$'
@@ -92,6 +95,12 @@ class SliceRegion1D:
             self.python = region
         else:
             raise ValueError(errmsg)
+
+        if naxis1 is not None:
+            if not (1 <= self.fits.start <= naxis1):
+                raise ValueError(f'Invalid start={self.fits.start} for naxis1={naxis1}')
+            if not (1 <= self.fits.stop <= naxis1+1):
+                raise ValueError(f'Invalid stop={self.fits.stop} for naxis1={naxis1}')
 
         s = self.fits
         self.fits_section = f'[{s.start}:{s.stop}]'
@@ -137,6 +146,10 @@ class SliceRegion1D:
         result = True
         return result
 
+    def length(self):
+        """Return the length of the slice."""
+        return self.python.stop - self.python.start
+
 
 class SliceRegion2D:
     """Store indices for slicing of 2D regions.
@@ -163,7 +176,7 @@ class SliceRegion2D:
     within(other)
         Check if slice 'other' is within the parent slice."""
 
-    def __init__(self, region, mode=None):
+    def __init__(self, region, mode=None, naxis1=None, naxis2=None):
         """Initialize SliceRegion2D.
 
         Parameters
@@ -175,6 +188,14 @@ class SliceRegion2D:
         mode : str
             Convention mode employed to define the slice.
             The two possible modes are 'fits' and 'python'.
+        naxis1 : int
+            The axis 1 size (length) of the data being sliced,
+            assuming the FITS convention.
+            If provided, it is used to validate the slice region.
+        naxis2 : int
+            The axis 2 size (length) of the data being sliced,
+            assuming the FITS convention.
+            If provided, it is used to validate the slice region.
         """
         if isinstance(region, str):
             pattern = r'^\s*\[\s*\d+\s*:\s*\d+\s*,\s*\d+\s*:\s*\d+\s*\]\s*$'
@@ -224,6 +245,17 @@ class SliceRegion2D:
         s1, s2 = self.fits
         self.fits_section = f'[{s1.start}:{s1.stop},{s2.start}:{s2.stop}]'
 
+        if naxis1 is not None:
+            if not (1 <= s1.start <= naxis1):
+                raise ValueError(f'Invalid start={s1.start} for naxis1={naxis1}')
+            if not (1 <= s1.stop <= naxis1):
+                raise ValueError(f'Invalid stop={s1.stop} for naxis1={naxis1}')
+        if naxis2 is not None:
+            if not (1 <= s2.start <= naxis2):
+                raise ValueError(f'Invalid start={s2.start} for naxis2={naxis2}')
+            if not (1 <= s2.stop <= naxis2):
+                raise ValueError(f'Invalid stop={s2.stop} for naxis2={naxis2}')
+
     def __eq__(self, other):
         return self.fits == other.fits and self.python == other.python
 
@@ -269,6 +301,11 @@ class SliceRegion2D:
         result = True
         return result
 
+    def area(self):
+        """Return the area of the slice."""
+        s1, s2 = self.python
+        return (s1.stop - s1.start) * (s2.stop - s2.start)
+
 
 class SliceRegion3D:
     """Store indices for slicing of 3D regions.
@@ -295,7 +332,7 @@ class SliceRegion3D:
     within(other)
         Check if slice 'other' is within the parent slice."""
 
-    def __init__(self, region, mode=None):
+    def __init__(self, region, mode=None, naxis1=None, naxis2=None, naxis3=None):
         """Initialize SliceRegion3D.
 
         Parameters
@@ -307,6 +344,18 @@ class SliceRegion3D:
         mode : str
             Convention mode employed to define the slice.
             The two possible modes are 'fits' and 'python'.
+        naxis1 : int
+            The axis 1 size (length) of the data being sliced,
+            assuming the FITS convention.
+            If provided, it is used to validate the slice region.
+        naxis2 : int
+            The axis 2 size (length) of the data being sliced,
+            assuming the FITS convention.
+            If provided, it is used to validate the slice region.
+        naxis3 : int
+            The axis 3 size (length) of the data being sliced,
+            assuming the FITS convention.
+            If provided, it is used to validate the slice region.
         """
         if isinstance(region, str):
             pattern = r'^\s*\[\s*\d+\s*:\s*\d+\s*,\s*\d+\s*:\s*\d+\s*,\s*\d+\s*:\s*\d+\s*\]\s*$'
@@ -360,6 +409,22 @@ class SliceRegion3D:
         s1, s2, s3 = self.fits
         self.fits_section = f'[{s1.start}:{s1.stop},{s2.start}:{s2.stop},{s3.start}:{s3.stop}]'
 
+        if naxis1 is not None:
+            if not (1 <= s1.start <= naxis1):
+                raise ValueError(f'Invalid start={s1.start} for naxis1={naxis1}')
+            if not (1 <= s1.stop <= naxis1):
+                raise ValueError(f'Invalid stop={s1.stop} for naxis1={naxis1}')
+        if naxis2 is not None:
+            if not (1 <= s2.start <= naxis2):
+                raise ValueError(f'Invalid start={s2.start} for naxis2={naxis2}')
+            if not (1 <= s2.stop <= naxis2):
+                raise ValueError(f'Invalid stop={s2.stop} for naxis2={naxis2}')
+        if naxis3 is not None:
+            if not (1 <= s3.start <= naxis3):
+                raise ValueError(f'Invalid start={s3.start} for naxis3={naxis3}')
+            if not (1 <= s3.stop <= naxis3):
+                raise ValueError(f'Invalid stop={s3.stop} for naxis3={naxis3}')
+
     def __eq__(self, other):
         return self.fits == other.fits and self.python == other.python
 
@@ -408,3 +473,8 @@ class SliceRegion3D:
             return result
         result = True
         return result
+
+    def volume(self):
+        """Return the volume of the slice."""
+        s1, s2, s3 = self.python
+        return (s1.stop - s1.start) * (s2.stop - s2.start) * (s3.stop - s3.start)
