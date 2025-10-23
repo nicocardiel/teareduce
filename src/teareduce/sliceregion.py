@@ -85,12 +85,12 @@ class SliceRegion1D:
 
         if self.mode == 'fits':
             if region.stop < region.start:
-                raise ValueError(f'Invalid {region!r}')
+                raise ValueError(f'Invalid {region!r}: stop must be >= start')
             self.fits = region
             self.python = slice(region.start-1, region.stop)
         elif self.mode == 'python':
             if region.stop <= region.start:
-                raise ValueError(f'Invalid {region!r}')
+                raise ValueError(f'Invalid {region!r}: stop must be > start')
             self.fits = slice(region.start+1, region.stop)
             self.python = region
         else:
@@ -227,16 +227,16 @@ class SliceRegion2D:
 
         if self.mode == 'fits':
             if s1.stop < s1.start:
-                raise ValueError(f'Invalid {s1!r}')
+                raise ValueError(f'Invalid {s1!r}: stop must be >= start')
             if s2.stop < s2.start:
-                raise ValueError(f'Invalid {s2!r}')
+                raise ValueError(f'Invalid {s2!r}: stop must be >= start')
             self.fits = region
             self.python = slice(s2.start-1, s2.stop), slice(s1.start-1, s1.stop)
         elif self.mode == 'python':
             if s1.stop <= s1.start:
-                raise ValueError(f'Invalid {s1!r}')
+                raise ValueError(f'Invalid {s1!r}: stop must be > start')
             if s2.stop <= s2.start:
-                raise ValueError(f'Invalid {s2!r}')
+                raise ValueError(f'Invalid {s2!r}: stop must be > start')
             self.fits = slice(s2.start+1, s2.stop), slice(s1.start+1, s1.stop)
             self.python = region
         else:
@@ -387,20 +387,20 @@ class SliceRegion3D:
 
         if self.mode == 'fits':
             if s1.stop < s1.start:
-                raise ValueError(f'Invalid {s1!r}')
+                raise ValueError(f'Invalid {s1!r}: stop must be >= start')
             if s2.stop < s2.start:
-                raise ValueError(f'Invalid {s2!r}')
+                raise ValueError(f'Invalid {s2!r}: stop must be >= start')
             if s3.stop < s3.start:
-                raise ValueError(f'Invalid {s3!r}')
+                raise ValueError(f'Invalid {s3!r}: stop must be >= start')
             self.fits = region
             self.python = slice(s3.start-1, s3.stop), slice(s2.start-1, s2.stop), slice(s1.start-1, s1.stop)
         elif self.mode == 'python':
             if s1.stop <= s1.start:
-                raise ValueError(f'Invalid {s1!r}')
+                raise ValueError(f'Invalid {s1!r}: stop must be > start')
             if s2.stop <= s2.start:
-                raise ValueError(f'Invalid {s2!r}')
+                raise ValueError(f'Invalid {s2!r}: stop must be > start')
             if s3.stop <= s3.start:
-                raise ValueError(f'Invalid {s3!r}')
+                raise ValueError(f'Invalid {s3!r}: stop must be > start')
             self.fits = slice(s3.start+1, s3.stop), slice(s2.start+1, s2.stop), slice(s1.start+1, s1.stop)
             self.python = region
         else:
