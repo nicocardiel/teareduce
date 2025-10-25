@@ -47,7 +47,7 @@ Homepage = "https://github.com/nicocardiel/teareduce"
 Repository = "https://github.com/nicocardiel/teareduce.git"
 
 [project.scripts]
-tea-cleanest = "teareduce.cleanest:main"
+tea-cleanest = "teareduce.cleanest.__main__:main"
 
 [tool.setuptools.dynamic]
 version = {attr = "teareduce.version.VERSION"}
