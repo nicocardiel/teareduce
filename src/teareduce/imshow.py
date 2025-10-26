@@ -14,13 +14,18 @@ from matplotlib.axes import Axes
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
-def imshowme(data, **kwargs):
+def imshowme(data, return_objs=False, **kwargs):
     """Simple execution of teareduce.imshow.
 
     Parameters
     ----------
     data : numpy.ndarray
         2D array to be displayed
+    return_objs : bool
+        If True, return the Figure, Axes, AxesImage,
+        color bar Axes and Colorbar instances.
+    **kwargs : dict
+        Additional parameters passed to imshow().
 
     Returns
     -------
@@ -37,14 +42,16 @@ def imshowme(data, **kwargs):
         Instance of Colorbar, or None if colorbar is False.
     """
     fig, ax = plt.subplots()
-    img, cax, cbar = imshow(fig=fig, ax=ax, data=data, **kwargs)
-    return fig, ax, img, cax, cbar
+    img, cax, cbar = imshow(fig=fig, ax=ax, data=data, return_objs=True, **kwargs)
+    if return_objs:
+        return fig, ax, img, cax, cbar
 
 
 def imshow(fig=None, ax=None, data=None, ds9mode=False,
            crpix1=1, crval1=None, cdelt1=None, cunit1=None, cunitx=Unit('Angstrom'),
            xlabel=None, ylabel=None, title=None,
            colorbar=True, cblabel='Number of counts',
+           return_objs=True,
            **kwargs):
     """Call imshow() with color bar and default labels.
 
@@ -89,6 +96,11 @@ def imshow(fig=None, ax=None, data=None, ds9mode=False,
         If True, display color bar.
     cblabel : str
         Color bar label.
+    return_objs : bool
+        If True, return AxesImage, color bar Axes and Colorbar
+        instances.
+    **kwargs : dict
+        Additional parameters passed to imshow().
 
     Return
     ------
@@ -188,4 +200,5 @@ def imshow(fig=None, ax=None, data=None, ds9mode=False,
         cax = None
         cbar = None
 
-    return img, cax, cbar
+    if return_objs:
+        return img, cax, cbar
