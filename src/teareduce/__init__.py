@@ -8,6 +8,7 @@
 #
 
 from .avoid_astropy_warnings import avoid_astropy_warnings
+from .cookbook.get_cookbook_file import get_cookbook_file
 from .correct_pincushion_distortion import correct_pincushion_distortion
 from .cosmicrays import cr2images, apply_cr2images_ccddata, crmedian
 from .ctext import ctext
