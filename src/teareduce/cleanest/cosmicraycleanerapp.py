@@ -199,6 +199,30 @@ class CosmicRayCleanerApp(ImageDisplay):
             print(f"Key pressed: {event.key}")
 
     def on_click(self, event):
-        if event.inaxes:
+        # check the toolbar is not active
+        toolbar = self.fig.canvas.toolbar
+        if toolbar.mode != "":
+            print(f"Toolbar mode '{toolbar.mode}' active; click ignored.")
+            return
+
+        # ignore clicks outside the axes (note that the color bar is also an axes)
+        if event.inaxes == self.ax:
             x, y = event.xdata, event.ydata
             print(f"Clicked at image coordinates: ({x:.2f}, {y:.2f})")
+            mask_crfound = np.zeros(self.data.shape, dtype=bool)
+            ix = int(x + 0.5)
+            iy = int(y + 0.5)
+            mask_crfound[iy-1, ix-1] = True
+            review = ReviewCosmicRay(
+                root=self.root,
+                data=self.data,
+                cleandata_lacosmic=None,
+                mask_fixed=self.mask_fixed,
+                mask_crfound=mask_crfound
+            )
+            if review.num_cr_cleaned > 0:
+                print(f"Number of cosmic rays identified and cleaned: {review.num_cr_cleaned}")
+                # redraw image to show the changes
+                self.image.set_data(self.data)
+                self.canvas.draw()
+                self.save_button.config(state=tk.NORMAL)

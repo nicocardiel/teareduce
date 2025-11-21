@@ -41,7 +41,7 @@ class ReviewCosmicRay(ImageDisplay):
             The main Tkinter window.
         data : 2D numpy array
             The original image data.
-        cleandata_lacosmic: 2D numpy array
+        cleandata_lacosmic: 2D numpy array or None
             The cleaned image data from L.A.Cosmic.
         mask_fixed : 2D numpy array
             Mask of previously corrected pixels.
@@ -116,6 +116,8 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_m_button.pack(side=tk.LEFT, padx=5)
         self.interp_l_button = tk.Button(self.button_frame2, text="[l]acosmic", command=self.use_lacosmic)
         self.interp_l_button.pack(side=tk.LEFT, padx=5)
+        if self.cleandata_lacosmic is None:
+            self.interp_l_button.config(state=tk.DISABLED)
 
         # Row 3 of buttons
         self.button_frame3 = tk.Frame(self.review_window)
@@ -202,6 +204,15 @@ class ReviewCosmicRay(ImageDisplay):
         self.npoints = new_npoints
         self.ndeg_label.config(text=f"deg={self.degree}, n={self.npoints}")
 
+    def set_buttons_after_cleaning_cr(self):
+        self.restore_cr_button.config(state=tk.NORMAL)
+        self.remove_crosses_button.config(state=tk.DISABLED)
+        self.interp_x_button.config(state=tk.DISABLED)
+        self.interp_y_button.config(state=tk.DISABLED)
+        self.interp_s_button.config(state=tk.DISABLED)
+        self.interp_m_button.config(state=tk.DISABLED)
+        self.interp_l_button.config(state=tk.DISABLED)
+
     def interp_x(self):
         print(f"X-interpolation of cosmic ray {self.cr_index}")
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
@@ -209,6 +220,7 @@ class ReviewCosmicRay(ImageDisplay):
         ycr_max = np.max(ycr_list)
         xfit_all = []
         yfit_all = []
+        interpolation_performed = False
         for ycr in range(ycr_min, ycr_max + 1):
             xmarked = xcr_list[np.where(ycr_list == ycr)]
             if len(xmarked) > 0:
@@ -238,18 +250,14 @@ class ReviewCosmicRay(ImageDisplay):
                         if 0 <= i < self.data.shape[1]:
                             self.data[ycr, i] = np.polyval(p, i)
                             self.mask_fixed[ycr, i] = True
-                    self.num_cr_cleaned += 1
+                    interpolation_performed = True
                 else:
                     print(f"Not enough points to fit at y={ycr+1}")
                     self.update_display()
                     return
-        self.restore_cr_button.config(state=tk.NORMAL)
-        self.remove_crosses_button.config(state=tk.DISABLED)
-        self.interp_x_button.config(state=tk.DISABLED)
-        self.interp_y_button.config(state=tk.DISABLED)
-        self.interp_s_button.config(state=tk.DISABLED)
-        self.interp_m_button.config(state=tk.DISABLED)
-        self.interp_l_button.config(state=tk.DISABLED)
+        if interpolation_performed:
+            self.num_cr_cleaned += 1
+        self.set_buttons_after_cleaning_cr()
         self.update_display()
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
@@ -262,6 +270,7 @@ class ReviewCosmicRay(ImageDisplay):
         xcr_max = np.max(xcr_list)
         xfit_all = []
         yfit_all = []
+        interpolation_performed = False
         for xcr in range(xcr_min, xcr_max + 1):
             ymarked = ycr_list[np.where(xcr_list == xcr)]
             if len(ymarked) > 0:
@@ -291,25 +300,21 @@ class ReviewCosmicRay(ImageDisplay):
                         if 0 <= i < self.data.shape[1]:
                             self.data[i, xcr] = np.polyval(p, i)
                             self.mask_fixed[i, xcr] = True
-                    self.num_cr_cleaned += 1
+                    interpolation_performed = True
                 else:
                     print(f"Not enough points to fit at x={xcr+1}")
                     self.update_display()
                     return
-        self.restore_cr_button.config(state=tk.NORMAL)
-        self.remove_crosses_button.config(state=tk.DISABLED)
-        self.interp_x_button.config(state=tk.DISABLED)
-        self.interp_y_button.config(state=tk.DISABLED)
-        self.interp_s_button.config(state=tk.DISABLED)
-        self.interp_m_button.config(state=tk.DISABLED)
-        self.interp_l_button.config(state=tk.DISABLED)
+        if interpolation_performed:
+            self.num_cr_cleaned += 1
+        self.set_buttons_after_cleaning_cr()
         self.update_display()
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
             self.canvas.draw()
 
     def interp_a(self, method):
-        print(f"S-interpolation of cosmic ray {self.cr_index}")
+        print(f"{method} interpolation of cosmic ray {self.cr_index}")
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         ycr_min = np.min(ycr_list)
         ycr_max = np.max(ycr_list)
@@ -390,13 +395,7 @@ class ReviewCosmicRay(ImageDisplay):
         else:
             print(f"Unknown interpolation method: {method}")
             return
-        self.restore_cr_button.config(state=tk.NORMAL)
-        self.remove_crosses_button.config(state=tk.DISABLED)
-        self.interp_x_button.config(state=tk.DISABLED)
-        self.interp_y_button.config(state=tk.DISABLED)
-        self.interp_s_button.config(state=tk.DISABLED)
-        self.interp_m_button.config(state=tk.DISABLED)
-        self.interp_l_button.config(state=tk.DISABLED)
+        self.set_buttons_after_cleaning_cr()
         self.update_display()
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
@@ -409,13 +408,7 @@ class ReviewCosmicRay(ImageDisplay):
             self.data[iy, ix] = self.cleandata_lacosmic[iy, ix]
             self.mask_fixed[iy, ix] = True
         self.num_cr_cleaned += 1
-        self.restore_cr_button.config(state=tk.NORMAL)
-        self.remove_crosses_button.config(state=tk.DISABLED)
-        self.interp_x_button.config(state=tk.DISABLED)
-        self.interp_y_button.config(state=tk.DISABLED)
-        self.interp_s_button.config(state=tk.DISABLED)
-        self.interp_m_button.config(state=tk.DISABLED)
-        self.interp_l_button.config(state=tk.DISABLED)
+        self.set_buttons_after_cleaning_cr()
         self.update_display()
 
     def remove_crosses(self):
@@ -439,7 +432,8 @@ class ReviewCosmicRay(ImageDisplay):
             self.interp_y_button.config(state=tk.NORMAL)
             self.interp_s_button.config(state=tk.NORMAL)
             self.interp_m_button.config(state=tk.NORMAL)
-            self.interp_l_button.config(state=tk.NORMAL)
+            if self.cleandata_lacosmic is not None:
+                self.interp_l_button.config(state=tk.NORMAL)
         print(f"Restored all pixels of cosmic ray {self.cr_index}")
         self.num_cr_cleaned -= 1
         self.remove_crosses_button.config(state=tk.NORMAL)
@@ -449,14 +443,16 @@ class ReviewCosmicRay(ImageDisplay):
     def continue_cr(self):
         self.cr_index += 1
         if self.cr_index > self.num_features:
-            self.cr_index = 1
+            self.exit_review()
+            return  # important: do not remove (to avoid errors)
         self.first_plot = True
         self.restore_cr_button.config(state=tk.DISABLED)
         self.interp_x_button.config(state=tk.NORMAL)
         self.interp_y_button.config(state=tk.NORMAL)
         self.interp_s_button.config(state=tk.NORMAL)
         self.interp_m_button.config(state=tk.NORMAL)
-        self.interp_l_button.config(state=tk.NORMAL)
+        if self.cleandata_lacosmic is not None:
+            self.interp_l_button.config(state=tk.NORMAL)
         self.update_display()
 
     def exit_review(self):
@@ -519,7 +515,8 @@ class ReviewCosmicRay(ImageDisplay):
                 self.interp_y_button.config(state=tk.NORMAL)
                 self.interp_s_button.config(state=tk.NORMAL)
                 self.interp_m_button.config(state=tk.NORMAL)
-                self.interp_l_button.config(state=tk.NORMAL)
+                if self.cleandata_lacosmic is not None:
+                    self.interp_l_button.config(state=tk.NORMAL)
                 self.remove_crosses_button.config(state=tk.NORMAL)
             # Update the display to reflect the change
             self.update_display()
