@@ -100,7 +100,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             print(f"Error saving FITS file: {e}")
 
     def create_widgets(self):
-        # Row 1
+        # Row 1 of buttons
         self.button_frame1 = tk.Frame(self.root)
         self.button_frame1.grid(row=0, column=0, pady=5)
         self.run_lacosmic_button = tk.Button(self.button_frame1, text="Run L.A.Cosmic", command=self.run_lacosmic)
@@ -111,7 +111,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.stop_button = tk.Button(self.button_frame1, text="Stop program", command=self.stop_app)
         self.stop_button.pack(side=tk.LEFT, padx=5)
 
-        # Row 2
+        # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.root)
         self.button_frame2.grid(row=1, column=0, pady=5)
         vmin, vmax = zscale(self.data)
@@ -168,14 +168,19 @@ class CosmicRayCleanerApp(ImageDisplay):
             objlim=5.0,
             verbose=True
         )
-        ReviewCosmicRay(
+        review = ReviewCosmicRay(
             root=self.root,
             data=self.data,
             cleandata_lacosmic=cleandata_lacosmic,
             mask_fixed=self.mask_fixed,
             mask_crfound=mask_crfound
         )
-        print("L.A.Cosmic cleaning applied.")
+        if review.num_cr_cleaned > 0:
+            print(f"Number of cosmic rays identified and cleaned: {review.num_cr_cleaned}")
+            # redraw image to show the changes
+            self.image.set_data(self.data)
+            self.canvas.draw()
+            self.save_button.config(state=tk.NORMAL)
         self.run_lacosmic_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.NORMAL)
 

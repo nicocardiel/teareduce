@@ -54,6 +54,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.data_original = data.copy()
         self.mask_fixed = mask_fixed
         self.mask_crfound = mask_crfound
+        self.num_cr_cleaned = 0
         self.first_plot = True
         self.degree = 1    # Degree of polynomial for interpolation
         self.npoints = 2   # Number of points at each side of the CR pixel for interpolation
@@ -77,6 +78,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.review_window.title("Review Cosmic Rays")
         self.review_window.geometry("800x700+100+100")
 
+        # Row 1 of buttons
         self.button_frame1 = tk.Frame(self.review_window)
         self.button_frame1.pack(pady=5)
         self.ndeg_label = tk.Button(self.button_frame1, text=f"deg={self.degree}, n={self.npoints}",
@@ -92,6 +94,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.exit_button = tk.Button(self.button_frame1, text="[e]xit review", command=self.exit_review)
         self.exit_button.pack(side=tk.LEFT, padx=5)
 
+        # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.review_window)
         self.button_frame2.pack(pady=5)
         self.interp_x_button = tk.Button(self.button_frame2, text="[X] interp.", command=self.interp_x)
@@ -114,6 +117,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_l_button = tk.Button(self.button_frame2, text="[l]acosmic", command=self.use_lacosmic)
         self.interp_l_button.pack(side=tk.LEFT, padx=5)
 
+        # Row 3 of buttons
         self.button_frame3 = tk.Frame(self.review_window)
         self.button_frame3.pack(pady=5)
         vmin, vmax = zscale(self.data)
@@ -234,6 +238,7 @@ class ReviewCosmicRay(ImageDisplay):
                         if 0 <= i < self.data.shape[1]:
                             self.data[ycr, i] = np.polyval(p, i)
                             self.mask_fixed[ycr, i] = True
+                    self.num_cr_cleaned += 1
                 else:
                     print(f"Not enough points to fit at y={ycr+1}")
                     self.update_display()
@@ -286,6 +291,7 @@ class ReviewCosmicRay(ImageDisplay):
                         if 0 <= i < self.data.shape[1]:
                             self.data[i, xcr] = np.polyval(p, i)
                             self.mask_fixed[i, xcr] = True
+                    self.num_cr_cleaned += 1
                 else:
                     print(f"Not enough points to fit at x={xcr+1}")
                     self.update_display()
@@ -365,6 +371,7 @@ class ReviewCosmicRay(ImageDisplay):
                 for iy, ix in zip(ycr_list, xcr_list):
                     self.data[iy, ix] = C[0] * ix + C[1] * iy + C[2]
                     self.mask_fixed[iy, ix] = True
+                self.num_cr_cleaned += 1
             else:
                 print("Not enough points to fit a plane")
                 self.update_display()
@@ -379,6 +386,7 @@ class ReviewCosmicRay(ImageDisplay):
                 for iy, ix in zip(ycr_list, xcr_list):
                     self.data[iy, ix] = zmed
                     self.mask_fixed[iy, ix] = True
+                self.num_cr_cleaned += 1
         else:
             print(f"Unknown interpolation method: {method}")
             return
@@ -400,6 +408,7 @@ class ReviewCosmicRay(ImageDisplay):
         for iy, ix in zip(ycr_list, xcr_list):
             self.data[iy, ix] = self.cleandata_lacosmic[iy, ix]
             self.mask_fixed[iy, ix] = True
+        self.num_cr_cleaned += 1
         self.restore_cr_button.config(state=tk.NORMAL)
         self.remove_crosses_button.config(state=tk.DISABLED)
         self.interp_x_button.config(state=tk.DISABLED)
@@ -432,6 +441,7 @@ class ReviewCosmicRay(ImageDisplay):
             self.interp_m_button.config(state=tk.NORMAL)
             self.interp_l_button.config(state=tk.NORMAL)
         print(f"Restored all pixels of cosmic ray {self.cr_index}")
+        self.num_cr_cleaned -= 1
         self.remove_crosses_button.config(state=tk.NORMAL)
         self.restore_cr_button.config(state=tk.DISABLED)
         self.update_display()
