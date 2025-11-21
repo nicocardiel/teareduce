@@ -15,6 +15,13 @@ import numpy as np
 # This function is defined here because its functionality is used in
 # multiple classes
 def set_minmax(obj):
+    """Set min and max values based on data min and max.
+
+    Parameters
+    ----------
+    obj : object
+        The object containing data, region, buttons, image, and canvas.
+    """
     vmin_new = np.min(obj.data[obj.region])
     vmax_new = np.max(obj.data[obj.region])
     obj.vmin_button.config(text=f"vmin: {vmin_new:.2f}")
