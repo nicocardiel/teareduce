@@ -132,6 +132,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.set_zscale_button = tk.Button(self.button_frame3, text="zscale [/]", command=self.set_zscale)
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
 
+        # Figure
         self.fig, self.ax = plt.subplots(figsize=(8, 5))
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.review_window)
         # The next two instructions prevent a segmentation fault when pressing "q"
@@ -493,7 +494,6 @@ class ReviewCosmicRay(ImageDisplay):
     def on_click(self, event):
         if event.inaxes:
             x, y = event.xdata, event.ydata
-            print(f"Clicked at image coordinates: ({x:.2f}, {y:.2f})")
             ix = int(x+0.5) - 1  # from pixel to index
             iy = int(y+0.5) - 1  # from pixel to index
             if int(self.cr_labels[iy, ix]) == self.cr_index:
@@ -501,7 +501,7 @@ class ReviewCosmicRay(ImageDisplay):
                 print(f"Pixel ({ix+1}, {iy+1}) unmarked as cosmic ray.")
             else:
                 self.cr_labels[iy, ix] = self.cr_index
-                print(f"Pixel ({ix+1}, {iy+1}) marked as cosmic ray.")
+                print(f"Pixel ({ix+1}, {iy+1}), with signal {self.data[iy, ix]}, marked as cosmic ray.")
             xcr_list, ycr_list = np.where(self.cr_labels == self.cr_index)
             if len(xcr_list) == 0:
                 self.interp_x_button.config(state=tk.DISABLED)

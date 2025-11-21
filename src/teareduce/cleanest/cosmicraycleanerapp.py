@@ -138,7 +138,9 @@ class CosmicRayCleanerApp(ImageDisplay):
         ylabel = 'Y pixel (from 1 to NAXIS2)'
         extent = [0.5, self.data.shape[1] + 0.5, 0.5, self.data.shape[0] + 0.5]
         self.image, _, _ = imshow(self.fig, self.ax, self.data, vmin=vmin, vmax=vmax,
-                                  xlabel=xlabel, ylabel=ylabel, extent=extent)
+                                  xlabel=xlabel, ylabel=ylabel,
+                                  title=os.path.basename(self.input_fits),
+                                  extent=extent)
         # Note: tight_layout should be called before defining the canvas
         self.fig.tight_layout()
 
@@ -205,7 +207,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             print(f"Toolbar mode '{toolbar.mode}' active; click ignored.")
             return
 
-        # ignore clicks outside the axes (note that the color bar is also an axes)
+        # ignore clicks outside the expected axes
+        # (note that the color bar is a different axes)
         if event.inaxes == self.ax:
             x, y = event.xdata, event.ydata
             print(f"Clicked at image coordinates: ({x:.2f}, {y:.2f})")
