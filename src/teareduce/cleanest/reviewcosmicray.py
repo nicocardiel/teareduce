@@ -19,8 +19,7 @@ import numpy as np
 from rich import print
 from scipy import ndimage
 
-from .set_minmax import set_minmax
-from .set_zscale import set_zscale
+from .imagedisplay import ImageDisplay
 
 from ..imshow import imshow
 from ..sliceregion import SliceRegion2D
@@ -30,10 +29,10 @@ import matplotlib
 matplotlib.use("TkAgg")
 
 
-class ReviewCosmicRay():
+class ReviewCosmicRay(ImageDisplay):
     """Class to review suspected cosmic ray pixels."""
 
-    def __init__(self, root, data, mask_fixed, mask_crfound):
+    def __init__(self, root, data, cleandata_lacosmic, mask_fixed, mask_crfound):
         """Initialize the review window.
 
         Parameters
@@ -42,6 +41,8 @@ class ReviewCosmicRay():
             The main Tkinter window.
         data : 2D numpy array
             The original image data.
+        cleandata_lacosmic: 2D numpy array
+            The cleaned image data from L.A.Cosmic.
         mask_fixed : 2D numpy array
             Mask of previously corrected pixels.
         mask_crfound : 2D numpy array
@@ -49,6 +50,7 @@ class ReviewCosmicRay():
         """
         self.root = root
         self.data = data
+        self.cleandata_lacosmic = cleandata_lacosmic
         self.data_original = data.copy()
         self.mask_fixed = mask_fixed
         self.mask_crfound = mask_crfound
@@ -77,22 +79,24 @@ class ReviewCosmicRay():
 
         self.button_frame1 = tk.Frame(self.review_window)
         self.button_frame1.pack(pady=5)
-        self.remove_crosses_button = tk.Button(self.button_frame1, text="remove all X's", command=self.remove_crosses)
+        self.ndeg_label = tk.Button(self.button_frame1, text=f"deg={self.degree}, n={self.npoints}",
+                                    command=self.set_ndeg)
+        self.ndeg_label.pack(side=tk.LEFT, padx=5)
+        self.remove_crosses_button = tk.Button(self.button_frame1, text="remove all x's", command=self.remove_crosses)
         self.remove_crosses_button.pack(side=tk.LEFT, padx=5)
         self.restore_cr_button = tk.Button(self.button_frame1, text="[r]estore CR", command=self.restore_cr)
         self.restore_cr_button.pack(side=tk.LEFT, padx=5)
         self.restore_cr_button.config(state=tk.DISABLED)
         self.next_button = tk.Button(self.button_frame1, text="[c]ontinue", command=self.continue_cr)
         self.next_button.pack(side=tk.LEFT, padx=5)
+        self.exit_button = tk.Button(self.button_frame1, text="[e]xit review", command=self.exit_review)
+        self.exit_button.pack(side=tk.LEFT, padx=5)
 
         self.button_frame2 = tk.Frame(self.review_window)
         self.button_frame2.pack(pady=5)
-        self.ndeg_label = tk.Button(self.button_frame2, text=f"deg={self.degree}, n={self.npoints}",
-                                    command=self.set_ndeg)
-        self.ndeg_label.pack(side=tk.LEFT, padx=5)
-        self.interp_x_button = tk.Button(self.button_frame2, text="[x] interp.", command=self.interp_x)
+        self.interp_x_button = tk.Button(self.button_frame2, text="[X] interp.", command=self.interp_x)
         self.interp_x_button.pack(side=tk.LEFT, padx=5)
-        self.interp_y_button = tk.Button(self.button_frame2, text="[y] interp.", command=self.interp_y)
+        self.interp_y_button = tk.Button(self.button_frame2, text="[Y] interp.", command=self.interp_y)
         self.interp_y_button.pack(side=tk.LEFT, padx=5)
         # it is important to use lambda here to pass the method argument correctly
         # (avoiding the execution of the function at button creation time, which would happen
@@ -101,12 +105,14 @@ class ReviewCosmicRay():
         # the function is trying to deactivate the buttons before they are created, which
         # would lead to an error; in addition, since I have two buttons calling the same function
         # with different arguments, using lambda allows to differentiate them)
-        self.interp_s_button = tk.Button(self.button_frame2, text="[s] interp.",
+        self.interp_s_button = tk.Button(self.button_frame2, text="[s]urface interp.",
                                          command=lambda: self.interp_a('surface'))
         self.interp_s_button.pack(side=tk.LEFT, padx=5)
-        self.interp_m_button = tk.Button(self.button_frame2, text="[m] median",
+        self.interp_m_button = tk.Button(self.button_frame2, text="[m]edian",
                                          command=lambda: self.interp_a('median'))
         self.interp_m_button.pack(side=tk.LEFT, padx=5)
+        self.interp_l_button = tk.Button(self.button_frame2, text="[l]acosmic", command=self.use_lacosmic)
+        self.interp_l_button.pack(side=tk.LEFT, padx=5)
 
         self.button_frame3 = tk.Frame(self.review_window)
         self.button_frame3.pack(pady=5)
@@ -119,8 +125,6 @@ class ReviewCosmicRay():
         self.set_minmax_button.pack(side=tk.LEFT, padx=5)
         self.set_zscale_button = tk.Button(self.button_frame3, text="zscale [/]", command=self.set_zscale)
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
-        self.exit_button = tk.Button(self.button_frame3, text="[e]xit review", command=self.exit_review)
-        self.exit_button.pack(side=tk.LEFT, padx=5)
 
         self.fig, self.ax = plt.subplots(figsize=(8, 5))
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.review_window)
@@ -181,36 +185,6 @@ class ReviewCosmicRay():
             self.fig.tight_layout()
         self.canvas.draw()
 
-    def set_vmin(self):
-        old_vmin = self.get_vmin()
-        new_vmin = simpledialog.askfloat("Set vmin", "Enter new vmin:", initialvalue=old_vmin)
-        if new_vmin is None:
-            return
-        self.vmin_button.config(text=f"vmin: {new_vmin:.2f}")
-        self.image.set_clim(vmin=new_vmin)
-        self.canvas.draw()
-
-    def set_vmax(self):
-        old_vmax = self.get_vmax()
-        new_vmax = simpledialog.askfloat("Set vmax", "Enter new vmax:", initialvalue=old_vmax)
-        if new_vmax is None:
-            return
-        self.vmax_button.config(text=f"vmax: {new_vmax:.2f}")
-        self.image.set_clim(vmax=new_vmax)
-        self.canvas.draw()
-
-    def get_vmin(self):
-        return float(self.vmin_button.cget("text").split(":")[1])
-
-    def get_vmax(self):
-        return float(self.vmax_button.cget("text").split(":")[1])
-
-    def set_minmax(self):
-        set_minmax(self)
-
-    def set_zscale(self):
-        set_zscale(self)
-
     def set_ndeg(self):
         new_degree = simpledialog.askinteger("Set degree", "Enter new degree (min=0):",
                                              initialvalue=self.degree, minvalue=0)
@@ -270,6 +244,7 @@ class ReviewCosmicRay():
         self.interp_y_button.config(state=tk.DISABLED)
         self.interp_s_button.config(state=tk.DISABLED)
         self.interp_m_button.config(state=tk.DISABLED)
+        self.interp_l_button.config(state=tk.DISABLED)
         self.update_display()
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
@@ -321,6 +296,7 @@ class ReviewCosmicRay():
         self.interp_y_button.config(state=tk.DISABLED)
         self.interp_s_button.config(state=tk.DISABLED)
         self.interp_m_button.config(state=tk.DISABLED)
+        self.interp_l_button.config(state=tk.DISABLED)
         self.update_display()
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
@@ -412,10 +388,26 @@ class ReviewCosmicRay():
         self.interp_y_button.config(state=tk.DISABLED)
         self.interp_s_button.config(state=tk.DISABLED)
         self.interp_m_button.config(state=tk.DISABLED)
+        self.interp_l_button.config(state=tk.DISABLED)
         self.update_display()
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
             self.canvas.draw()
+
+    def use_lacosmic(self):
+        print(f"L.A.Cosmic interpolation of cosmic ray {self.cr_index}")
+        ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
+        for iy, ix in zip(ycr_list, xcr_list):
+            self.data[iy, ix] = self.cleandata_lacosmic[iy, ix]
+            self.mask_fixed[iy, ix] = True
+        self.restore_cr_button.config(state=tk.NORMAL)
+        self.remove_crosses_button.config(state=tk.DISABLED)
+        self.interp_x_button.config(state=tk.DISABLED)
+        self.interp_y_button.config(state=tk.DISABLED)
+        self.interp_s_button.config(state=tk.DISABLED)
+        self.interp_m_button.config(state=tk.DISABLED)
+        self.interp_l_button.config(state=tk.DISABLED)
+        self.update_display()
 
     def remove_crosses(self):
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
@@ -427,6 +419,7 @@ class ReviewCosmicRay():
         self.interp_y_button.config(state=tk.DISABLED)
         self.interp_s_button.config(state=tk.DISABLED)
         self.interp_m_button.config(state=tk.DISABLED)
+        self.interp_l_button.config(state=tk.DISABLED)
         self.update_display()
 
     def restore_cr(self):
@@ -437,6 +430,7 @@ class ReviewCosmicRay():
             self.interp_y_button.config(state=tk.NORMAL)
             self.interp_s_button.config(state=tk.NORMAL)
             self.interp_m_button.config(state=tk.NORMAL)
+            self.interp_l_button.config(state=tk.NORMAL)
         print(f"Restored all pixels of cosmic ray {self.cr_index}")
         self.remove_crosses_button.config(state=tk.NORMAL)
         self.restore_cr_button.config(state=tk.DISABLED)
@@ -452,6 +446,7 @@ class ReviewCosmicRay():
         self.interp_y_button.config(state=tk.NORMAL)
         self.interp_s_button.config(state=tk.NORMAL)
         self.interp_m_button.config(state=tk.NORMAL)
+        self.interp_l_button.config(state=tk.NORMAL)
         self.update_display()
 
     def exit_review(self):
@@ -475,6 +470,9 @@ class ReviewCosmicRay():
         elif event.key == 'm':
             if self.interp_m_button.cget("state") != "disabled":
                 self.interp_a('median')
+        elif event.key == 'l':
+            if self.interp_l_button.cget("state") != "disabled":
+                self.use_lacosmic()
         elif event.key == 'right' or event.key == 'c':
             self.continue_cr()
         elif event.key == ',':
@@ -504,12 +502,14 @@ class ReviewCosmicRay():
                 self.interp_y_button.config(state=tk.DISABLED)
                 self.interp_s_button.config(state=tk.DISABLED)
                 self.interp_m_button.config(state=tk.DISABLED)
+                self.interp_l_button.config(state=tk.DISABLED)
                 self.remove_crosses_button.config(state=tk.DISABLED)
             else:
                 self.interp_x_button.config(state=tk.NORMAL)
                 self.interp_y_button.config(state=tk.NORMAL)
                 self.interp_s_button.config(state=tk.NORMAL)
                 self.interp_m_button.config(state=tk.NORMAL)
+                self.interp_l_button.config(state=tk.NORMAL)
                 self.remove_crosses_button.config(state=tk.NORMAL)
             # Update the display to reflect the change
             self.update_display()

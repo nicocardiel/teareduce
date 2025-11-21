@@ -11,7 +11,6 @@
 
 import tkinter as tk
 from tkinter import filedialog
-from tkinter import simpledialog
 
 from astropy.io import fits
 from ccdproc import cosmicray_lacosmic
@@ -22,9 +21,8 @@ import numpy as np
 import os
 from rich import print
 
+from .imagedisplay import ImageDisplay
 from .reviewcosmicray import ReviewCosmicRay
-from .set_minmax import set_minmax
-from .set_zscale import set_zscale
 
 from ..imshow import imshow
 from ..sliceregion import SliceRegion2D
@@ -34,7 +32,7 @@ import matplotlib
 matplotlib.use("TkAgg")
 
 
-class CosmicRayCleanerApp():
+class CosmicRayCleanerApp(ImageDisplay):
     """Main application class for cosmic ray cleaning."""
 
     def __init__(self, root, input_fits, extension=0, output_fits=None):
@@ -159,44 +157,21 @@ class CosmicRayCleanerApp():
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
         self.toolbar.update()
 
-    def set_vmin(self):
-        old_vmin = self.get_vmin()
-        new_vmin = simpledialog.askfloat("Set vmin", "Enter new vmin:", initialvalue=old_vmin)
-        if new_vmin is None:
-            return
-        self.vmin_button.config(text=f"vmin: {new_vmin:.2f}")
-        self.image.set_clim(vmin=new_vmin)
-        self.canvas.draw()
-
-    def set_vmax(self):
-        old_vmax = self.get_vmax()
-        new_vmax = simpledialog.askfloat("Set vmax", "Enter new vmax:", initialvalue=old_vmax)
-        if new_vmax is None:
-            return
-        self.vmax_button.config(text=f"vmax: {new_vmax:.2f}")
-        self.image.set_clim(vmax=new_vmax)
-        self.canvas.draw()
-
-    def get_vmin(self):
-        return float(self.vmin_button.cget("text").split(":")[1])
-
-    def get_vmax(self):
-        return float(self.vmax_button.cget("text").split(":")[1])
-
-    def set_minmax(self):
-        set_minmax(self)
-
-    def set_zscale(self):
-        set_zscale(self)
-
     def run_lacosmic(self):
         self.run_lacosmic_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.DISABLED)
         # Parameters for L.A.Cosmic can be adjusted as needed
-        _, mask_crfound = cosmicray_lacosmic(self.data, sigclip=4.5, sigfrac=0.3, objlim=5.0, verbose=True)
+        cleandata_lacosmic, mask_crfound = cosmicray_lacosmic(
+            self.data,
+            sigclip=4.5,
+            sigfrac=0.3,
+            objlim=5.0,
+            verbose=True
+        )
         ReviewCosmicRay(
             root=self.root,
             data=self.data,
+            cleandata_lacosmic=cleandata_lacosmic,
             mask_fixed=self.mask_fixed,
             mask_crfound=mask_crfound
         )
