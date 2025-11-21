@@ -23,8 +23,11 @@ import os
 from rich import print
 
 from .reviewcosmicray import ReviewCosmicRay
+from .set_minmax import set_minmax
+from .set_zscale import set_zscale
 
 from ..imshow import imshow
+from ..sliceregion import SliceRegion2D
 from ..zscale import zscale
 
 import matplotlib
@@ -69,6 +72,8 @@ class CosmicRayCleanerApp():
                     self.mask_fixed = np.zeros(self.data.shape, dtype=bool)
         except Exception as e:
             print(f"Error loading FITS file: {e}")
+        naxis2, naxis1 = self.data.shape
+        self.region = SliceRegion2D(f'[1:{naxis1}, 1:{naxis2}]', mode='fits').python
 
     def save_fits_file(self):
         if self.output_fits is None:
@@ -116,6 +121,10 @@ class CosmicRayCleanerApp():
         self.vmin_button.pack(side=tk.LEFT, padx=5)
         self.vmax_button = tk.Button(self.button_frame2, text=f"vmax: {vmax:.2f}", command=self.set_vmax)
         self.vmax_button.pack(side=tk.LEFT, padx=5)
+        self.set_minmax_button = tk.Button(self.button_frame2, text="minmax [,]", command=self.set_minmax)
+        self.set_minmax_button.pack(side=tk.LEFT, padx=5)
+        self.set_zscale_button = tk.Button(self.button_frame2, text="zscale [/]", command=self.set_zscale)
+        self.set_zscale_button.pack(side=tk.LEFT, padx=5)
 
         # Main frame for figure and toolbar
         self.main_frame = tk.Frame(self.root)
@@ -174,6 +183,12 @@ class CosmicRayCleanerApp():
     def get_vmax(self):
         return float(self.vmax_button.cget("text").split(":")[1])
 
+    def set_minmax(self):
+        set_minmax(self)
+
+    def set_zscale(self):
+        set_zscale(self)
+
     def run_lacosmic(self):
         self.run_lacosmic_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.DISABLED)
@@ -196,6 +211,10 @@ class CosmicRayCleanerApp():
     def on_key(self, event):
         if event.key == 'q':
             pass  # Ignore the "q" key to prevent closing the window
+        elif event.key == ',':
+            self.set_minmax()
+        elif event.key == '/':
+            self.set_zscale()
         else:
             print(f"Key pressed: {event.key}")
 

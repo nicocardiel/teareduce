@@ -19,6 +19,9 @@ import numpy as np
 from rich import print
 from scipy import ndimage
 
+from .set_minmax import set_minmax
+from .set_zscale import set_zscale
+
 from ..imshow import imshow
 from ..sliceregion import SliceRegion2D
 from ..zscale import zscale
@@ -159,10 +162,10 @@ class ReviewCosmicRay():
         vmax = self.get_vmax()
         xlabel = 'X pixel (from 1 to NAXIS1)'
         ylabel = 'Y pixel (from 1 to NAXIS2)'
-        self.image_review, _, _ = imshow(self.fig, self.ax, self.data[self.region], colorbar=False,
-                                         xlabel=xlabel, ylabel=ylabel,
-                                         vmin=vmin, vmax=vmax)
-        self.image_review.set_extent([jmin + 0.5, jmax + 1.5, imin + 0.5, imax + 1.5])
+        self.image, _, _ = imshow(self.fig, self.ax, self.data[self.region], colorbar=False,
+                                  xlabel=xlabel, ylabel=ylabel,
+                                  vmin=vmin, vmax=vmax)
+        self.image.set_extent([jmin + 0.5, jmax + 1.5, imin + 0.5, imax + 1.5])
         xlim = self.ax.get_xlim()
         ylim = self.ax.get_ylim()
         for xcr, ycr in zip(xcr_list, ycr_list):
@@ -184,7 +187,7 @@ class ReviewCosmicRay():
         if new_vmin is None:
             return
         self.vmin_button.config(text=f"vmin: {new_vmin:.2f}")
-        self.image_review.set_clim(vmin=new_vmin)
+        self.image.set_clim(vmin=new_vmin)
         self.canvas.draw()
 
     def set_vmax(self):
@@ -193,7 +196,7 @@ class ReviewCosmicRay():
         if new_vmax is None:
             return
         self.vmax_button.config(text=f"vmax: {new_vmax:.2f}")
-        self.image_review.set_clim(vmax=new_vmax)
+        self.image.set_clim(vmax=new_vmax)
         self.canvas.draw()
 
     def get_vmin(self):
@@ -203,21 +206,10 @@ class ReviewCosmicRay():
         return float(self.vmax_button.cget("text").split(":")[1])
 
     def set_minmax(self):
-        vmin_new = np.min(self.data[self.region])
-        vmax_new = np.max(self.data[self.region])
-        self.vmin_button.config(text=f"vmin: {vmin_new:.2f}")
-        self.vmax_button.config(text=f"vmax: {vmax_new:.2f}")
-        self.image_review.set_clim(vmin=vmin_new)
-        self.image_review.set_clim(vmax=vmax_new)
-        self.canvas.draw()
+        set_minmax(self)
 
     def set_zscale(self):
-        vmin_new, vmax_new = zscale(self.data[self.region])
-        self.vmin_button.config(text=f"vmin: {vmin_new:.2f}")
-        self.vmax_button.config(text=f"vmax: {vmax_new:.2f}")
-        self.image_review.set_clim(vmin=vmin_new)
-        self.image_review.set_clim(vmax=vmax_new)
-        self.canvas.draw()
+        set_zscale(self)
 
     def set_ndeg(self):
         new_degree = simpledialog.askinteger("Set degree", "Enter new degree (min=0):",
