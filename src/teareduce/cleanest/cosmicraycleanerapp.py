@@ -20,6 +20,7 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import numpy as np
 import os
+from rich import print
 
 from .reviewcosmicray import ReviewCosmicRay
 
@@ -103,6 +104,9 @@ class CosmicRayCleanerApp():
         self.run_lacosmic_button.pack(side=tk.LEFT, padx=5)
         self.save_button = tk.Button(self.button_frame1, text="Save cleaned FITS", command=self.save_fits_file)
         self.save_button.pack(side=tk.LEFT, padx=5)
+        self.save_button.config(state=tk.DISABLED)  # Initially disabled
+        self.stop_button = tk.Button(self.button_frame1, text="Stop program", command=self.stop_app)
+        self.stop_button.pack(side=tk.LEFT, padx=5)
 
         # Row 2
         self.button_frame2 = tk.Frame(self.root)
@@ -112,8 +116,6 @@ class CosmicRayCleanerApp():
         self.vmin_button.pack(side=tk.LEFT, padx=5)
         self.vmax_button = tk.Button(self.button_frame2, text=f"vmax: {vmax:.2f}", command=self.set_vmax)
         self.vmax_button.pack(side=tk.LEFT, padx=5)
-        self.stop_button = tk.Button(self.button_frame2, text="Stop program", command=self.stop_app)
-        self.stop_button.pack(side=tk.LEFT, padx=5)
 
         # Main frame for figure and toolbar
         self.main_frame = tk.Frame(self.root)

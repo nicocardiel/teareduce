@@ -12,6 +12,8 @@
 import argparse
 import tkinter as tk
 import os
+from rich import print
+from rich_argparse import RichHelpFormatter
 
 from .cosmicraycleanerapp import CosmicRayCleanerApp
 
@@ -20,7 +22,9 @@ matplotlib.use("TkAgg")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Interactive cosmic ray cleaner for FITS images.")
+    parser = argparse.ArgumentParser(
+        description="Interactive cosmic ray cleaner for FITS images.",
+        formatter_class=RichHelpFormatter)
     parser.add_argument("input_fits", help="Path to the FITS file to be cleaned.")
     parser.add_argument("--extension", type=int, default=0,
                         help="FITS extension to use (default: 0).")

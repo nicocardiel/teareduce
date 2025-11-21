@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import numpy as np
+from rich import print
 from scipy import ndimage
 
 from ..imshow import imshow
@@ -90,8 +91,19 @@ class ReviewCosmicRay():
         self.interp_x_button.pack(side=tk.LEFT, padx=5)
         self.interp_y_button = tk.Button(self.button_frame2, text="[y] interp.", command=self.interp_y)
         self.interp_y_button.pack(side=tk.LEFT, padx=5)
-        self.interp_s_button = tk.Button(self.button_frame2, text="[s] interp.", command=self.interp_s)
+        # it is important to use lambda here to pass the method argument correctly
+        # (avoiding the execution of the function at button creation time, which would happen
+        # if we didn't use lambda; in that case, the function would be called immediately and
+        # its return value (None) would be assigned to the command parameter; furthermore,
+        # the function is trying to deactivate the buttons before they are created, which
+        # would lead to an error; in addition, since I have two buttons calling the same function
+        # with different arguments, using lambda allows to differentiate them)
+        self.interp_s_button = tk.Button(self.button_frame2, text="[s] interp.",
+                                         command=lambda: self.interp_a('surface'))
         self.interp_s_button.pack(side=tk.LEFT, padx=5)
+        self.interp_m_button = tk.Button(self.button_frame2, text="[m] median",
+                                         command=lambda: self.interp_a('median'))
+        self.interp_m_button.pack(side=tk.LEFT, padx=5)
 
         self.button_frame3 = tk.Frame(self.review_window)
         self.button_frame3.pack(pady=5)
@@ -265,6 +277,7 @@ class ReviewCosmicRay():
         self.interp_x_button.config(state=tk.DISABLED)
         self.interp_y_button.config(state=tk.DISABLED)
         self.interp_s_button.config(state=tk.DISABLED)
+        self.interp_m_button.config(state=tk.DISABLED)
         self.update_display()
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
@@ -315,12 +328,13 @@ class ReviewCosmicRay():
         self.interp_x_button.config(state=tk.DISABLED)
         self.interp_y_button.config(state=tk.DISABLED)
         self.interp_s_button.config(state=tk.DISABLED)
+        self.interp_m_button.config(state=tk.DISABLED)
         self.update_display()
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
             self.canvas.draw()
 
-    def interp_s(self):
+    def interp_a(self, method):
         print(f"S-interpolation of cosmic ray {self.cr_index}")
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         ycr_min = np.min(ycr_list)
@@ -370,27 +384,42 @@ class ReviewCosmicRay():
                         yfit_all.append(i)
                         xfit_all.append(xcr)
                         zfit_all.append(self.data[i, xcr])
-        if len(xfit_all) > 3:
-            # Construct the design matrix for a 2D polynomial fit to a plane,
-            # where each row corresponds to a point (x, y, z) and the model
-            # is z = C[0]*x + C[1]*y + C[2]
-            A = np.c_[xfit_all, yfit_all, np.ones(len(xfit_all))]
-            # Least squares polynomial fit
-            C, _, _, _ = np.linalg.lstsq(A, zfit_all, rcond=None)
-            # recompute all CR pixels to take into account "holes" between marked pixels
-            ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
-            for iy, ix in zip(ycr_list, xcr_list):
-                self.data[iy, ix] = C[0] * ix + C[1] * iy + C[2]
-                self.mask_fixed[iy, ix] = True
+        if method == 'surface':
+            if len(xfit_all) > 3:
+                # Construct the design matrix for a 2D polynomial fit to a plane,
+                # where each row corresponds to a point (x, y, z) and the model
+                # is z = C[0]*x + C[1]*y + C[2]
+                A = np.c_[xfit_all, yfit_all, np.ones(len(xfit_all))]
+                # Least squares polynomial fit
+                C, _, _, _ = np.linalg.lstsq(A, zfit_all, rcond=None)
+                # recompute all CR pixels to take into account "holes" between marked pixels
+                ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
+                for iy, ix in zip(ycr_list, xcr_list):
+                    self.data[iy, ix] = C[0] * ix + C[1] * iy + C[2]
+                    self.mask_fixed[iy, ix] = True
+            else:
+                print("Not enough points to fit a plane")
+                self.update_display()
+                return
+        elif method == 'median':
+            # Compute median of all surrounding points
+            if len(zfit_all) > 0:
+                zmed = np.median(zfit_all)
+                print(f"Replacing by median value: {zmed:.2f}")
+                # recompute all CR pixels to take into account "holes" between marked pixels
+                ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
+                for iy, ix in zip(ycr_list, xcr_list):
+                    self.data[iy, ix] = zmed
+                    self.mask_fixed[iy, ix] = True
         else:
-            print("Not enough points to fit a plane")
-            self.update_display()
+            print(f"Unknown interpolation method: {method}")
             return
         self.restore_cr_button.config(state=tk.NORMAL)
         self.remove_crosses_button.config(state=tk.DISABLED)
         self.interp_x_button.config(state=tk.DISABLED)
         self.interp_y_button.config(state=tk.DISABLED)
         self.interp_s_button.config(state=tk.DISABLED)
+        self.interp_m_button.config(state=tk.DISABLED)
         self.update_display()
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
@@ -405,6 +434,7 @@ class ReviewCosmicRay():
         self.interp_x_button.config(state=tk.DISABLED)
         self.interp_y_button.config(state=tk.DISABLED)
         self.interp_s_button.config(state=tk.DISABLED)
+        self.interp_m_button.config(state=tk.DISABLED)
         self.update_display()
 
     def restore_cr(self):
@@ -414,6 +444,7 @@ class ReviewCosmicRay():
             self.interp_x_button.config(state=tk.NORMAL)
             self.interp_y_button.config(state=tk.NORMAL)
             self.interp_s_button.config(state=tk.NORMAL)
+            self.interp_m_button.config(state=tk.NORMAL)
         print(f"Restored all pixels of cosmic ray {self.cr_index}")
         self.remove_crosses_button.config(state=tk.NORMAL)
         self.restore_cr_button.config(state=tk.DISABLED)
@@ -428,6 +459,7 @@ class ReviewCosmicRay():
         self.interp_x_button.config(state=tk.NORMAL)
         self.interp_y_button.config(state=tk.NORMAL)
         self.interp_s_button.config(state=tk.NORMAL)
+        self.interp_m_button.config(state=tk.NORMAL)
         self.update_display()
 
     def exit_review(self):
@@ -447,7 +479,10 @@ class ReviewCosmicRay():
                 self.interp_y()
         elif event.key == 's':
             if self.interp_s_button.cget("state") != "disabled":
-                self.interp_s()
+                self.interp_a('surface')
+        elif event.key == 'm':
+            if self.interp_m_button.cget("state") != "disabled":
+                self.interp_a('median')
         elif event.key == 'right' or event.key == 'c':
             self.continue_cr()
         elif event.key == ',':
@@ -476,11 +511,13 @@ class ReviewCosmicRay():
                 self.interp_x_button.config(state=tk.DISABLED)
                 self.interp_y_button.config(state=tk.DISABLED)
                 self.interp_s_button.config(state=tk.DISABLED)
+                self.interp_m_button.config(state=tk.DISABLED)
                 self.remove_crosses_button.config(state=tk.DISABLED)
             else:
                 self.interp_x_button.config(state=tk.NORMAL)
                 self.interp_y_button.config(state=tk.NORMAL)
                 self.interp_s_button.config(state=tk.NORMAL)
+                self.interp_m_button.config(state=tk.NORMAL)
                 self.remove_crosses_button.config(state=tk.NORMAL)
             # Update the display to reflect the change
             self.update_display()
