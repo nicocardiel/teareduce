@@ -20,6 +20,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 import numpy as np
 import os
 from rich import print
+from scipy import ndimage
 
 from .imagedisplay import ImageDisplay
 from .reviewcosmicray import ReviewCosmicRay
@@ -59,6 +60,10 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.output_fits = output_fits
         self.load_fits_file()
         self.create_widgets()
+        self.cleandata_lacosmic = None
+        self.mask_crfound = None
+        self.cr_labels = None
+        self.num_features = 0
 
     def load_fits_file(self):
         try:
@@ -105,35 +110,47 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.button_frame1.grid(row=0, column=0, pady=5)
         self.run_lacosmic_button = tk.Button(self.button_frame1, text="Run L.A.Cosmic", command=self.run_lacosmic)
         self.run_lacosmic_button.pack(side=tk.LEFT, padx=5)
-        self.save_button = tk.Button(self.button_frame1, text="Save cleaned FITS", command=self.save_fits_file)
-        self.save_button.pack(side=tk.LEFT, padx=5)
-        self.save_button.config(state=tk.DISABLED)  # Initially disabled
-        self.stop_button = tk.Button(self.button_frame1, text="Stop program", command=self.stop_app)
-        self.stop_button.pack(side=tk.LEFT, padx=5)
+        self.apply_lacosmic_button = tk.Button(self.button_frame1, text="Replace all detected CRs",
+                                               command=self.apply_lacosmic)
+        self.apply_lacosmic_button.pack(side=tk.LEFT, padx=5)
+        self.apply_lacosmic_button.config(state=tk.DISABLED)  # Initially disabled
+        self.examine_detected_cr_button = tk.Button(self.button_frame1, text="Examine detected CRs",
+                                                    command=self.examine_detected_cr)
+        self.examine_detected_cr_button.pack(side=tk.LEFT, padx=5)
+        self.examine_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
 
         # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.root)
         self.button_frame2.grid(row=1, column=0, pady=5)
+        self.save_button = tk.Button(self.button_frame2, text="Save cleaned FITS", command=self.save_fits_file)
+        self.save_button.pack(side=tk.LEFT, padx=5)
+        self.save_button.config(state=tk.DISABLED)  # Initially disabled
+        self.stop_button = tk.Button(self.button_frame2, text="Stop program", command=self.stop_app)
+        self.stop_button.pack(side=tk.LEFT, padx=5)
+
+        # Row 3 of buttons
+        self.button_frame3 = tk.Frame(self.root)
+        self.button_frame3.grid(row=2, column=0, pady=5)
         vmin, vmax = zscale(self.data)
-        self.vmin_button = tk.Button(self.button_frame2, text=f"vmin: {vmin:.2f}", command=self.set_vmin)
+        self.vmin_button = tk.Button(self.button_frame3, text=f"vmin: {vmin:.2f}", command=self.set_vmin)
         self.vmin_button.pack(side=tk.LEFT, padx=5)
-        self.vmax_button = tk.Button(self.button_frame2, text=f"vmax: {vmax:.2f}", command=self.set_vmax)
+        self.vmax_button = tk.Button(self.button_frame3, text=f"vmax: {vmax:.2f}", command=self.set_vmax)
         self.vmax_button.pack(side=tk.LEFT, padx=5)
-        self.set_minmax_button = tk.Button(self.button_frame2, text="minmax [,]", command=self.set_minmax)
+        self.set_minmax_button = tk.Button(self.button_frame3, text="minmax [,]", command=self.set_minmax)
         self.set_minmax_button.pack(side=tk.LEFT, padx=5)
-        self.set_zscale_button = tk.Button(self.button_frame2, text="zscale [/]", command=self.set_zscale)
+        self.set_zscale_button = tk.Button(self.button_frame3, text="zscale [/]", command=self.set_zscale)
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
 
         # Main frame for figure and toolbar
         self.main_frame = tk.Frame(self.root)
-        self.main_frame.grid(row=2, column=0, sticky="nsew")
+        self.main_frame.grid(row=3, column=0, sticky="nsew")
         self.root.grid_rowconfigure(2, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
         self.main_frame.grid_rowconfigure(0, weight=1)
         self.main_frame.grid_columnconfigure(0, weight=1)
 
         # Create figure and axis
-        self.fig, self.ax = plt.subplots(figsize=(8, 6))
+        self.fig, self.ax = plt.subplots(figsize=(7, 5.5))
         xlabel = 'X pixel (from 1 to NAXIS1)'
         ylabel = 'Y pixel (from 1 to NAXIS2)'
         extent = [0.5, self.data.shape[1] + 0.5, 0.5, self.data.shape[0] + 0.5]
@@ -159,32 +176,79 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
         self.toolbar.update()
 
+    def save_and_disable_buttons(self):
+        self.button_states = {}
+        for widget in self.root.winfo_children():
+            if isinstance(widget, tk.Frame):
+                for child in widget.winfo_children():
+                    if isinstance(child, tk.Button):
+                        self.button_states[child] = child['state']
+                        child.config(state=tk.DISABLED)
+
+    def restore_button_states(self):
+        for button, state in self.button_states.items():
+            button.config(state=state)
+
     def run_lacosmic(self):
         self.run_lacosmic_button.config(state=tk.DISABLED)
-        self.stop_button.config(state=tk.DISABLED)
         # Parameters for L.A.Cosmic can be adjusted as needed
-        cleandata_lacosmic, mask_crfound = cosmicray_lacosmic(
+        self.cleandata_lacosmic, self.mask_crfound = cosmicray_lacosmic(
             self.data,
             sigclip=4.5,
             sigfrac=0.3,
             objlim=5.0,
             verbose=True
         )
+        self.run_lacosmic_button.config(state=tk.NORMAL)
+        if np.any(self.mask_crfound):
+            # Label connected components in the mask; note that by default,
+            # structure is a cross [0,1,0;1,1,1;0,1,0], but we want to consider
+            # diagonal connections too, so we define a 3x3 square.
+            structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
+            self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
+            print(f"Number of cosmic ray pixels detected by L.A.Cosmic...........: {np.sum(self.mask_crfound)}")
+            print(f"Number of cosmic rays (grouped pixels) detected by L.A.Cosmic: {self.num_features}")
+            self.apply_lacosmic_button.config(state=tk.NORMAL)
+            self.examine_detected_cr_button.config(state=tk.NORMAL)
+        else:
+            print("No cosmic ray pixels detected by L.A.Cosmic.")
+            self.cr_labels = None
+            self.num_features = 0
+            self.apply_lacosmic_button.config(state=tk.DISABLED)
+            self.examine_detected_cr_button.config(state=tk.DISABLED)
+
+    def apply_lacosmic(self):
+        self.save_and_disable_buttons()
+        self.restore_button_states()
+
+    def examine_detected_cr(self):
+        self.save_and_disable_buttons()
         review = ReviewCosmicRay(
             root=self.root,
             data=self.data,
-            cleandata_lacosmic=cleandata_lacosmic,
-            mask_fixed=self.mask_fixed,
-            mask_crfound=mask_crfound
+            cleandata_lacosmic=self.cleandata_lacosmic,
+            cr_labels=self.cr_labels,
+            num_features=self.num_features
         )
         if review.num_cr_cleaned > 0:
             print(f"Number of cosmic rays identified and cleaned: {review.num_cr_cleaned}")
+            # update mask_fixed to include the newly fixed pixels
+            self.mask_fixed[review.mask_fixed] = True
+            # upate mask_crfound by eliminating the cleaned pixels
+            self.mask_crfound[review.mask_fixed] = False
+            # recalculate labels and number of features
+            structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
+            self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
+            print(f"Remaining number of cosmic ray pixels...........: {np.sum(self.mask_crfound)}")
+            print(f"Remaining number of cosmic rays (grouped pixels): {self.num_features}")
+            if self.num_features == 0:
+                self.examine_detected_cr_button.config(state=tk.DISABLED)
+                self.apply_lacosmic_button.config(state=tk.DISABLED)
             # redraw image to show the changes
             self.image.set_data(self.data)
             self.canvas.draw()
             self.save_button.config(state=tk.NORMAL)
-        self.run_lacosmic_button.config(state=tk.NORMAL)
-        self.stop_button.config(state=tk.NORMAL)
+        self.restore_button_states()
 
     def stop_app(self):
         self.root.quit()
@@ -211,17 +275,17 @@ class CosmicRayCleanerApp(ImageDisplay):
         # (note that the color bar is a different axes)
         if event.inaxes == self.ax:
             x, y = event.xdata, event.ydata
-            print(f"Clicked at image coordinates: ({x:.2f}, {y:.2f})")
-            mask_crfound = np.zeros(self.data.shape, dtype=bool)
             ix = int(x + 0.5)
             iy = int(y + 0.5)
-            mask_crfound[iy-1, ix-1] = True
+            print(f"Clicked at image coordinates: ({ix}, {iy})")
+            # TODO: implement how to correct closest cosmic ray pixel to (ix, iy)
+            """
             review = ReviewCosmicRay(
                 root=self.root,
                 data=self.data,
                 cleandata_lacosmic=None,
-                mask_fixed=self.mask_fixed,
-                mask_crfound=mask_crfound
+                cr_labels=self.cr_labels,
+                num_features=self.num_features
             )
             if review.num_cr_cleaned > 0:
                 print(f"Number of cosmic rays identified and cleaned: {review.num_cr_cleaned}")
@@ -229,3 +293,4 @@ class CosmicRayCleanerApp(ImageDisplay):
                 self.image.set_data(self.data)
                 self.canvas.draw()
                 self.save_button.config(state=tk.NORMAL)
+            """

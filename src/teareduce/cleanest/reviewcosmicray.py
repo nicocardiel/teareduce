@@ -17,7 +17,6 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import numpy as np
 from rich import print
-from scipy import ndimage
 
 from .imagedisplay import ImageDisplay
 
@@ -32,7 +31,7 @@ matplotlib.use("TkAgg")
 class ReviewCosmicRay(ImageDisplay):
     """Class to review suspected cosmic ray pixels."""
 
-    def __init__(self, root, data, cleandata_lacosmic, mask_fixed, mask_crfound):
+    def __init__(self, root, data, cleandata_lacosmic, cr_labels, num_features):
         """Initialize the review window.
 
         Parameters
@@ -43,30 +42,26 @@ class ReviewCosmicRay(ImageDisplay):
             The original image data.
         cleandata_lacosmic: 2D numpy array or None
             The cleaned image data from L.A.Cosmic.
-        mask_fixed : 2D numpy array
-            Mask of previously corrected pixels.
-        mask_crfound : 2D numpy array
-            Mask of new pixels identified as cosmic rays.
+        cr_labels : 2D numpy array
+            Labels of connected cosmic ray pixel groups.
+        num_features : int
+            Number of connected cosmic ray pixel groups.
         """
         self.root = root
         self.data = data
         self.cleandata_lacosmic = cleandata_lacosmic
         self.data_original = data.copy()
-        self.mask_fixed = mask_fixed
-        self.mask_crfound = mask_crfound
+        self.cr_labels = cr_labels
+        self.num_features = num_features
         self.num_cr_cleaned = 0
+        self.mask_fixed = np.zeros(self.data.shape, dtype=bool)  # Mask of pixels fixed during review
         self.first_plot = True
         self.degree = 1    # Degree of polynomial for interpolation
         self.npoints = 2   # Number of points at each side of the CR pixel for interpolation
-        # Label connected components in the mask; note that by default,
-        # structure is a cross [0,1,0;1,1,1;0,1,0], but we want to consider
-        # diagonal connections too, so we define a 3x3 square.
-        structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
-        self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
         # Make a copy of the original labels to allow pixel re-marking
         self.cr_labels_original = self.cr_labels.copy()
-        print(f"Number of cosmic ray pixels detected: {np.sum(self.mask_crfound)}")
-        print(f"Number of cosmic rays detected: {self.num_features}")
+        print(f"Number of cosmic ray pixels detected..: {np.sum(self.cr_labels > 0)}")
+        print(f"Number of cosmic rays (grouped pixels): {self.num_features}")
         if self.num_features == 0:
             print('No CR hits found!')
         else:
@@ -429,6 +424,7 @@ class ReviewCosmicRay(ImageDisplay):
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         for iy, ix in zip(ycr_list, xcr_list):
             self.data[iy, ix] = self.data_original[iy, ix]
+            self.mask_fixed[iy, ix] = False
             self.interp_x_button.config(state=tk.NORMAL)
             self.interp_y_button.config(state=tk.NORMAL)
             self.interp_s_button.config(state=tk.NORMAL)
