@@ -64,6 +64,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.mask_crfound = None
         self.cr_labels = None
         self.num_features = 0
+        self.working_in_review_window = False
 
     def load_fits_file(self):
         try:
@@ -219,10 +220,12 @@ class CosmicRayCleanerApp(ImageDisplay):
 
     def apply_lacosmic(self):
         self.save_and_disable_buttons()
+        # TODO: ask for interpolation method and apply it to all detected CR pixels
         self.restore_button_states()
 
     def examine_detected_cr(self):
         self.save_and_disable_buttons()
+        self.working_in_review_window = True
         review = ReviewCosmicRay(
             root=self.root,
             data=self.data,
@@ -230,6 +233,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             cr_labels=self.cr_labels,
             num_features=self.num_features
         )
+        self.working_in_review_window = False
         if review.num_cr_cleaned > 0:
             print(f"Number of cosmic rays identified and cleaned: {review.num_cr_cleaned}")
             # update mask_fixed to include the newly fixed pixels
@@ -265,6 +269,11 @@ class CosmicRayCleanerApp(ImageDisplay):
             print(f"Key pressed: {event.key}")
 
     def on_click(self, event):
+        # ignore clicks if we are working in the review window
+        if self.working_in_review_window:
+            print("Currently working in review window; click ignored.")
+            return
+        
         # check the toolbar is not active
         toolbar = self.fig.canvas.toolbar
         if toolbar.mode != "":
@@ -280,6 +289,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             print(f"Clicked at image coordinates: ({ix}, {iy})")
             # TODO: implement how to correct closest cosmic ray pixel to (ix, iy)
             """
+            self.working_in_review_window = True
             review = ReviewCosmicRay(
                 root=self.root,
                 data=self.data,
@@ -287,6 +297,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 cr_labels=self.cr_labels,
                 num_features=self.num_features
             )
+            self.working_in_review_window = False
             if review.num_cr_cleaned > 0:
                 print(f"Number of cosmic rays identified and cleaned: {review.num_cr_cleaned}")
                 # redraw image to show the changes
