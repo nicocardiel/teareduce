@@ -41,8 +41,8 @@ class ReviewCosmicRay(ImageDisplay):
 
         Parameters
         ----------
-        root : tk.Tk
-            The main Tkinter window.
+        root : tk.Toplevel
+            The parent Tkinter root window.
         data : 2D numpy array
             The original image data.
         cleandata_lacosmic: 2D numpy array or None
@@ -59,6 +59,8 @@ class ReviewCosmicRay(ImageDisplay):
             selected first cosmic ray.
         """
         self.root = root
+        self.root.title("Review Cosmic Rays")
+        self.root.geometry("800x700+100+100")
         self.data = data
         self.cleandata_lacosmic = cleandata_lacosmic
         self.data_original = data.copy()
@@ -81,12 +83,8 @@ class ReviewCosmicRay(ImageDisplay):
             self.create_widgets()
 
     def create_widgets(self):
-        self.review_window = tk.Toplevel(self.root)
-        self.review_window.title("Review Cosmic Rays")
-        self.review_window.geometry("800x700+100+100")
-
         # Row 1 of buttons
-        self.button_frame1 = tk.Frame(self.review_window)
+        self.button_frame1 = tk.Frame(self.root)
         self.button_frame1.pack(pady=5)
         self.ndeg_label = tk.Button(self.button_frame1, text=f"deg={self.degree}, n={self.npoints}",
                                     command=self.set_ndeg)
@@ -102,7 +100,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.exit_button.pack(side=tk.LEFT, padx=5)
 
         # Row 2 of buttons
-        self.button_frame2 = tk.Frame(self.review_window)
+        self.button_frame2 = tk.Frame(self.root)
         self.button_frame2.pack(pady=5)
         self.interp_x_button = tk.Button(self.button_frame2, text="[x] interp.", command=self.interp_x)
         self.interp_x_button.pack(side=tk.LEFT, padx=5)
@@ -127,7 +125,7 @@ class ReviewCosmicRay(ImageDisplay):
             self.interp_l_button.config(state=tk.DISABLED)
 
         # Row 3 of buttons
-        self.button_frame3 = tk.Frame(self.review_window)
+        self.button_frame3 = tk.Frame(self.root)
         self.button_frame3.pack(pady=5)
         vmin, vmax = zscale(self.data)
         self.vmin_button = tk.Button(self.button_frame3, text=f"vmin: {vmin:.2f}", command=self.set_vmin)
@@ -141,7 +139,7 @@ class ReviewCosmicRay(ImageDisplay):
 
         # Figure
         self.fig, self.ax = plt.subplots(figsize=(8, 5))
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.review_window)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         # The next two instructions prevent a segmentation fault when pressing "q"
         self.canvas.mpl_disconnect(self.canvas.mpl_connect("key_press_event", key_press_handler))
         self.canvas.mpl_connect("key_press_event", self.on_key)
@@ -150,14 +148,12 @@ class ReviewCosmicRay(ImageDisplay):
         self.canvas_widget.pack(fill=tk.BOTH, expand=True)
 
         # Matplotlib toolbar
-        self.toolbar_frame = tk.Frame(self.review_window)
+        self.toolbar_frame = tk.Frame(self.root)
         self.toolbar_frame.pack(fill=tk.X, expand=False, pady=5)
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
         self.toolbar.update()
 
         self.update_display()
-
-        self.root.wait_window(self.review_window)
 
     def update_display(self):
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
@@ -338,7 +334,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.update_display()
 
     def exit_review(self):
-        self.review_window.destroy()
+        self.root.destroy()
 
     def on_key(self, event):
         if event.key == 'q':

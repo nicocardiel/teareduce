@@ -191,25 +191,12 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
         self.toolbar.update()
 
-    def save_and_disable_buttons(self):
-        self.button_states = {}
-        for widget in self.root.winfo_children():
-            if isinstance(widget, tk.Frame):
-                for child in widget.winfo_children():
-                    if isinstance(child, tk.Button):
-                        self.button_states[child] = child['state']
-                        child.config(state=tk.DISABLED)
-
-    def restore_button_states(self):
-        for button, state in self.button_states.items():
-            button.config(state=state)
-
     def run_lacosmic(self):
         self.run_lacosmic_button.config(state=tk.DISABLED)
         # Define parameters for L.A.Cosmic from default dictionary
-        editor_window = tk.Toplevel(self.root)  # new Toplevel window
+        editor_window = tk.Toplevel(self.root)
         editor = ParameterEditor(editor_window, self.lacosmic_params, 'L.A.Cosmic parameter editor')
-        # Make it modal (optional - blocks interaction with main window)
+        # Make it modal (blocks interaction with main window)
         editor_window.transient(self.root)
         editor_window.grab_set()
         # Wait for the editor window to close
@@ -217,7 +204,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Get the result after window closes
         updated_params = editor.get_result()
         if updated_params is not None:
-            # Update your dictionary with new values
+            # Update parameter dictionary with new values
             self.lacosmic_params = updated_params
             print("Parameters updated:")
             for key, info in self.lacosmic_params.items():
@@ -280,7 +267,6 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.canvas.draw()
 
     def apply_lacosmic(self):
-        self.save_and_disable_buttons()
         if np.any(self.mask_crfound):
             # recalculate labels and number of features
             structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
@@ -355,7 +341,6 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.image.set_data(self.data)
             self.canvas.draw()
 
-        self.restore_button_states()
         if num_cr_cleaned > 0:
             self.save_button.config(state=tk.NORMAL)
         if self.num_features == 0:
@@ -364,14 +349,14 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.update_cr_overlay()
 
     def examine_detected_cr(self, first_cr_index=1, single_cr=False, ixpix=None, iypix=None):
-        self.save_and_disable_buttons()
         self.working_in_review_window = True
+        review_window = tk.Toplevel(self.root)
         if ixpix is not None and iypix is not None:
             # select single pixel based on provided coordinates
             tmp_cr_labels = np.zeros_like(self.data, dtype=int)
             tmp_cr_labels[iypix - 1, ixpix - 1] = 1
             review = ReviewCosmicRay(
-                root=self.root,
+                root=review_window,
                 data=self.data,
                 cleandata_lacosmic=self.cleandata_lacosmic,
                 cr_labels=tmp_cr_labels,
@@ -381,7 +366,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             )
         else:
             review = ReviewCosmicRay(
-                root=self.root,
+                root=review_window,
                 data=self.data,
                 cleandata_lacosmic=self.cleandata_lacosmic,
                 cr_labels=self.cr_labels,
@@ -389,7 +374,12 @@ class CosmicRayCleanerApp(ImageDisplay):
                 first_cr_index=first_cr_index,
                 single_cr=single_cr
             )
+        # Make it modal (blocks interaction with main window)
+        review_window.transient(self.root)
+        review_window.grab_set()
+        self.root.wait_window(review_window)
         self.working_in_review_window = False
+        # Get the result after window closes
         if review.num_cr_cleaned > 0:
             print(f"Number of cosmic rays identified and cleaned: {review.num_cr_cleaned}")
             # update mask_fixed to include the newly fixed pixels
@@ -404,7 +394,6 @@ class CosmicRayCleanerApp(ImageDisplay):
             # redraw image to show the changes
             self.image.set_data(self.data)
             self.canvas.draw()
-        self.restore_button_states()
         if review.num_cr_cleaned > 0:
             self.save_button.config(state=tk.NORMAL)
         if self.num_features == 0:
