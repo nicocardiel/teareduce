@@ -22,12 +22,14 @@ import os
 from rich import print
 from scipy import ndimage
 
+from .definitions import lacosmic_default_dict
 from .definitions import MAX_PIXEL_DISTANCE_TO_CR
 from .find_closest_true import find_closest_true
 from .interpolation_a import interpolation_a
 from .interpolation_x import interpolation_x
 from .interpolation_y import interpolation_y
 from .imagedisplay import ImageDisplay
+from .parametereditor import ParameterEditor
 from .reviewcosmicray import ReviewCosmicRay
 
 from ..imshow import imshow
@@ -60,6 +62,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.root = root
         self.root.title("Cosmic Ray Cleaner")
         self.root.geometry("800x700+50+0")
+        self.lacosmic_params = lacosmic_default_dict.copy()
         self.input_fits = input_fits
         self.extension = extension
         self.output_fits = output_fits
@@ -203,32 +206,53 @@ class CosmicRayCleanerApp(ImageDisplay):
 
     def run_lacosmic(self):
         self.run_lacosmic_button.config(state=tk.DISABLED)
-        # Parameters for L.A.Cosmic can be adjusted as needed
-        self.cleandata_lacosmic, self.mask_crfound = cosmicray_lacosmic(
-            self.data,
-            sigclip=4.5,
-            sigfrac=0.3,
-            objlim=5.0,
-            verbose=False
-        )
-        self.run_lacosmic_button.config(state=tk.NORMAL)
-        if np.any(self.mask_crfound):
-            # Label connected components in the mask; note that by default,
-            # structure is a cross [0,1,0;1,1,1;0,1,0], but we want to consider
-            # diagonal connections too, so we define a 3x3 square.
-            structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
-            self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
-            print(f"Number of cosmic ray pixels detected by L.A.Cosmic...........: {np.sum(self.mask_crfound)}")
-            print(f"Number of cosmic rays (grouped pixels) detected by L.A.Cosmic: {self.num_features}")
-            self.apply_lacosmic_button.config(state=tk.NORMAL)
-            self.examine_detected_cr_button.config(state=tk.NORMAL)
-            self.update_cr_overlay()
+        # Define parameters for L.A.Cosmic from default dictionary
+        editor_window = tk.Toplevel(self.root)  # new Toplevel window
+        editor = ParameterEditor(editor_window, self.lacosmic_params, 'L.A.Cosmic parameter editor')
+        # Make it modal (optional - blocks interaction with main window)
+        editor_window.transient(self.root)
+        editor_window.grab_set()
+        # Wait for the editor window to close
+        self.root.wait_window(editor_window)
+        # Get the result after window closes
+        updated_params = editor.get_result()
+        if updated_params is not None:
+            # Update your dictionary with new values
+            self.lacosmic_params = updated_params
+            print("Parameters updated:")
+            for key, info in self.lacosmic_params.items():
+                print(f"  {key}: {info['value']}")
+            # Execute L.A.Cosmic with updated parameters
+            self.cleandata_lacosmic, self.mask_crfound = cosmicray_lacosmic(
+                self.data,
+                gain=self.lacosmic_params['gain']['value'],
+                readnoise=self.lacosmic_params['readnoise']['value'],
+                sigclip=self.lacosmic_params['sigclip']['value'],
+                sigfrac=self.lacosmic_params['sigfrac']['value'],
+                objlim=self.lacosmic_params['objlim']['value'],
+                niter=self.lacosmic_params['niter']['value'],
+                verbose=self.lacosmic_params['verbose']['value']
+            )
+            if np.any(self.mask_crfound):
+                # Label connected components in the mask; note that by default,
+                # structure is a cross [0,1,0;1,1,1;0,1,0], but we want to consider
+                # diagonal connections too, so we define a 3x3 square.
+                structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
+                self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
+                print(f"Number of cosmic ray pixels detected by L.A.Cosmic...........: {np.sum(self.mask_crfound)}")
+                print(f"Number of cosmic rays (grouped pixels) detected by L.A.Cosmic: {self.num_features}")
+                self.apply_lacosmic_button.config(state=tk.NORMAL)
+                self.examine_detected_cr_button.config(state=tk.NORMAL)
+                self.update_cr_overlay()
+            else:
+                print("No cosmic ray pixels detected by L.A.Cosmic.")
+                self.cr_labels = None
+                self.num_features = 0
+                self.apply_lacosmic_button.config(state=tk.DISABLED)
+                self.examine_detected_cr_button.config(state=tk.DISABLED)
         else:
-            print("No cosmic ray pixels detected by L.A.Cosmic.")
-            self.cr_labels = None
-            self.num_features = 0
-            self.apply_lacosmic_button.config(state=tk.DISABLED)
-            self.examine_detected_cr_button.config(state=tk.DISABLED)
+            print("Parameter editing cancelled. L.A.Cosmic detection skipped!")
+        self.run_lacosmic_button.config(state=tk.NORMAL)
 
     def toggle_cr_overlay(self):
         self.overplot_cr_pixels = not self.overplot_cr_pixels

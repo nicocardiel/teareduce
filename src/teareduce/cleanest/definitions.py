@@ -10,16 +10,15 @@
 """Definitions for the cleanest module."""
 
 # Default parameters for L.A.Cosmic algorithm
-LACOSMIC_DEFAULT_SIGMA_DETECT = 5.0
-LACOSMIC_DEFAULT_SIGMA_CLIP = 3.0
-LACOSMIC_DEFAULT_OBJ_LIMIT = 5.0
-LACOSMIC_DEFAULT_SMOOTHING = 1.0
-LACOSMIC_DEFAULT_GROW = 1
-LACOSMIC_DEFAULT_ITERATIONS = 4
-LACOSMIC_DEFAULT_SATUR_LEVEL = 65535.0
-LACOSMIC_DEFAULT_READNOISE = 10.0
-LACOSMIC_DEFAULT_GAIN = 1.0
-LACOSMIC_DEFAULT_FILTER = 'laplace'
+lacosmic_default_dict = {
+    'gain': {'value': 1.0, 'type': float},
+    'readnoise': {'value': 6.5, 'type': float},
+    'sigclip': {'value': 4.5, 'type': float},
+    'sigfrac': {'value': 0.3, 'type': float},
+    'objlim': {'value': 5.0, 'type': float},
+    'niter': {'value': 4, 'type': int},
+    'verbose': {'value': False, 'type': bool}
+}
 
 # Maximum pixel distance to consider when finding closest CR pixel
 MAX_PIXEL_DISTANCE_TO_CR = 15
