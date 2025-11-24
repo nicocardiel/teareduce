@@ -24,6 +24,9 @@ from scipy import ndimage
 
 from .definitions import MAX_PIXEL_DISTANCE_TO_CR
 from .find_closest_true import find_closest_true
+from .interpolation_a import interpolation_a
+from .interpolation_x import interpolation_x
+from .interpolation_y import interpolation_y
 from .imagedisplay import ImageDisplay
 from .reviewcosmicray import ReviewCosmicRay
 
@@ -84,11 +87,8 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.region = SliceRegion2D(f'[1:{naxis1}, 1:{naxis2}]', mode='fits').python
 
     def save_fits_file(self):
-        if self.output_fits is None:
-            base, ext = os.path.splitext(self.input_fits)
-            suggested_name = f"{base}_cleaned"
-        else:
-            suggested_name, _ = os.path.splitext(self.output_fits)
+        base, ext = os.path.splitext(self.input_fits)
+        suggested_name = f"{base}_cleaned"
         self.output_fits = filedialog.asksaveasfilename(
             initialdir=os.getcwd(),
             title="Save cleaned FITS file",
@@ -167,8 +167,8 @@ class CosmicRayCleanerApp(ImageDisplay):
         ylabel = 'Y pixel (from 1 to NAXIS2)'
         extent = [0.5, self.data.shape[1] + 0.5, 0.5, self.data.shape[0] + 0.5]
         self.image, _, _ = imshow(self.fig, self.ax, self.data, vmin=vmin, vmax=vmax,
-                                  xlabel=xlabel, ylabel=ylabel,
                                   title=os.path.basename(self.input_fits),
+                                  xlabel=xlabel, ylabel=ylabel,
                                   extent=extent)
         # Note: tight_layout should be called before defining the canvas
         self.fig.tight_layout()
@@ -248,19 +248,96 @@ class CosmicRayCleanerApp(ImageDisplay):
             if np.any(self.mask_crfound):
                 y_indices, x_indices = np.where(self.mask_crfound)
                 self.scatter_cr = self.ax.scatter(x_indices + 1, y_indices + 1, s=1, c='red', marker='o')
-                self.canvas.draw()
         else:
             # Remove CR pixel overlay
             if hasattr(self, 'scatter_cr'):
                 self.scatter_cr.remove()
                 del self.scatter_cr
-            self.canvas.draw()
+        self.canvas.draw()
 
     def apply_lacosmic(self):
         self.save_and_disable_buttons()
-        # TODO: ask for interpolation method and apply it to all detected CR pixels
-        print("To be implemented: apply cleaning to all detected CR pixels.")
+        if np.any(self.mask_crfound):
+            # recalculate labels and number of features
+            structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
+            self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
+            print(f"Number of cosmic ray pixels detected by L.A.Cosmic...........: {np.sum(self.mask_crfound)}")
+            print(f"Number of cosmic rays (grouped pixels) detected by L.A.Cosmic: {self.num_features}")
+            num_cr_cleaned = 0
+            # TODO: To be tuned: 'x', 'y', 'a-surface', 'a-median' or 'lacosmic'
+            cleaning_method = 'lacosmic'
+            if cleaning_method == 'lacosmic':
+                # Replace all detected CR pixels with L.A.Cosmic values
+                self.data[self.mask_crfound] = self.cleandata_lacosmic[self.mask_crfound]
+                # update mask_fixed to include the newly fixed pixels
+                self.mask_fixed[self.mask_crfound] = True
+                # upate mask_crfound by eliminating the cleaned pixels
+                self.mask_crfound[self.mask_crfound] = False
+                num_cr_cleaned = self.num_features
+            else:
+                for i in range(1, self.num_features + 1):
+                    tmp_mask_fixed = np.zeros_like(self.data, dtype=bool)
+                    if cleaning_method == 'x':
+                        interpolation_performed, _, _ = interpolation_x(
+                            data=self.data,
+                            mask_fixed=tmp_mask_fixed,
+                            cr_labels=self.cr_labels,
+                            cr_index=i,
+                            npoints=2,  # To be tuned
+                            degree=1    # To be tuned
+                        )
+                    elif cleaning_method == 'y':
+                        interpolation_performed, _, _ = interpolation_y(
+                            data=self.data,
+                            mask_fixed=tmp_mask_fixed,
+                            cr_labels=self.cr_labels,
+                            cr_index=i,
+                            npoints=2,  # To be tuned
+                            degree=1    # To be tuned
+                        )
+                    elif cleaning_method == 'a-plane':
+                        interpolation_performed, _, _ = interpolation_a(  # To be tuned
+                            data=self.data,
+                            mask_fixed=tmp_mask_fixed,
+                            cr_labels=self.cr_labels,
+                            cr_index=i,
+                            npoints=2,  # To be tuned
+                            method='surface'    # To be tuned
+                        )
+                    elif cleaning_method == 'a-median':
+                        interpolation_performed, _, _ = interpolation_a(  # To be tuned
+                            data=self.data,
+                            mask_fixed=tmp_mask_fixed,
+                            cr_labels=self.cr_labels,
+                            cr_index=i,
+                            npoints=2,  # To be tuned
+                            method='median'    # To be tuned
+                        )
+                    else:
+                        raise ValueError(f"Unknown cleaning method: {cleaning_method}")
+                    if interpolation_performed:
+                        num_cr_cleaned += 1
+                        # update mask_fixed to include the newly fixed pixels
+                        self.mask_fixed[tmp_mask_fixed] = True
+                        # upate mask_crfound by eliminating the cleaned pixels
+                        self.mask_crfound[tmp_mask_fixed] = False
+            print(f"Number of cosmic rays identified and cleaned: {num_cr_cleaned}")
+            # recalculate labels and number of features
+            structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
+            self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
+            print(f"Remaining number of cosmic ray pixels...........: {np.sum(self.mask_crfound)}")
+            print(f"Remaining number of cosmic rays (grouped pixels): {self.num_features}")
+            # redraw image to show the changes
+            self.image.set_data(self.data)
+            self.canvas.draw()
+
         self.restore_button_states()
+        if num_cr_cleaned > 0:
+            self.save_button.config(state=tk.NORMAL)
+        if self.num_features == 0:
+            self.examine_detected_cr_button.config(state=tk.DISABLED)
+            self.apply_lacosmic_button.config(state=tk.DISABLED)
+        self.update_cr_overlay()
 
     def examine_detected_cr(self, first_cr_index=1, single_cr=False, ixpix=None, iypix=None):
         self.save_and_disable_buttons()
@@ -294,22 +371,21 @@ class CosmicRayCleanerApp(ImageDisplay):
             # update mask_fixed to include the newly fixed pixels
             self.mask_fixed[review.mask_fixed] = True
             # upate mask_crfound by eliminating the cleaned pixels
-            print(f"{type(review.mask_fixed)=}, {type(self.mask_crfound)=}")
             self.mask_crfound[review.mask_fixed] = False
             # recalculate labels and number of features
             structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
             self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
             print(f"Remaining number of cosmic ray pixels...........: {np.sum(self.mask_crfound)}")
             print(f"Remaining number of cosmic rays (grouped pixels): {self.num_features}")
-            if self.num_features == 0:
-                self.examine_detected_cr_button.config(state=tk.DISABLED)
-                self.apply_lacosmic_button.config(state=tk.DISABLED)
             # redraw image to show the changes
             self.image.set_data(self.data)
             self.canvas.draw()
         self.restore_button_states()
         if review.num_cr_cleaned > 0:
             self.save_button.config(state=tk.NORMAL)
+        if self.num_features == 0:
+            self.examine_detected_cr_button.config(state=tk.DISABLED)
+            self.apply_lacosmic_button.config(state=tk.DISABLED)
         self.update_cr_overlay()
 
     def stop_app(self):

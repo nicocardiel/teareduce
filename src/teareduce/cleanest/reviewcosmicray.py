@@ -20,6 +20,9 @@ from rich import print
 
 from .definitions import MAX_PIXEL_DISTANCE_TO_CR
 from .imagedisplay import ImageDisplay
+from .interpolation_a import interpolation_a
+from .interpolation_x import interpolation_x
+from .interpolation_y import interpolation_y
 
 from ..imshow import imshow
 from ..sliceregion import SliceRegion2D
@@ -101,9 +104,9 @@ class ReviewCosmicRay(ImageDisplay):
         # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.review_window)
         self.button_frame2.pack(pady=5)
-        self.interp_x_button = tk.Button(self.button_frame2, text="[X] interp.", command=self.interp_x)
+        self.interp_x_button = tk.Button(self.button_frame2, text="[x] interp.", command=self.interp_x)
         self.interp_x_button.pack(side=tk.LEFT, padx=5)
-        self.interp_y_button = tk.Button(self.button_frame2, text="[Y] interp.", command=self.interp_y)
+        self.interp_y_button = tk.Button(self.button_frame2, text="[y] interp.", command=self.interp_y)
         self.interp_y_button.pack(side=tk.LEFT, padx=5)
         # it is important to use lambda here to pass the method argument correctly
         # (avoiding the execution of the function at button creation time, which would happen
@@ -221,46 +224,14 @@ class ReviewCosmicRay(ImageDisplay):
 
     def interp_x(self):
         print(f"X-interpolation of cosmic ray {self.cr_index}")
-        ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
-        ycr_min = np.min(ycr_list)
-        ycr_max = np.max(ycr_list)
-        xfit_all = []
-        yfit_all = []
-        interpolation_performed = False
-        for ycr in range(ycr_min, ycr_max + 1):
-            xmarked = xcr_list[np.where(ycr_list == ycr)]
-            if len(xmarked) > 0:
-                jmin = np.min(xmarked)
-                jmax = np.max(xmarked)
-                # mark intermediate pixels too
-                for ix in range(jmin, jmax + 1):
-                    self.cr_labels[ycr, ix] = self.cr_index
-                xmarked = xcr_list[np.where(ycr_list == ycr)]
-                xfit = []
-                zfit = []
-                for i in range(jmin - self.npoints, jmin):
-                    if 0 <= i < self.data.shape[1]:
-                        xfit.append(i)
-                        xfit_all.append(i)
-                        yfit_all.append(ycr)
-                        zfit.append(self.data[ycr, i])
-                for i in range(jmax + 1, jmax + 1 + self.npoints):
-                    if 0 <= i < self.data.shape[1]:
-                        xfit.append(i)
-                        xfit_all.append(i)
-                        yfit_all.append(ycr)
-                        zfit.append(self.data[ycr, i])
-                if len(xfit) > self.degree:
-                    p = np.polyfit(xfit, zfit, self.degree)
-                    for i in range(jmin, jmax + 1):
-                        if 0 <= i < self.data.shape[1]:
-                            self.data[ycr, i] = np.polyval(p, i)
-                            self.mask_fixed[ycr, i] = True
-                    interpolation_performed = True
-                else:
-                    print(f"Not enough points to fit at y={ycr+1}")
-                    self.update_display()
-                    return
+        interpolation_performed, xfit_all, yfit_all = interpolation_x(
+            data=self.data,
+            mask_fixed=self.mask_fixed,
+            cr_labels=self.cr_labels,
+            cr_index=self.cr_index,
+            npoints=self.npoints,
+            degree=self.degree
+        )
         if interpolation_performed:
             self.num_cr_cleaned += 1
         self.set_buttons_after_cleaning_cr()
@@ -271,46 +242,14 @@ class ReviewCosmicRay(ImageDisplay):
 
     def interp_y(self):
         print(f"Y-interpolation of cosmic ray {self.cr_index}")
-        ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
-        xcr_min = np.min(xcr_list)
-        xcr_max = np.max(xcr_list)
-        xfit_all = []
-        yfit_all = []
-        interpolation_performed = False
-        for xcr in range(xcr_min, xcr_max + 1):
-            ymarked = ycr_list[np.where(xcr_list == xcr)]
-            if len(ymarked) > 0:
-                imin = np.min(ymarked)
-                imax = np.max(ymarked)
-                # mark intermediate pixels too
-                for iy in range(imin, imax + 1):
-                    self.cr_labels[iy, xcr] = self.cr_index
-                ymarked = ycr_list[np.where(xcr_list == xcr)]
-                yfit = []
-                zfit = []
-                for i in range(imin - self.npoints, imin):
-                    if 0 <= i < self.data.shape[0]:
-                        yfit.append(i)
-                        yfit_all.append(i)
-                        xfit_all.append(xcr)
-                        zfit.append(self.data[i, xcr])
-                for i in range(imax + 1, imax + 1 + self.npoints):
-                    if 0 <= i < self.data.shape[0]:
-                        yfit.append(i)
-                        yfit_all.append(i)
-                        xfit_all.append(xcr)
-                        zfit.append(self.data[i, xcr])
-                if len(yfit) > self.degree:
-                    p = np.polyfit(yfit, zfit, self.degree)
-                    for i in range(imin, imax + 1):
-                        if 0 <= i < self.data.shape[1]:
-                            self.data[i, xcr] = np.polyval(p, i)
-                            self.mask_fixed[i, xcr] = True
-                    interpolation_performed = True
-                else:
-                    print(f"Not enough points to fit at x={xcr+1}")
-                    self.update_display()
-                    return
+        interpolation_performed, xfit_all, yfit_all = interpolation_y(
+            data=self.data,
+            mask_fixed=self.mask_fixed,
+            cr_labels=self.cr_labels,
+            cr_index=self.cr_index,
+            npoints=self.npoints,
+            degree=self.degree
+        )
         if interpolation_performed:
             self.num_cr_cleaned += 1
         self.set_buttons_after_cleaning_cr()
@@ -321,86 +260,16 @@ class ReviewCosmicRay(ImageDisplay):
 
     def interp_a(self, method):
         print(f"{method} interpolation of cosmic ray {self.cr_index}")
-        ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
-        ycr_min = np.min(ycr_list)
-        ycr_max = np.max(ycr_list)
-        xfit_all = []
-        yfit_all = []
-        zfit_all = []
-        # First do horizontal lines
-        for ycr in range(ycr_min, ycr_max + 1):
-            xmarked = xcr_list[np.where(ycr_list == ycr)]
-            if len(xmarked) > 0:
-                jmin = np.min(xmarked)
-                jmax = np.max(xmarked)
-                # mark intermediate pixels too
-                for ix in range(jmin, jmax + 1):
-                    self.cr_labels[ycr, ix] = self.cr_index
-                xmarked = xcr_list[np.where(ycr_list == ycr)]
-                for i in range(jmin - self.npoints, jmin):
-                    if 0 <= i < self.data.shape[1]:
-                        xfit_all.append(i)
-                        yfit_all.append(ycr)
-                        zfit_all.append(self.data[ycr, i])
-                for i in range(jmax + 1, jmax + 1 + self.npoints):
-                    if 0 <= i < self.data.shape[1]:
-                        xfit_all.append(i)
-                        yfit_all.append(ycr)
-                        zfit_all.append(self.data[ycr, i])
-                    xcr_min = np.min(xcr_list)
-        # Now do vertical lines
-        xcr_max = np.max(xcr_list)
-        for xcr in range(xcr_min, xcr_max + 1):
-            ymarked = ycr_list[np.where(xcr_list == xcr)]
-            if len(ymarked) > 0:
-                imin = np.min(ymarked)
-                imax = np.max(ymarked)
-                # mark intermediate pixels too
-                for iy in range(imin, imax + 1):
-                    self.cr_labels[iy, xcr] = self.cr_index
-                ymarked = ycr_list[np.where(xcr_list == xcr)]
-                for i in range(imin - self.npoints, imin):
-                    if 0 <= i < self.data.shape[0]:
-                        yfit_all.append(i)
-                        xfit_all.append(xcr)
-                        zfit_all.append(self.data[i, xcr])
-                for i in range(imax + 1, imax + 1 + self.npoints):
-                    if 0 <= i < self.data.shape[0]:
-                        yfit_all.append(i)
-                        xfit_all.append(xcr)
-                        zfit_all.append(self.data[i, xcr])
-        if method == 'surface':
-            if len(xfit_all) > 3:
-                # Construct the design matrix for a 2D polynomial fit to a plane,
-                # where each row corresponds to a point (x, y, z) and the model
-                # is z = C[0]*x + C[1]*y + C[2]
-                A = np.c_[xfit_all, yfit_all, np.ones(len(xfit_all))]
-                # Least squares polynomial fit
-                C, _, _, _ = np.linalg.lstsq(A, zfit_all, rcond=None)
-                # recompute all CR pixels to take into account "holes" between marked pixels
-                ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
-                for iy, ix in zip(ycr_list, xcr_list):
-                    self.data[iy, ix] = C[0] * ix + C[1] * iy + C[2]
-                    self.mask_fixed[iy, ix] = True
-                self.num_cr_cleaned += 1
-            else:
-                print("Not enough points to fit a plane")
-                self.update_display()
-                return
-        elif method == 'median':
-            # Compute median of all surrounding points
-            if len(zfit_all) > 0:
-                zmed = np.median(zfit_all)
-                print(f"Replacing by median value: {zmed:.2f}")
-                # recompute all CR pixels to take into account "holes" between marked pixels
-                ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
-                for iy, ix in zip(ycr_list, xcr_list):
-                    self.data[iy, ix] = zmed
-                    self.mask_fixed[iy, ix] = True
-                self.num_cr_cleaned += 1
-        else:
-            print(f"Unknown interpolation method: {method}")
-            return
+        interpolation_performed, xfit_all, yfit_all = interpolation_a(
+            data=self.data,
+            mask_fixed=self.mask_fixed,
+            cr_labels=self.cr_labels,
+            cr_index=self.cr_index,
+            npoints=self.npoints,
+            method=method
+        )
+        if interpolation_performed:
+            self.num_cr_cleaned += 1
         self.set_buttons_after_cleaning_cr()
         self.update_display()
         if len(xfit_all) > 0:
