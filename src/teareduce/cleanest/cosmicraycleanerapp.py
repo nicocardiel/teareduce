@@ -22,6 +22,7 @@ import os
 from rich import print
 from scipy import ndimage
 
+from .definitions import MAX_PIXEL_DISTANCE_TO_CR
 from .find_closest_true import find_closest_true
 from .imagedisplay import ImageDisplay
 from .reviewcosmicray import ReviewCosmicRay
@@ -125,7 +126,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.apply_lacosmic_button.pack(side=tk.LEFT, padx=5)
         self.apply_lacosmic_button.config(state=tk.DISABLED)  # Initially disabled
         self.examine_detected_cr_button = tk.Button(self.button_frame1, text="Examine detected CRs",
-                                                    command=lambda: self.examine_detected_cr(1, single_cr=False))
+                                                    command=lambda: self.examine_detected_cr(1))
         self.examine_detected_cr_button.pack(side=tk.LEFT, padx=5)
         self.examine_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
 
@@ -260,18 +261,32 @@ class CosmicRayCleanerApp(ImageDisplay):
         print("To be implemented: apply cleaning to all detected CR pixels.")
         self.restore_button_states()
 
-    def examine_detected_cr(self, first_cr_index=1, single_cr=False):
+    def examine_detected_cr(self, first_cr_index=1, single_cr=False, ixpix=None, iypix=None):
         self.save_and_disable_buttons()
         self.working_in_review_window = True
-        review = ReviewCosmicRay(
-            root=self.root,
-            data=self.data,
-            cleandata_lacosmic=self.cleandata_lacosmic,
-            cr_labels=self.cr_labels,
-            num_features=self.num_features,
-            first_cr_index=first_cr_index,
-            single_cr=single_cr
-        )
+        if ixpix is not None and iypix is not None:
+            # select single pixel based on provided coordinates
+            tmp_cr_labels = np.zeros_like(self.data, dtype=int)
+            tmp_cr_labels[iypix - 1, ixpix - 1] = 1
+            review = ReviewCosmicRay(
+                root=self.root,
+                data=self.data,
+                cleandata_lacosmic=self.cleandata_lacosmic,
+                cr_labels=tmp_cr_labels,
+                num_features=1,
+                first_cr_index=1,
+                single_cr=True
+            )
+        else:
+            review = ReviewCosmicRay(
+                root=self.root,
+                data=self.data,
+                cleandata_lacosmic=self.cleandata_lacosmic,
+                cr_labels=self.cr_labels,
+                num_features=self.num_features,
+                first_cr_index=first_cr_index,
+                single_cr=single_cr
+            )
         self.working_in_review_window = False
         if review.num_cr_cleaned > 0:
             print(f"Number of cosmic rays identified and cleaned: {review.num_cr_cleaned}")
@@ -327,13 +342,36 @@ class CosmicRayCleanerApp(ImageDisplay):
             ix = int(x + 0.5)
             iy = int(y + 0.5)
             print(f"Clicked at image coordinates: ({ix}, {iy})")
-            if self.mask_crfound is None or not np.any(self.mask_crfound):
-                print("No cosmic ray pixels detected; click ignored.")
-                return
-
-            label_at_click = self.cr_labels[iy - 1, ix - 1]
+            label_at_click = 0
+            if self.mask_crfound is None:
+                print("No cosmic ray pixels detected (mask_crfound is None)")
+            elif not np.any(self.mask_crfound):
+                print("No remaining cosmic ray pixels in mask_crfound")
+            else:
+                label_at_click = self.cr_labels[iy - 1, ix - 1]
+                if label_at_click == 0:
+                    (closest_x, closest_y), min_distance = find_closest_true(self.mask_crfound, ix - 1, iy - 1)
+                    if closest_x is None and closest_y is None:
+                        print("No remaining cosmic ray pixels")
+                    elif min_distance > MAX_PIXEL_DISTANCE_TO_CR * 1.4142135:
+                        print("No nearby cosmic ray pixels found in searching square")
+                    else:
+                        label_at_click = self.cr_labels[closest_y, closest_x]
+                        print(f"Clicked pixel is part of cosmic ray number {label_at_click}.")
             if label_at_click == 0:
-                closest_x, closest_y = find_closest_true(self.mask_crfound, ix - 1, iy - 1)
-                label_at_click = self.cr_labels[closest_y, closest_x]
-            print(f"Clicked pixel is part of cosmic ray number {label_at_click}.")
-            self.examine_detected_cr(label_at_click, single_cr=True)
+                # Find pixel with maximum value within a square region around the click
+                semiwidth = MAX_PIXEL_DISTANCE_TO_CR
+                jmin = (ix - 1) - semiwidth if (ix - 1) - semiwidth >= 0 else 0
+                jmax = (ix - 1) + semiwidth if (ix - 1) + semiwidth < self.data.shape[1] else self.data.shape[1] - 1
+                imin = (iy - 1) - semiwidth if (iy - 1) - semiwidth >= 0 else 0
+                imax = (iy - 1) + semiwidth if (iy - 1) + semiwidth < self.data.shape[0] else self.data.shape[0] - 1
+                ijmax = np.unravel_index(
+                    np.argmax(self.data[imin:imax+1, jmin:jmax+1]),
+                    self.data[imin:imax+1, jmin:jmax+1].shape
+                )
+                ixpix = ijmax[1] + jmin + 1
+                iypix = ijmax[0] + imin + 1
+            else:
+                ixpix = None
+                iypix = None
+            self.examine_detected_cr(label_at_click, single_cr=True, ixpix=ixpix, iypix=iypix)

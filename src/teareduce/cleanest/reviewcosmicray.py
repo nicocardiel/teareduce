@@ -18,6 +18,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 import numpy as np
 from rich import print
 
+from .definitions import MAX_PIXEL_DISTANCE_TO_CR
 from .imagedisplay import ImageDisplay
 
 from ..imshow import imshow
@@ -161,15 +162,16 @@ class ReviewCosmicRay(ImageDisplay):
         if self.first_plot:
             print(f"Cosmic ray {self.cr_index}: "
                   f"Number of pixels = {len(xcr_list)}, "
-                  f"Centroid = ({np.mean(xcr_list):.2f}, {np.mean(ycr_list):.2f})")
+                  f"Centroid = ({np.mean(xcr_list)+1:.2f}, {np.mean(ycr_list)+1:.2f})")
         # Use original positions to define the region to display in order
         # to avoid image shifts when some pixels are unmarked or new ones are marked
         i0 = int(np.mean(ycr_list_original) + 0.5)
         j0 = int(np.mean(xcr_list_original) + 0.5)
-        jmin = j0 - 15 if j0 - 15 >= 0 else 0
-        jmax = j0 + 15 if j0 + 15 < self.data.shape[1] else self.data.shape[1] - 1
-        imin = i0 - 15 if i0 - 15 >= 0 else 0
-        imax = i0 + 15 if i0 + 15 < self.data.shape[0] else self.data.shape[0] - 1
+        semiwidth = MAX_PIXEL_DISTANCE_TO_CR
+        jmin = j0 - semiwidth if j0 - semiwidth >= 0 else 0
+        jmax = j0 + semiwidth if j0 + semiwidth < self.data.shape[1] else self.data.shape[1] - 1
+        imin = i0 - semiwidth if i0 - semiwidth >= 0 else 0
+        imax = i0 + semiwidth if i0 + semiwidth < self.data.shape[0] else self.data.shape[0] - 1
         self.region = SliceRegion2D(f'[{jmin+1}:{jmax+1}, {imin+1}:{imax+1}]', mode='fits').python
         self.ax.clear()
         vmin = self.get_vmin()
@@ -406,6 +408,9 @@ class ReviewCosmicRay(ImageDisplay):
             self.canvas.draw()
 
     def use_lacosmic(self):
+        if self.cleandata_lacosmic is None:
+            print("L.A.Cosmic cleaned data not available.")
+            return
         print(f"L.A.Cosmic interpolation of cosmic ray {self.cr_index}")
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         for iy, ix in zip(ycr_list, xcr_list):
@@ -448,6 +453,7 @@ class ReviewCosmicRay(ImageDisplay):
     def continue_cr(self):
         if self.single_cr:
             self.exit_review()
+            return  # important: do not remove (to avoid errors)
         self.cr_index += 1
         if self.cr_index > self.num_features:
             self.exit_review()
@@ -494,6 +500,7 @@ class ReviewCosmicRay(ImageDisplay):
             self.set_zscale()
         elif event.key == 'e':
             self.exit_review()
+            return  # important: do not remove (to avoid errors)
         else:
             print(f"Key pressed: {event.key}")
 

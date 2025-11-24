@@ -27,8 +27,10 @@ def find_closest_true(mask, x, y):
     Returns
     -------
     (closest_x, closest_y) : tuple of int
-        Coordinates (1-based) of the closest True pixel in the mask.
+        Coordinates (0-based) of the closest True pixel in the mask.
         Returns (None, None) if no True pixels are found.
+    min_distance : float
+        Euclidean distance to the closest True pixel.
     """
     true_indices = np.argwhere(mask)
     if true_indices.size == 0:
@@ -37,5 +39,6 @@ def find_closest_true(mask, x, y):
     distances = np.sqrt((true_indices[:, 1] - x) ** 2 + (true_indices[:, 0] - y) ** 2)
     min_index = np.argmin(distances)
     closest_y, closest_x = true_indices[min_index]
+    min_distance = distances[min_index]
 
-    return closest_x, closest_y
+    return (closest_x, closest_y), min_distance
