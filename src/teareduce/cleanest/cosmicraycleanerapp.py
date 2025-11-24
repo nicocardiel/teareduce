@@ -256,6 +256,7 @@ class CosmicRayCleanerApp(ImageDisplay):
     def apply_lacosmic(self):
         self.save_and_disable_buttons()
         # TODO: ask for interpolation method and apply it to all detected CR pixels
+        print("To be implemented: apply cleaning to all detected CR pixels.")
         self.restore_button_states()
 
     def examine_detected_cr(self):
