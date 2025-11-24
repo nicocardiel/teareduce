@@ -58,6 +58,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.input_fits = input_fits
         self.extension = extension
         self.output_fits = output_fits
+        self.overplot_cr_pixels = False
         self.load_fits_file()
         self.create_widgets()
         self.cleandata_lacosmic = None
@@ -111,6 +112,13 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.button_frame1.grid(row=0, column=0, pady=5)
         self.run_lacosmic_button = tk.Button(self.button_frame1, text="Run L.A.Cosmic", command=self.run_lacosmic)
         self.run_lacosmic_button.pack(side=tk.LEFT, padx=5)
+        if self.overplot_cr_pixels:
+            self.overplot_cr_button = tk.Button(self.button_frame1, text="CR overlay: On",
+                                                command=self.toggle_cr_overlay)
+        else:
+            self.overplot_cr_button = tk.Button(self.button_frame1, text="CR overlay: Off",
+                                                command=self.toggle_cr_overlay)
+        self.overplot_cr_button.pack(side=tk.LEFT, padx=5)
         self.apply_lacosmic_button = tk.Button(self.button_frame1, text="Replace all detected CRs",
                                                command=self.apply_lacosmic)
         self.apply_lacosmic_button.pack(side=tk.LEFT, padx=5)
@@ -218,6 +226,32 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.apply_lacosmic_button.config(state=tk.DISABLED)
             self.examine_detected_cr_button.config(state=tk.DISABLED)
 
+    def toggle_cr_overlay(self):
+        self.overplot_cr_pixels = not self.overplot_cr_pixels
+        if self.overplot_cr_pixels:
+            self.overplot_cr_button.config(text="CR overlay: On")
+        else:
+            self.overplot_cr_button.config(text="CR overlay: Off")
+        self.update_cr_overlay()
+
+    def update_cr_overlay(self):
+        if self.overplot_cr_pixels:
+            # Remove previous CR pixel overlay (if any)
+            if hasattr(self, 'scatter_cr'):
+                self.scatter_cr.remove()
+                del self.scatter_cr
+            # Overlay CR pixels in red
+            if np.any(self.mask_crfound):
+                y_indices, x_indices = np.where(self.mask_crfound)
+                self.scatter_cr = self.ax.scatter(x_indices + 1, y_indices + 1, s=1, c='red', marker='o', label='CR pixels')
+                self.canvas.draw()
+        else:
+            # Remove CR pixel overlay
+            if hasattr(self, 'scatter_cr'):
+                self.scatter_cr.remove()
+                del self.scatter_cr
+            self.canvas.draw()
+
     def apply_lacosmic(self):
         self.save_and_disable_buttons()
         # TODO: ask for interpolation method and apply it to all detected CR pixels
@@ -253,6 +287,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.canvas.draw()
             self.save_button.config(state=tk.NORMAL)
         self.restore_button_states()
+        self.update_cr_overlay()
 
     def stop_app(self):
         self.root.quit()
