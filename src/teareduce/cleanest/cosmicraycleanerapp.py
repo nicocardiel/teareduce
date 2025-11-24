@@ -61,10 +61,10 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.extension = extension
         self.output_fits = output_fits
         self.overplot_cr_pixels = True
+        self.mask_crfound = None
         self.load_fits_file()
         self.create_widgets()
         self.cleandata_lacosmic = None
-        self.mask_crfound = None
         self.cr_labels = None
         self.num_features = 0
         self.working_in_review_window = False
@@ -79,6 +79,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                     self.mask_fixed = np.zeros(self.data.shape, dtype=bool)
         except Exception as e:
             print(f"Error loading FITS file: {e}")
+        self.mask_crfound = np.zeros(self.data.shape, dtype=bool)
         naxis2, naxis1 = self.data.shape
         self.region = SliceRegion2D(f'[1:{naxis1}, 1:{naxis2}]', mode='fits').python
 
@@ -293,6 +294,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             # update mask_fixed to include the newly fixed pixels
             self.mask_fixed[review.mask_fixed] = True
             # upate mask_crfound by eliminating the cleaned pixels
+            print(f"{type(review.mask_fixed)=}, {type(self.mask_crfound)=}")
             self.mask_crfound[review.mask_fixed] = False
             # recalculate labels and number of features
             structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
@@ -305,8 +307,9 @@ class CosmicRayCleanerApp(ImageDisplay):
             # redraw image to show the changes
             self.image.set_data(self.data)
             self.canvas.draw()
-            self.save_button.config(state=tk.NORMAL)
         self.restore_button_states()
+        if review.num_cr_cleaned > 0:
+            self.save_button.config(state=tk.NORMAL)
         self.update_cr_overlay()
 
     def stop_app(self):
