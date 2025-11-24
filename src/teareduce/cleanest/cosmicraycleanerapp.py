@@ -58,7 +58,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.input_fits = input_fits
         self.extension = extension
         self.output_fits = output_fits
-        self.overplot_cr_pixels = False
+        self.overplot_cr_pixels = True
         self.load_fits_file()
         self.create_widgets()
         self.cleandata_lacosmic = None
@@ -219,6 +219,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             print(f"Number of cosmic rays (grouped pixels) detected by L.A.Cosmic: {self.num_features}")
             self.apply_lacosmic_button.config(state=tk.NORMAL)
             self.examine_detected_cr_button.config(state=tk.NORMAL)
+            self.update_cr_overlay()
         else:
             print("No cosmic ray pixels detected by L.A.Cosmic.")
             self.cr_labels = None
@@ -243,7 +244,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             # Overlay CR pixels in red
             if np.any(self.mask_crfound):
                 y_indices, x_indices = np.where(self.mask_crfound)
-                self.scatter_cr = self.ax.scatter(x_indices + 1, y_indices + 1, s=1, c='red', marker='o', label='CR pixels')
+                self.scatter_cr = self.ax.scatter(x_indices + 1, y_indices + 1, s=1, c='red', marker='o')
                 self.canvas.draw()
         else:
             # Remove CR pixel overlay
