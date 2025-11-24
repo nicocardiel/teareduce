@@ -125,7 +125,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.apply_lacosmic_button.pack(side=tk.LEFT, padx=5)
         self.apply_lacosmic_button.config(state=tk.DISABLED)  # Initially disabled
         self.examine_detected_cr_button = tk.Button(self.button_frame1, text="Examine detected CRs",
-                                                    command=lambda: self.examine_detected_cr(1))
+                                                    command=lambda: self.examine_detected_cr(1, single_cr=False))
         self.examine_detected_cr_button.pack(side=tk.LEFT, padx=5)
         self.examine_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
 
@@ -260,7 +260,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         print("To be implemented: apply cleaning to all detected CR pixels.")
         self.restore_button_states()
 
-    def examine_detected_cr(self, first_cr_index=1):
+    def examine_detected_cr(self, first_cr_index=1, single_cr=False):
         self.save_and_disable_buttons()
         self.working_in_review_window = True
         review = ReviewCosmicRay(
@@ -269,7 +269,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             cleandata_lacosmic=self.cleandata_lacosmic,
             cr_labels=self.cr_labels,
             num_features=self.num_features,
-            first_cr_index=first_cr_index
+            first_cr_index=first_cr_index,
+            single_cr=single_cr
         )
         self.working_in_review_window = False
         if review.num_cr_cleaned > 0:
@@ -335,4 +336,4 @@ class CosmicRayCleanerApp(ImageDisplay):
                 closest_x, closest_y = find_closest_true(self.mask_crfound, ix - 1, iy - 1)
                 label_at_click = self.cr_labels[closest_y, closest_x]
             print(f"Clicked pixel is part of cosmic ray number {label_at_click}.")
-            self.examine_detected_cr(label_at_click)
+            self.examine_detected_cr(label_at_click, single_cr=True)

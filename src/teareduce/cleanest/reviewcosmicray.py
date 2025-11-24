@@ -31,7 +31,8 @@ matplotlib.use("TkAgg")
 class ReviewCosmicRay(ImageDisplay):
     """Class to review suspected cosmic ray pixels."""
 
-    def __init__(self, root, data, cleandata_lacosmic, cr_labels, num_features, first_cr_index=1):
+    def __init__(self, root, data, cleandata_lacosmic, cr_labels, num_features,
+                 first_cr_index=1, single_cr=False):
         """Initialize the review window.
 
         Parameters
@@ -48,6 +49,10 @@ class ReviewCosmicRay(ImageDisplay):
             Number of connected cosmic ray pixel groups.
         first_cr_index : int, optional
             The index of the first cosmic ray to review (default is 1).
+        single_cr : bool, optional
+            Whether to review a single cosmic ray (default is False).
+            If True, the review window will close after reviewing the
+            selected first cosmic ray.
         """
         self.root = root
         self.data = data
@@ -68,6 +73,7 @@ class ReviewCosmicRay(ImageDisplay):
             print('No CR hits found!')
         else:
             self.cr_index = first_cr_index
+            self.single_cr = single_cr
             self.create_widgets()
 
     def create_widgets(self):
@@ -440,6 +446,8 @@ class ReviewCosmicRay(ImageDisplay):
         self.update_display()
 
     def continue_cr(self):
+        if self.single_cr:
+            self.exit_review()
         self.cr_index += 1
         if self.cr_index > self.num_features:
             self.exit_review()
