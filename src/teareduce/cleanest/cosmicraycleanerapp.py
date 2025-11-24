@@ -198,7 +198,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             sigclip=4.5,
             sigfrac=0.3,
             objlim=5.0,
-            verbose=True
+            verbose=False
         )
         self.run_lacosmic_button.config(state=tk.NORMAL)
         if np.any(self.mask_crfound):
@@ -273,7 +273,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         if self.working_in_review_window:
             print("Currently working in review window; click ignored.")
             return
-        
+
         # check the toolbar is not active
         toolbar = self.fig.canvas.toolbar
         if toolbar.mode != "":

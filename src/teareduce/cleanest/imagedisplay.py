@@ -19,17 +19,25 @@ from ..zscale import zscale
 class ImageDisplay:
     def set_vmin(self):
         old_vmin = self.get_vmin()
+        old_vmax = self.get_vmax()
         new_vmin = simpledialog.askfloat("Set vmin", "Enter new vmin:", initialvalue=old_vmin)
         if new_vmin is None:
+            return
+        if new_vmin >= old_vmax:
+            print("Error: vmin must be less than vmax.")
             return
         self.vmin_button.config(text=f"vmin: {new_vmin:.2f}")
         self.image.set_clim(vmin=new_vmin)
         self.canvas.draw()
 
     def set_vmax(self):
+        old_vmin = self.get_vmin()
         old_vmax = self.get_vmax()
         new_vmax = simpledialog.askfloat("Set vmax", "Enter new vmax:", initialvalue=old_vmax)
         if new_vmax is None:
+            return
+        if new_vmax <= old_vmin:
+            print("Error: vmax must be greater than vmin.")
             return
         self.vmax_button.config(text=f"vmax: {new_vmax:.2f}")
         self.image.set_clim(vmax=new_vmax)
