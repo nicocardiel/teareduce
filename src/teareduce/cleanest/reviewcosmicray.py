@@ -86,7 +86,7 @@ class ReviewCosmicRay(ImageDisplay):
         # Row 1 of buttons
         self.button_frame1 = tk.Frame(self.root)
         self.button_frame1.pack(pady=5)
-        self.ndeg_label = tk.Button(self.button_frame1, text=f"deg={self.degree}, n={self.npoints}",
+        self.ndeg_label = tk.Button(self.button_frame1, text=f"Degree={self.degree}, Npoints={self.npoints}",
                                     command=self.set_ndeg)
         self.ndeg_label.pack(side=tk.LEFT, padx=5)
         self.remove_crosses_button = tk.Button(self.button_frame1, text="remove all x's", command=self.remove_crosses)

@@ -82,7 +82,6 @@ def interpolation_a(data, mask_fixed, cr_labels, cr_index, npoints, method):
         # Compute median of all surrounding points
         if len(zfit_all) > 0:
             zmed = np.median(zfit_all)
-            print(f"Replacing by median value: {zmed:.2f}")
             # recompute all CR pixels to take into account "holes" between marked pixels
             ycr_list, xcr_list = np.where(cr_labels == cr_index)
             for iy, ix in zip(ycr_list, xcr_list):

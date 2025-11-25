@@ -10,6 +10,7 @@
 """Parameter editor dialog for L.A.Cosmic parameters."""
 
 import tkinter as tk
+from tkinter import ttk
 from tkinter import messagebox
 
 
@@ -18,7 +19,7 @@ class ParameterEditor:
         self.root = root
         self.root.title(window_title)
         self.param_dict = param_dict
-        self.entries = {}
+        self.entries = {}  # dictionary to hold entry widgets
         self.result_dict = None
 
         # Create the form
@@ -26,51 +27,73 @@ class ParameterEditor:
 
     def create_widgets(self):
         # Main frame
-        main_frame = tk.Frame(self.root, padx=20, pady=20)
+        main_frame = tk.Frame(self.root, padx=10, pady=10)
         main_frame.pack()
 
-        # Title
-        title_label = tk.Label(main_frame, text="Edit Parameters",
-                               font=("Arial", 14, "bold"))
-        title_label.grid(row=0, column=0, columnspan=3, pady=(0, 15))
+        row = 0
+
+        # Subtitle for L.A.Cosmic parameters
+        subtitle_label = tk.Label(main_frame, text="L.A.Cosmic Parameters", font=("Arial", 14, "bold"))
+        subtitle_label.grid(row=row, column=0, columnspan=3, pady=(0, 15))
+        row += 1
 
         # Create labels and entry fields for each parameter
-        row = 1
         for key, info in self.param_dict.items():
-            # Parameter name label
-            label = tk.Label(main_frame, text=f"{key}:", anchor='w', width=15)
-            label.grid(row=row, column=0, sticky='w', pady=5)
+            if key.lower() != 'dilation':
+                # Parameter name label
+                label = tk.Label(main_frame, text=f"{key}:", anchor='e', width=15)
+                label.grid(row=row, column=0, sticky='w', pady=5)
+                # Entry field
+                entry = tk.Entry(main_frame, width=10)
+                entry.insert(0, str(info['value']))
+                entry.grid(row=row, column=1, padx=10, pady=5)
+                self.entries[key] = entry  # dictionary to hold entry widgets
+                # Type label
+                type_label = tk.Label(main_frame, text=f"({info['type'].__name__})", fg='gray', anchor='w', width=10)
+                type_label.grid(row=row, column=2, sticky='w', pady=5)
+                row += 1
 
-            # Entry field
-            entry = tk.Entry(main_frame, width=15)
-            entry.insert(0, str(info['value']))
-            entry.grid(row=row, column=1, padx=10, pady=5)
-            self.entries[key] = entry
+        # Separator
+        separator1 = ttk.Separator(main_frame, orient='horizontal')
+        separator1.grid(row=row, column=0, columnspan=3, sticky='ew', pady=(10, 10))
+        row += 1
 
-            # Type label
-            type_label = tk.Label(main_frame, text=f"({info['type'].__name__})",
-                                  fg='gray', anchor='w', width=10)
-            type_label.grid(row=row, column=2, sticky='w', pady=5)
+        # Subtitle for additional parameters
+        subtitle_label = tk.Label(main_frame, text="Additional Parameters", font=("Arial", 14, "bold"))
+        subtitle_label.grid(row=row, column=0, columnspan=3, pady=(0, 15))
+        row += 1
 
-            row += 1
+        # Dilation label and entry
+        label = tk.Label(main_frame, text="Dilation:", anchor='e', width=15)
+        label.grid(row=row, column=0, sticky='w', pady=5)
+        entry = tk.Entry(main_frame, width=10)
+        entry.insert(0, str(self.param_dict['dilation']['value']))
+        entry.grid(row=row, column=1, padx=10, pady=5)
+        self.entries['dilation'] = entry
+        type_label = tk.Label(main_frame, text=f"({self.param_dict['dilation']['type'].__name__})",
+                              fg='gray', anchor='w', width=10)
+        type_label.grid(row=row, column=2, sticky='w', pady=5)
+        row += 1
+
+        # Separator
+        separator2 = ttk.Separator(main_frame, orient='horizontal')
+        separator2.grid(row=row, column=0, columnspan=3, sticky='ew', pady=(10, 10))
+        row += 1
 
         # Button frame
         button_frame = tk.Frame(main_frame)
         button_frame.grid(row=row, column=0, columnspan=3, pady=(15, 0))
 
         # OK button
-        ok_button = tk.Button(button_frame, text="OK", width=10,
-                              command=self.on_ok)
+        ok_button = tk.Button(button_frame, text="OK", width=5, command=self.on_ok)
         ok_button.pack(side='left', padx=5)
 
         # Cancel button
-        cancel_button = tk.Button(button_frame, text="Cancel", width=10,
-                                  command=self.on_cancel)
+        cancel_button = tk.Button(button_frame, text="Cancel", width=5, command=self.on_cancel)
         cancel_button.pack(side='left', padx=5)
 
         # Reset button
-        reset_button = tk.Button(button_frame, text="Reset", width=10,
-                                 command=self.on_reset)
+        reset_button = tk.Button(button_frame, text="Reset", width=5, command=self.on_reset)
         reset_button.pack(side='left', padx=5)
 
     def on_ok(self):
@@ -93,6 +116,8 @@ class ParameterEditor:
                         raise ValueError(f"Invalid boolean value for {key}")
                 else:
                     converted_value = value_type(entry_value)
+                    if 'positive' in info and info['positive'] and converted_value < 0:
+                        raise ValueError(f"Value for {key} must be positive")
 
                 updated_dict[key] = {
                     'value': converted_value,

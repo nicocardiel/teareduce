@@ -11,14 +11,18 @@
 
 # Default parameters for L.A.Cosmic algorithm
 lacosmic_default_dict = {
-    'gain': {'value': 1.0, 'type': float},
-    'readnoise': {'value': 6.5, 'type': float},
-    'sigclip': {'value': 4.5, 'type': float},
-    'sigfrac': {'value': 0.3, 'type': float},
-    'objlim': {'value': 5.0, 'type': float},
-    'niter': {'value': 4, 'type': int},
-    'verbose': {'value': False, 'type': bool}
+    'gain': {'value': 1.0, 'type': float, 'positive': True},
+    'readnoise': {'value': 6.5, 'type': float, 'positive': True},
+    'sigclip': {'value': 4.5, 'type': float, 'positive': True},
+    'sigfrac': {'value': 0.3, 'type': float, 'positive': True},
+    'objlim': {'value': 5.0, 'type': float, 'positive': True},
+    'niter': {'value': 4, 'type': int, 'positive': True},
+    'verbose': {'value': False, 'type': bool},
+    'dilation': {'value': 0, 'type': int, 'positive': True}  # Dilation of the mask
 }
+
+# Default parameters for cleaning methods
+VALID_CLEANING_METHODS = ['x interp.', 'y interp.', 'surface interp.', 'median', 'lacosmic']
 
 # Maximum pixel distance to consider when finding closest CR pixel
 MAX_PIXEL_DISTANCE_TO_CR = 15

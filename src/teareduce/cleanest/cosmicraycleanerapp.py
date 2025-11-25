@@ -28,6 +28,7 @@ from .find_closest_true import find_closest_true
 from .interpolation_a import interpolation_a
 from .interpolation_x import interpolation_x
 from .interpolation_y import interpolation_y
+from .interpolationeditor import InterpolationEditor
 from .imagedisplay import ImageDisplay
 from .parametereditor import ParameterEditor
 from .reviewcosmicray import ReviewCosmicRay
@@ -195,7 +196,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.run_lacosmic_button.config(state=tk.DISABLED)
         # Define parameters for L.A.Cosmic from default dictionary
         editor_window = tk.Toplevel(self.root)
-        editor = ParameterEditor(editor_window, self.lacosmic_params, 'L.A.Cosmic parameter editor')
+        editor = ParameterEditor(editor_window, self.lacosmic_params, 'Cosmic Ray Mask Generation Parameters')
         # Make it modal (blocks interaction with main window)
         editor_window.transient(self.root)
         editor_window.grab_set()
@@ -221,13 +222,31 @@ class CosmicRayCleanerApp(ImageDisplay):
                 verbose=self.lacosmic_params['verbose']['value']
             )
             if np.any(self.mask_crfound):
+                num_cr_pixels_before_dilation = np.sum(self.mask_crfound)
+                dilation = self.lacosmic_params['dilation']['value']
+                if dilation > 0:
+                    # Dilate the mask by the specified number of pixels
+                    structure = ndimage.generate_binary_structure(2, 2)  # 8-connectivity
+                    self.mask_crfound = ndimage.binary_dilation(
+                        self.mask_crfound,
+                        structure=structure,
+                        iterations=self.lacosmic_params['dilation']['value']
+                    )
+                    num_cr_pixels_after_dilation = np.sum(self.mask_crfound)
+                    sdum = str(num_cr_pixels_after_dilation)
+                else:
+                    sdum = str(num_cr_pixels_before_dilation)
+                print("Number of cosmic ray pixels detected by L.A.Cosmic: "
+                      f"{num_cr_pixels_before_dilation:{len(sdum)}}")
+                if dilation > 0:
+                    print(f"Number of cosmic ray pixels after dilation........: "
+                          f"{num_cr_pixels_after_dilation:{len(sdum)}}")
                 # Label connected components in the mask; note that by default,
                 # structure is a cross [0,1,0;1,1,1;0,1,0], but we want to consider
                 # diagonal connections too, so we define a 3x3 square.
                 structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
                 self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
-                print(f"Number of cosmic ray pixels detected by L.A.Cosmic...........: {np.sum(self.mask_crfound)}")
-                print(f"Number of cosmic rays (grouped pixels) detected by L.A.Cosmic: {self.num_features}")
+                print(f"Number of cosmic rays features (grouped pixels)...: {self.num_features:{len(sdum)}}")
                 self.apply_lacosmic_button.config(state=tk.NORMAL)
                 self.examine_detected_cr_button.config(state=tk.NORMAL)
                 self.update_cr_overlay()
@@ -273,9 +292,20 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
             print(f"Number of cosmic ray pixels detected by L.A.Cosmic...........: {np.sum(self.mask_crfound)}")
             print(f"Number of cosmic rays (grouped pixels) detected by L.A.Cosmic: {self.num_features}")
+            # Define parameters for L.A.Cosmic from default dictionary
+            editor_window = tk.Toplevel(self.root)
+            editor = InterpolationEditor(editor_window)
+            # Make it modal (blocks interaction with main window)
+            editor_window.transient(self.root)
+            editor_window.grab_set()
+            # Wait for the editor window to close
+            self.root.wait_window(editor_window)
+            # Get the result after window closes
+            cleaning_method = editor.cleaning_method
             num_cr_cleaned = 0
-            # TODO: To be tuned: 'x', 'y', 'a-surface', 'a-median' or 'lacosmic'
-            cleaning_method = 'lacosmic'
+            if cleaning_method is None:
+                print("Interpolation method selection cancelled. No cleaning applied!")
+                return
             if cleaning_method == 'lacosmic':
                 # Replace all detected CR pixels with L.A.Cosmic values
                 self.data[self.mask_crfound] = self.cleandata_lacosmic[self.mask_crfound]
@@ -293,8 +323,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                             mask_fixed=tmp_mask_fixed,
                             cr_labels=self.cr_labels,
                             cr_index=i,
-                            npoints=2,  # To be tuned
-                            degree=1    # To be tuned
+                            npoints=editor.npoints,
+                            degree=editor.degree
                         )
                     elif cleaning_method == 'y':
                         interpolation_performed, _, _ = interpolation_y(
@@ -302,26 +332,26 @@ class CosmicRayCleanerApp(ImageDisplay):
                             mask_fixed=tmp_mask_fixed,
                             cr_labels=self.cr_labels,
                             cr_index=i,
-                            npoints=2,  # To be tuned
-                            degree=1    # To be tuned
+                            npoints=editor.npoints,
+                            degree=editor.degree
                         )
                     elif cleaning_method == 'a-plane':
-                        interpolation_performed, _, _ = interpolation_a(  # To be tuned
+                        interpolation_performed, _, _ = interpolation_a(
                             data=self.data,
                             mask_fixed=tmp_mask_fixed,
                             cr_labels=self.cr_labels,
                             cr_index=i,
-                            npoints=2,  # To be tuned
-                            method='surface'    # To be tuned
+                            npoints=editor.npoints,
+                            method='surface'
                         )
                     elif cleaning_method == 'a-median':
-                        interpolation_performed, _, _ = interpolation_a(  # To be tuned
+                        interpolation_performed, _, _ = interpolation_a(
                             data=self.data,
                             mask_fixed=tmp_mask_fixed,
                             cr_labels=self.cr_labels,
                             cr_index=i,
-                            npoints=2,  # To be tuned
-                            method='median'    # To be tuned
+                            npoints=editor.npoints,
+                            method='median'
                         )
                     else:
                         raise ValueError(f"Unknown cleaning method: {cleaning_method}")
@@ -340,13 +370,12 @@ class CosmicRayCleanerApp(ImageDisplay):
             # redraw image to show the changes
             self.image.set_data(self.data)
             self.canvas.draw()
-
-        if num_cr_cleaned > 0:
-            self.save_button.config(state=tk.NORMAL)
-        if self.num_features == 0:
-            self.examine_detected_cr_button.config(state=tk.DISABLED)
-            self.apply_lacosmic_button.config(state=tk.DISABLED)
-        self.update_cr_overlay()
+            if num_cr_cleaned > 0:
+                self.save_button.config(state=tk.NORMAL)
+            if self.num_features == 0:
+                self.examine_detected_cr_button.config(state=tk.DISABLED)
+                self.apply_lacosmic_button.config(state=tk.DISABLED)
+            self.update_cr_overlay()
 
     def examine_detected_cr(self, first_cr_index=1, single_cr=False, ixpix=None, iypix=None):
         self.working_in_review_window = True
