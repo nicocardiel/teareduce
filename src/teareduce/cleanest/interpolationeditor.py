@@ -108,8 +108,8 @@ class InterpolationEditor:
             messagebox.showerror("Input Error", "Degree must be non-negative.")
             return
 
-        if self.cleaning_method in ['x', 'y'] and self.degree >= self.npoints:
-            messagebox.showerror("Input Error", "Degree must be less than Npoints for x and y interpolation.")
+        if self.cleaning_method in ['x', 'y'] and 2 * self.npoints <= self.degree:
+            messagebox.showerror("Input Error", "2*Npoints must be greater than Degree for x and y interpolation.")
             return
 
         self.root.destroy()

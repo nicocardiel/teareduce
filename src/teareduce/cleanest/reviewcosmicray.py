@@ -10,6 +10,7 @@
 """Define the ReviewCosmicRay class."""
 
 import tkinter as tk
+from tkinter import messagebox
 from tkinter import simpledialog
 
 import matplotlib.pyplot as plt
@@ -91,7 +92,7 @@ class ReviewCosmicRay(ImageDisplay):
         # Row 1 of buttons
         self.button_frame1 = tk.Frame(self.root)
         self.button_frame1.pack(pady=5)
-        self.ndeg_label = tk.Button(self.button_frame1, text=f"Degree={self.degree}, Npoints={self.npoints}",
+        self.ndeg_label = tk.Button(self.button_frame1, text=f"Npoints={self.npoints}, Degree={self.degree}",
                                     command=self.set_ndeg)
         self.ndeg_label.pack(side=tk.LEFT, padx=5)
         self.remove_crosses_button = tk.Button(self.button_frame1, text="remove all x's", command=self.remove_crosses)
@@ -204,17 +205,17 @@ class ReviewCosmicRay(ImageDisplay):
         self.canvas.draw()
 
     def set_ndeg(self):
-        new_degree = simpledialog.askinteger("Set degree", "Enter new degree (min=0):",
+        new_npoints = simpledialog.askinteger("Set Npoints", "Enter Npoints:",
+                                              initialvalue=self.npoints,  minvalue=1)
+        if new_npoints is None:
+            return
+        new_degree = simpledialog.askinteger("Set degree", "Enter Degree (min=0):",
                                              initialvalue=self.degree, minvalue=0)
         if new_degree is None:
             return
-        new_npoints = simpledialog.askinteger("Set n", f"Enter new n (min={2*new_degree}):",
-                                              initialvalue=self.npoints, minvalue=2*new_degree)
-        if new_npoints is None:
-            return
         self.degree = new_degree
         self.npoints = new_npoints
-        self.ndeg_label.config(text=f"deg={self.degree}, n={self.npoints}")
+        self.ndeg_label.config(text=f"Npoints={self.npoints}, Degree={self.degree}")
 
     def set_buttons_after_cleaning_cr(self):
         self.restore_cr_button.config(state=tk.NORMAL)
@@ -226,6 +227,9 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_l_button.config(state=tk.DISABLED)
 
     def interp_x(self):
+        if 2 * self.npoints <= self.degree:
+            messagebox.showerror("Input Error", "2*Npoints must be greater than Degree for x interpolation.")
+            return
         print(f"X-interpolation of cosmic ray {self.cr_index}")
         interpolation_performed, xfit_all, yfit_all = interpolation_x(
             data=self.data,
@@ -244,6 +248,9 @@ class ReviewCosmicRay(ImageDisplay):
             self.canvas.draw()
 
     def interp_y(self):
+        if 2 * self.npoints <= self.degree:
+            messagebox.showerror("Input Error", "2*Npoints must be greater than Degree for y interpolation.")
+            return
         print(f"Y-interpolation of cosmic ray {self.cr_index}")
         interpolation_performed, xfit_all, yfit_all = interpolation_y(
             data=self.data,
