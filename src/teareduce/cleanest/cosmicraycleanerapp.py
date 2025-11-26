@@ -11,6 +11,7 @@
 
 import tkinter as tk
 from tkinter import filedialog
+from tkinter import messagebox
 
 from astropy.io import fits
 from ccdproc import cosmicray_lacosmic
@@ -44,7 +45,7 @@ matplotlib.use("TkAgg")
 class CosmicRayCleanerApp(ImageDisplay):
     """Main application class for cosmic ray cleaning."""
 
-    def __init__(self, root, input_fits, extension=0, output_fits=None):
+    def __init__(self, root, input_fits, extension=0, auxfile=None, extension_auxfile=0):
         """
         Initialize the application.
 
@@ -56,9 +57,10 @@ class CosmicRayCleanerApp(ImageDisplay):
             Path to the FITS file to be cleaned.
         extension : int, optional
             FITS extension to use (default is 0).
-        output_fits : str, optional
-            Path to save the cleaned FITS file (default is None, which prompts
-            for a save location).
+        auxfile : str, optional
+            Path to an auxiliary FITS file (default is None).
+        extension_auxfile : int, optional
+            FITS extension for auxiliary file (default is 0).
         """
         self.root = root
         self.root.title("Cosmic Ray Cleaner")
@@ -66,7 +68,10 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.lacosmic_params = lacosmic_default_dict.copy()
         self.input_fits = input_fits
         self.extension = extension
-        self.output_fits = output_fits
+        self.data = None
+        self.auxfile = auxfile
+        self.extension_auxfile = extension_auxfile
+        self.aux_data = None
         self.overplot_cr_pixels = True
         self.mask_crfound = None
         self.load_fits_file()
@@ -93,6 +98,14 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.mask_crfound = np.zeros(self.data.shape, dtype=bool)
         naxis2, naxis1 = self.data.shape
         self.region = SliceRegion2D(f'[1:{naxis1}, 1:{naxis2}]', mode='fits').python
+        # Read auxiliary file if provided
+        if self.auxfile is not None:
+            try:
+                with fits.open(self.auxfile, mode='readonly') as hdul_aux:
+                    self.aux_data = hdul_aux[self.extension_auxfile].data
+                    raise ValueError("Auxiliary file has different shape.")
+            except Exception as e:
+                print(f"Error loading auxiliary FITS file: {e}")
 
     def save_fits_file(self):
         base, ext = os.path.splitext(self.input_fits)
@@ -114,6 +127,10 @@ class CosmicRayCleanerApp(ImageDisplay):
                     hdul.append(crmask_hdu)
                 hdul.writeto(self.output_fits, overwrite=True)
             print(f"Cleaned data saved to {self.output_fits}")
+            self.ax.set_title(os.path.basename(self.output_fits))
+            self.canvas.draw()
+            self.input_fits = os.path.basename(self.output_fits)
+            self.save_button.config(state=tk.DISABLED)
         except Exception as e:
             print(f"Error saving FITS file: {e}")
 
@@ -454,8 +471,16 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.update_cr_overlay()
 
     def stop_app(self):
-        self.root.quit()
-        self.root.destroy()
+        proceed_with_stop = True
+        if self.save_button['state'] == tk.NORMAL:
+            print("Warning: There are unsaved changes!")
+            proceed_with_stop = messagebox.askyesno(
+                "Unsaved Changes",
+                "You have unsaved changes.\nDo you really want to quit?"
+            )
+        if proceed_with_stop:
+            self.root.quit()
+            self.root.destroy()
 
     def on_key(self, event):
         if event.key == 'q':

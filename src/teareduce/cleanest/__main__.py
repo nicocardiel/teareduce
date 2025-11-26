@@ -28,22 +28,30 @@ def main():
     parser.add_argument("input_fits", help="Path to the FITS file to be cleaned.")
     parser.add_argument("--extension", type=int, default=0,
                         help="FITS extension to use (default: 0).")
-    parser.add_argument("--output_fits", type=str, default=None,
-                        help="Path to save the cleaned FITS file")
+    parser.add_argument("--auxfile", type=str, default=None,
+                        help="Auxiliary FITS file")
+    parser.add_argument("--extension_auxfile", type=int, default=0,
+                        help="FITS extension for auxiliary file (default: 0).")
     args = parser.parse_args()
 
     if not os.path.isfile(args.input_fits):
         print(f"Error: File '{args.input_fits}' does not exist.")
         return
-    if args.output_fits is not None and os.path.isfile(args.output_fits):
-        print(f"Error: Output file '{args.output_fits}' already exists.")
+    if args.auxfile is not None and not os.path.isfile(args.auxfile):
+        print(f"Error: Auxiliary file '{args.auxfile}' does not exist.")
         return
 
     # Initialize Tkinter root
     root = tk.Tk()
 
     # Create and run the application
-    CosmicRayCleanerApp(root, args.input_fits, args.extension, args.output_fits)
+    CosmicRayCleanerApp(
+        root=root,
+        input_fits=args.input_fits,
+        extension=args.extension,
+        auxfile=args.auxfile,
+        extension_auxfile=args.extension_auxfile
+    )
 
     # Execute
     root.mainloop()
