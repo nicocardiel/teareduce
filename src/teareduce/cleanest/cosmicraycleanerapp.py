@@ -116,7 +116,7 @@ class CosmicRayCleanerApp(ImageDisplay):
     def create_widgets(self):
         # Row 1 of buttons
         self.button_frame1 = tk.Frame(self.root)
-        self.button_frame1.grid(row=0, column=0, pady=5)
+        self.button_frame1.pack(pady=5)
         self.run_lacosmic_button = tk.Button(self.button_frame1, text="Run L.A.Cosmic", command=self.run_lacosmic)
         self.run_lacosmic_button.pack(side=tk.LEFT, padx=5)
         if self.overplot_cr_pixels:
@@ -137,7 +137,7 @@ class CosmicRayCleanerApp(ImageDisplay):
 
         # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.root)
-        self.button_frame2.grid(row=1, column=0, pady=5)
+        self.button_frame2.pack(pady=5)
         self.save_button = tk.Button(self.button_frame2, text="Save cleaned FITS", command=self.save_fits_file)
         self.save_button.pack(side=tk.LEFT, padx=5)
         self.save_button.config(state=tk.DISABLED)  # Initially disabled
@@ -146,7 +146,7 @@ class CosmicRayCleanerApp(ImageDisplay):
 
         # Row 3 of buttons
         self.button_frame3 = tk.Frame(self.root)
-        self.button_frame3.grid(row=2, column=0, pady=5)
+        self.button_frame3.pack(pady=5)
         vmin, vmax = zscale(self.data)
         self.vmin_button = tk.Button(self.button_frame3, text=f"vmin: {vmin:.2f}", command=self.set_vmin)
         self.vmin_button.pack(side=tk.LEFT, padx=5)
@@ -157,16 +157,31 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.set_zscale_button = tk.Button(self.button_frame3, text="zscale [/]", command=self.set_zscale)
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
 
-        # Main frame for figure and toolbar
+        """# Figure
         self.main_frame = tk.Frame(self.root)
         self.main_frame.grid(row=3, column=0, sticky="nsew")
         self.root.grid_rowconfigure(2, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
         self.main_frame.grid_rowconfigure(0, weight=1)
-        self.main_frame.grid_columnconfigure(0, weight=1)
+        self.main_frame.grid_columnconfigure(0, weight=1)"""
 
-        # Create figure and axis
+        # Figure
         self.fig, self.ax = plt.subplots(figsize=(7, 5.5))
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
+        # The next two instructions prevent a segmentation fault when pressing "q"
+        self.canvas.mpl_disconnect(self.canvas.mpl_connect("key_press_event", key_press_handler))
+        self.canvas.mpl_connect("key_press_event", self.on_key)
+        self.canvas.mpl_connect("button_press_event", self.on_click)
+        canvas_widget = self.canvas.get_tk_widget()
+        canvas_widget.pack(fill=tk.BOTH, expand=True)
+
+        # Matplotlib toolbar
+        self.toolbar_frame = tk.Frame(self.root)
+        self.toolbar_frame.pack(fill=tk.X, expand=False, pady=5)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
+        self.toolbar.update()
+
+        # update the image display
         xlabel = 'X pixel (from 1 to NAXIS1)'
         ylabel = 'Y pixel (from 1 to NAXIS2)'
         extent = [0.5, self.data.shape[1] + 0.5, 0.5, self.data.shape[0] + 0.5]
@@ -174,23 +189,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                                   title=os.path.basename(self.input_fits),
                                   xlabel=xlabel, ylabel=ylabel,
                                   extent=extent)
-        # Note: tight_layout should be called before defining the canvas
         self.fig.tight_layout()
-
-        # Create canvas and toolbar
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.main_frame)
-        # The next two instructions prevent a segmentation fault when pressing "q"
-        self.canvas.mpl_disconnect(self.canvas.mpl_connect("key_press_event", key_press_handler))
-        self.canvas.mpl_connect("key_press_event", self.on_key)
-        self.canvas.mpl_connect("button_press_event", self.on_click)
-        canvas_widget = self.canvas.get_tk_widget()
-        canvas_widget.grid(row=0, column=0, sticky="nsew")
-
-        # Matplotlib toolbar
-        self.toolbar_frame = tk.Frame(self.main_frame)
-        self.toolbar_frame.grid(row=1, column=0, sticky="ew")
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
-        self.toolbar.update()
 
     def run_lacosmic(self):
         self.run_lacosmic_button.config(state=tk.DISABLED)
