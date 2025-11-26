@@ -312,7 +312,10 @@ class CosmicRayCleanerApp(ImageDisplay):
             print(f"Number of cosmic rays (grouped pixels) detected by L.A.Cosmic: {self.num_features}")
             # Define parameters for L.A.Cosmic from default dictionary
             editor_window = tk.Toplevel(self.root)
-            editor = InterpolationEditor(editor_window)
+            editor = InterpolationEditor(
+                root=editor_window,
+                last_dilation=self.lacosmic_params['dilation']['value']
+            )
             # Make it modal (blocks interaction with main window)
             editor_window.transient(self.root)
             editor_window.grab_set()
@@ -409,7 +412,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                 cr_labels=tmp_cr_labels,
                 num_features=1,
                 first_cr_index=1,
-                single_cr=True
+                single_cr=True,
+                last_dilation=self.lacosmic_params['dilation']['value']
             )
         else:
             review = ReviewCosmicRay(
@@ -419,7 +423,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                 cr_labels=self.cr_labels,
                 num_features=self.num_features,
                 first_cr_index=first_cr_index,
-                single_cr=single_cr
+                single_cr=single_cr,
+                last_dilation=self.lacosmic_params['dilation']['value']
             )
         # Make it modal (blocks interaction with main window)
         review_window.transient(self.root)

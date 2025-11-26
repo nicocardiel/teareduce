@@ -16,9 +16,10 @@ from .definitions import VALID_CLEANING_METHODS
 
 
 class InterpolationEditor:
-    def __init__(self, root):
+    def __init__(self, root, last_dilation):
         self.root = root
         self.root.title("Cleaning Parameters")
+        self.last_dilation = last_dilation
         self.dict_interp_methods = {
             "x interp.": "x",
             "y interp.": "y",
@@ -47,14 +48,16 @@ class InterpolationEditor:
         row = 1
         self.cleaning_method_var = tk.StringVar(value="surface interp.")
         for interp_method in self.dict_interp_methods.keys():
-            tk.Radiobutton(
-                main_frame,
-                text=interp_method,
-                variable=self.cleaning_method_var,
-                value=interp_method,
-                command=self.action_on_method_change
-            ).grid(row=row, column=0, sticky='w')
-            row += 1
+            # Skip replace by L.A.Cosmic values if last dilation is not zero
+            if interp_method != "lacosmic" or self.last_dilation == 0:
+                tk.Radiobutton(
+                    main_frame,
+                    text=interp_method,
+                    variable=self.cleaning_method_var,
+                    value=interp_method,
+                    command=self.action_on_method_change
+                ).grid(row=row, column=0, sticky='w')
+                row += 1
 
         # Create labels and entry fields for each additional parameter
         label = tk.Label(main_frame, text='Npoints:')

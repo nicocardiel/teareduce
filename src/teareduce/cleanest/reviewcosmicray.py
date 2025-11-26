@@ -36,7 +36,7 @@ class ReviewCosmicRay(ImageDisplay):
     """Class to review suspected cosmic ray pixels."""
 
     def __init__(self, root, data, cleandata_lacosmic, cr_labels, num_features,
-                 first_cr_index=1, single_cr=False):
+                 first_cr_index=1, single_cr=False, last_dilation=None):
         """Initialize the review window.
 
         Parameters
@@ -57,6 +57,10 @@ class ReviewCosmicRay(ImageDisplay):
             Whether to review a single cosmic ray (default is False).
             If True, the review window will close after reviewing the
             selected first cosmic ray.
+        last_dilation : int or None, optional
+            The last used dilation parameter employed after L.A.Cosmic
+            detection. If > 0, the replacement by the L.A.Cosmic cleaned
+            data will not be allowed.
         """
         self.root = root
         self.root.title("Review Cosmic Rays")
@@ -71,6 +75,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.first_plot = True
         self.degree = 1    # Degree of polynomial for interpolation
         self.npoints = 2   # Number of points at each side of the CR pixel for interpolation
+        self.last_dilation = last_dilation
         # Make a copy of the original labels to allow pixel re-marking
         self.cr_labels_original = self.cr_labels.copy()
         print(f"Number of cosmic ray pixels detected..: {np.sum(self.cr_labels > 0)}")
@@ -121,6 +126,8 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_m_button.pack(side=tk.LEFT, padx=5)
         self.interp_l_button = tk.Button(self.button_frame2, text="[l]acosmic", command=self.use_lacosmic)
         self.interp_l_button.pack(side=tk.LEFT, padx=5)
+        if self.last_dilation is not None and self.last_dilation > 0:
+            self.interp_l_button.config(state=tk.DISABLED)
         if self.cleandata_lacosmic is None:
             self.interp_l_button.config(state=tk.DISABLED)
 
@@ -308,7 +315,8 @@ class ReviewCosmicRay(ImageDisplay):
             self.interp_s_button.config(state=tk.NORMAL)
             self.interp_m_button.config(state=tk.NORMAL)
             if self.cleandata_lacosmic is not None:
-                self.interp_l_button.config(state=tk.NORMAL)
+                if self.last_dilation is None or self.last_dilation == 0:
+                    self.interp_l_button.config(state=tk.NORMAL)
         print(f"Restored all pixels of cosmic ray {self.cr_index}")
         self.num_cr_cleaned -= 1
         self.remove_crosses_button.config(state=tk.NORMAL)
@@ -330,7 +338,8 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_s_button.config(state=tk.NORMAL)
         self.interp_m_button.config(state=tk.NORMAL)
         if self.cleandata_lacosmic is not None:
-            self.interp_l_button.config(state=tk.NORMAL)
+            if self.last_dilation is None or self.last_dilation == 0:
+                self.interp_l_button.config(state=tk.NORMAL)
         self.update_display()
 
     def exit_review(self):
@@ -394,7 +403,8 @@ class ReviewCosmicRay(ImageDisplay):
                 self.interp_s_button.config(state=tk.NORMAL)
                 self.interp_m_button.config(state=tk.NORMAL)
                 if self.cleandata_lacosmic is not None:
-                    self.interp_l_button.config(state=tk.NORMAL)
+                    if self.last_dilation is None or self.last_dilation == 0:
+                        self.interp_l_button.config(state=tk.NORMAL)
                 self.remove_crosses_button.config(state=tk.NORMAL)
             # Update the display to reflect the change
             self.update_display()
