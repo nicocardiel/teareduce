@@ -70,6 +70,10 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.overplot_cr_pixels = True
         self.mask_crfound = None
         self.load_fits_file()
+        self.last_xmin = 1
+        self.last_xmax = self.data.shape[1]
+        self.last_ymin = 1
+        self.last_ymax = self.data.shape[0]
         self.create_widgets()
         self.cleandata_lacosmic = None
         self.cr_labels = None
@@ -157,14 +161,6 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.set_zscale_button = tk.Button(self.button_frame3, text="zscale [/]", command=self.set_zscale)
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
 
-        """# Figure
-        self.main_frame = tk.Frame(self.root)
-        self.main_frame.grid(row=3, column=0, sticky="nsew")
-        self.root.grid_rowconfigure(2, weight=1)
-        self.root.grid_columnconfigure(0, weight=1)
-        self.main_frame.grid_rowconfigure(0, weight=1)
-        self.main_frame.grid_columnconfigure(0, weight=1)"""
-
         # Figure
         self.fig, self.ax = plt.subplots(figsize=(7, 5.5))
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
@@ -195,7 +191,16 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.run_lacosmic_button.config(state=tk.DISABLED)
         # Define parameters for L.A.Cosmic from default dictionary
         editor_window = tk.Toplevel(self.root)
-        editor = ParameterEditor(editor_window, self.lacosmic_params, 'Cosmic Ray Mask Generation Parameters')
+        editor = ParameterEditor(
+            root=editor_window,
+            param_dict=self.lacosmic_params,
+            window_title='Cosmic Ray Mask Generation Parameters',
+            xmin=self.last_xmin,
+            xmax=self.last_xmax,
+            ymin=self.last_ymin,
+            ymax=self.last_ymax,
+            imgshape=self.data.shape
+        )
         # Make it modal (blocks interaction with main window)
         editor_window.transient(self.root)
         editor_window.grab_set()
@@ -204,13 +209,18 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Get the result after window closes
         updated_params = editor.get_result()
         if updated_params is not None:
+            # Update last used region values
+            self.last_xmin = updated_params['xmin']['value']
+            self.last_xmax = updated_params['xmax']['value']
+            self.last_ymin = updated_params['ymin']['value']
+            self.last_ymax = updated_params['ymax']['value']
             # Update parameter dictionary with new values
             self.lacosmic_params = updated_params
             print("Parameters updated:")
             for key, info in self.lacosmic_params.items():
                 print(f"  {key}: {info['value']}")
             # Execute L.A.Cosmic with updated parameters
-            self.cleandata_lacosmic, self.mask_crfound = cosmicray_lacosmic(
+            cleandata_lacosmic, mask_crfound = cosmicray_lacosmic(
                 self.data,
                 gain=self.lacosmic_params['gain']['value'],
                 readnoise=self.lacosmic_params['readnoise']['value'],
@@ -220,6 +230,15 @@ class CosmicRayCleanerApp(ImageDisplay):
                 niter=self.lacosmic_params['niter']['value'],
                 verbose=self.lacosmic_params['verbose']['value']
             )
+            # Select the image region to process
+            fits_region = f"[{updated_params['xmin']['value']}:{updated_params['xmax']['value']}"
+            fits_region += f",{updated_params['ymin']['value']}:{updated_params['ymax']['value']}]"
+            region = SliceRegion2D(fits_region, mode="fits").python
+            self.cleandata_lacosmic = self.data.copy()
+            self.cleandata_lacosmic[region] = cleandata_lacosmic[region]
+            self.mask_crfound = np.zeros_like(self.data, dtype=bool)
+            self.mask_crfound[region] = mask_crfound[region]
+            # Process the mask: dilation and labeling
             if np.any(self.mask_crfound):
                 num_cr_pixels_before_dilation = np.sum(self.mask_crfound)
                 dilation = self.lacosmic_params['dilation']['value']

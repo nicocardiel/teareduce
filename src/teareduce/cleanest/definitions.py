@@ -14,6 +14,7 @@
 # using the intrinsic Python types, so that they can be easily cast
 # when reading user input.
 lacosmic_default_dict = {
+    # L.A.Cosmic parameters
     'gain': {'value': 1.0, 'type': float, 'positive': True},
     'readnoise': {'value': 6.5, 'type': float, 'positive': True},
     'sigclip': {'value': 4.5, 'type': float, 'positive': True},
@@ -21,7 +22,13 @@ lacosmic_default_dict = {
     'objlim': {'value': 5.0, 'type': float, 'positive': True},
     'niter': {'value': 4, 'type': int, 'positive': True},
     'verbose': {'value': False, 'type': bool},
-    'dilation': {'value': 0, 'type': int, 'positive': True}  # Dilation of the mask
+    # Dilation of the mask
+    'dilation': {'value': 0, 'type': int, 'positive': True},
+    # Limits for the image section to process (pixels start at 1)
+    'xmin': {'value': 1, 'type': int, 'positive': True},
+    'xmax': {'value': None, 'type': int, 'positive': True},
+    'ymin': {'value': 1, 'type': int, 'positive': True},
+    'ymax': {'value': None, 'type': int, 'positive': True}
 }
 
 # Default parameters for cleaning methods
