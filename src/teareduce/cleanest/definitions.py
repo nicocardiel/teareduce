@@ -10,6 +10,9 @@
 """Definitions for the cleanest module."""
 
 # Default parameters for L.A.Cosmic algorithm
+# Note that 'type' is set to the expected data type for each parameter
+# using the intrinsic Python types, so that they can be easily cast
+# when reading user input.
 lacosmic_default_dict = {
     'gain': {'value': 1.0, 'type': float, 'positive': True},
     'readnoise': {'value': 6.5, 'type': float, 'positive': True},

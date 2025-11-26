@@ -10,6 +10,7 @@
 """Interpolation editor dialog for interpolation parameters."""
 
 import tkinter as tk
+from tkinter import messagebox
 
 from .definitions import VALID_CLEANING_METHODS
 
@@ -30,7 +31,6 @@ class InterpolationEditor:
         self.cleaning_method = None
         self.npoints = None
         self.degree = None
-        self.dilation = None
         # Create the form
         self.create_widgets()
 
@@ -69,12 +69,6 @@ class InterpolationEditor:
         self.entry_degree.insert(0, 1)
         self.entry_degree.grid(row=row, column=1, sticky='w')
         row += 1
-        label = tk.Label(main_frame, text='Dilation:')
-        label.grid(row=row, column=0, sticky='e', padx=(0, 10))
-        self.entry_dilation = tk.Entry(main_frame, width=10)
-        self.entry_dilation.insert(0, 0)
-        self.entry_dilation.grid(row=row, column=1, sticky='w')
-        row += 1
 
         # Button frame
         self.button_frame = tk.Frame(main_frame)
@@ -93,9 +87,28 @@ class InterpolationEditor:
 
     def on_ok(self):
         self.cleaning_method = self.dict_interp_methods[self.cleaning_method_var.get()]
-        self.npoints = int(self.entry_npoints.get())
-        self.degree = int(self.entry_degree.get())
-        self.dilation = int(self.entry_dilation.get())
+        try:
+            self.npoints = int(self.entry_npoints.get())
+        except ValueError:
+            messagebox.showerror("Input Error", "Npoints must be a positive integer.")
+            return
+        if self.npoints < 1:
+            messagebox.showerror("Input Error", "Npoints must be at least 1.")
+            return
+
+        try:
+            self.degree = int(self.entry_degree.get())
+        except ValueError:
+            messagebox.showerror("Input Error", "Degree must be an integer.")
+            return
+        if self.degree < 0:
+            messagebox.showerror("Input Error", "Degree must be non-negative.")
+            return
+
+        if self.cleaning_method in ['x', 'y'] and self.degree >= self.npoints:
+            messagebox.showerror("Input Error", "Degree must be less than Npoints for x and y interpolation.")
+            return
+
         self.root.destroy()
 
     def on_cancel(self):
@@ -103,7 +116,6 @@ class InterpolationEditor:
         self.cleaning_method = None
         self.npoints = None
         self.degree = None
-        self.dilation = None
         self.root.destroy()
 
     def action_on_method_change(self):
@@ -113,19 +125,15 @@ class InterpolationEditor:
         if selected_method in ['x interp.', 'y interp.']:
             self.entry_npoints.config(state='normal')
             self.entry_degree.config(state='normal')
-            self.entry_dilation.config(state='normal')
         elif selected_method == 'surface interp.':
             self.entry_npoints.config(state='normal')
             self.entry_degree.config(state='disabled')
-            self.entry_dilation.config(state='normal')
         elif selected_method == 'median':
             self.entry_npoints.config(state='normal')
             self.entry_degree.config(state='disabled')
-            self.entry_dilation.config(state='normal')
         elif selected_method == 'lacosmic':
             self.entry_npoints.config(state='disabled')
             self.entry_degree.config(state='disabled')
-            self.entry_dilation.config(state='disabled')
 
     def check_interp_methods(self):
         """Check that all interpolation methods are valid."""
