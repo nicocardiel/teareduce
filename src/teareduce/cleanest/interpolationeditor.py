@@ -16,7 +16,7 @@ from .definitions import VALID_CLEANING_METHODS
 
 
 class InterpolationEditor:
-    def __init__(self, root, last_dilation, auxdata):
+    def __init__(self, root, last_dilation, last_npoints, last_degree, auxdata):
         self.root = root
         self.root.title("Cleaning Parameters")
         self.last_dilation = last_dilation
@@ -32,8 +32,8 @@ class InterpolationEditor:
         self.check_interp_methods()
         # Initialize parameters
         self.cleaning_method = None
-        self.npoints = None
-        self.degree = None
+        self.npoints = last_npoints
+        self.degree = last_degree
         # Create the form
         self.create_widgets()
 
@@ -43,7 +43,7 @@ class InterpolationEditor:
         main_frame.pack()
 
         # Title
-        title_label = tk.Label(main_frame, text="Edit Cleaning Parameters", font=("Arial", 14, "bold"))
+        title_label = tk.Label(main_frame, text="Select Cleaning Method", font=("Arial", 14, "bold"))
         title_label.grid(row=0, column=0, columnspan=2, pady=(0, 15))
 
         # Create labels and entry fields for each cleaning method
@@ -71,13 +71,13 @@ class InterpolationEditor:
         label = tk.Label(main_frame, text='Npoints:')
         label.grid(row=row, column=0, sticky='e', padx=(0, 10))
         self.entry_npoints = tk.Entry(main_frame, width=10)
-        self.entry_npoints.insert(0, 2)
+        self.entry_npoints.insert(0, self.npoints)
         self.entry_npoints.grid(row=row, column=1, sticky='w')
         row += 1
         label = tk.Label(main_frame, text='Degree:')
         label.grid(row=row, column=0, sticky='e', padx=(0, 10))
         self.entry_degree = tk.Entry(main_frame, width=10)
-        self.entry_degree.insert(0, 1)
+        self.entry_degree.insert(0, self.degree)
         self.entry_degree.grid(row=row, column=1, sticky='w')
         row += 1
 

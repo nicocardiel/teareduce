@@ -37,7 +37,8 @@ class ReviewCosmicRay(ImageDisplay):
     """Class to review suspected cosmic ray pixels."""
 
     def __init__(self, root, data, auxdata, cleandata_lacosmic, cr_labels, num_features,
-                 first_cr_index=1, single_cr=False, last_dilation=None):
+                 first_cr_index=1, single_cr=False, 
+                 last_dilation=None, last_npoints=None, last_degree=None):
         """Initialize the review window.
 
         Parameters
@@ -64,6 +65,10 @@ class ReviewCosmicRay(ImageDisplay):
             The last used dilation parameter employed after L.A.Cosmic
             detection. If > 0, the replacement by the L.A.Cosmic cleaned
             data will not be allowed.
+        last_npoints : int or None, optional
+            The last used number of points parameter for interpolation.
+        last_degree : int or None, optional
+            The last used degree parameter for interpolation.
         """
         self.root = root
         self.root.title("Review Cosmic Rays")
@@ -80,8 +85,8 @@ class ReviewCosmicRay(ImageDisplay):
         self.num_cr_cleaned = 0
         self.mask_fixed = np.zeros(self.data.shape, dtype=bool)  # Mask of pixels fixed during review
         self.first_plot = True
-        self.degree = 1    # Degree of polynomial for interpolation
-        self.npoints = 2   # Number of points at each side of the CR pixel for interpolation
+        self.degree = last_degree if last_degree is not None else 1
+        self.npoints = last_npoints if last_npoints is not None else 2
         self.last_dilation = last_dilation
         # Make a copy of the original labels to allow pixel re-marking
         self.cr_labels_original = self.cr_labels.copy()

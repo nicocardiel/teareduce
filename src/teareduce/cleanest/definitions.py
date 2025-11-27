@@ -43,3 +43,9 @@ VALID_CLEANING_METHODS = [
 
 # Maximum pixel distance to consider when finding closest CR pixel
 MAX_PIXEL_DISTANCE_TO_CR = 15
+
+# Default number of points for interpolation
+DEFAULT_NPOINTS_INTERP = 2
+
+# Default degree for interpolation
+DEFAULT_DEGREE_INTERP = 1

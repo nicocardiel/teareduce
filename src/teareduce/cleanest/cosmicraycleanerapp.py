@@ -25,6 +25,8 @@ from rich import print
 from scipy import ndimage
 
 from .definitions import lacosmic_default_dict
+from .definitions import DEFAULT_NPOINTS_INTERP
+from .definitions import DEFAULT_DEGREE_INTERP
 from .definitions import MAX_PIXEL_DISTANCE_TO_CR
 from .find_closest_true import find_closest_true
 from .interpolation_a import interpolation_a
@@ -80,6 +82,8 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.last_xmax = self.data.shape[1]
         self.last_ymin = 1
         self.last_ymax = self.data.shape[0]
+        self.last_npoints = DEFAULT_NPOINTS_INTERP
+        self.last_degree = DEFAULT_DEGREE_INTERP
         self.create_widgets()
         self.cleandata_lacosmic = None
         self.cr_labels = None
@@ -336,6 +340,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             editor = InterpolationEditor(
                 root=editor_window,
                 last_dilation=self.lacosmic_params['dilation']['value'],
+                last_npoints=self.last_npoints,
+                last_degree=self.last_degree,
                 auxdata=self.auxdata
             )
             # Make it modal (blocks interaction with main window)
@@ -349,6 +355,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             if cleaning_method is None:
                 print("Interpolation method selection cancelled. No cleaning applied!")
                 return
+            self.last_npoints = editor.npoints
+            self.last_degree = editor.degree
             if cleaning_method == 'lacosmic':
                 # Replace all detected CR pixels with L.A.Cosmic values
                 self.data[self.mask_crfound] = self.cleandata_lacosmic[self.mask_crfound]
@@ -447,7 +455,9 @@ class CosmicRayCleanerApp(ImageDisplay):
                 num_features=1,
                 first_cr_index=1,
                 single_cr=True,
-                last_dilation=self.lacosmic_params['dilation']['value']
+                last_dilation=self.lacosmic_params['dilation']['value'],
+                last_npoints=self.last_npoints,
+                last_degree=self.last_degree
             )
         else:
             review = ReviewCosmicRay(
@@ -459,7 +469,9 @@ class CosmicRayCleanerApp(ImageDisplay):
                 num_features=self.num_features,
                 first_cr_index=first_cr_index,
                 single_cr=single_cr,
-                last_dilation=self.lacosmic_params['dilation']['value']
+                last_dilation=self.lacosmic_params['dilation']['value'],
+                last_npoints=self.last_npoints,
+                last_degree=self.last_degree
             )
         # Make it modal (blocks interaction with main window)
         review_window.transient(self.root)
@@ -468,6 +480,8 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.working_in_review_window = False
         # Get the result after window closes
         if review.num_cr_cleaned > 0:
+            self.last_npoints = review.npoints
+            self.last_degree = review.degree
             print(f"Number of cosmic rays identified and cleaned: {review.num_cr_cleaned}")
             # update mask_fixed to include the newly fixed pixels
             self.mask_fixed[review.mask_fixed] = True
