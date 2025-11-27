@@ -31,7 +31,7 @@ class ImageDisplay:
         self.image.set_clim(vmin=new_vmin)
         if hasattr(self, 'auxdata') and self.auxdata is not None:
             self.image_aux.set_clim(vmin=new_vmin)
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def set_vmax(self):
         old_vmin = self.get_vmin()
@@ -46,7 +46,7 @@ class ImageDisplay:
         self.image.set_clim(vmax=new_vmax)
         if hasattr(self, 'auxdata') and self.auxdata is not None:
             self.image_aux.set_clim(vmax=new_vmax)
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def get_vmin(self):
         return float(self.vmin_button.cget("text").split(":")[1])
@@ -91,7 +91,7 @@ class ImageDisplay:
         if hasattr(self, 'auxdata') and self.auxdata is not None:
             self.image_aux.set_clim(vmin=vmin_new)
             self.image_aux.set_clim(vmax=vmax_new)
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def set_zscale(self):
         region = self.get_displayed_region()
@@ -103,4 +103,4 @@ class ImageDisplay:
         if hasattr(self, 'auxdata') and self.auxdata is not None:
             self.image_aux.set_clim(vmin=vmin_new)
             self.image_aux.set_clim(vmax=vmax_new)
-        self.canvas.draw()
+        self.canvas.draw_idle()

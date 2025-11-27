@@ -132,7 +132,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 hdul.writeto(self.output_fits, overwrite=True)
             print(f"Cleaned data saved to {self.output_fits}")
             self.ax.set_title(os.path.basename(self.output_fits))
-            self.canvas.draw()
+            self.canvas.draw_idle()
             self.input_fits = os.path.basename(self.output_fits)
             self.save_button.config(state=tk.DISABLED)
         except Exception as e:
@@ -322,7 +322,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             if hasattr(self, 'scatter_cr'):
                 self.scatter_cr.remove()
                 del self.scatter_cr
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def apply_lacosmic(self):
         if np.any(self.mask_crfound):
@@ -423,7 +423,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             print(f"Remaining number of cosmic rays (grouped pixels): {self.num_features}")
             # redraw image to show the changes
             self.image.set_data(self.data)
-            self.canvas.draw()
+            self.canvas.draw_idle()
             if num_cr_cleaned > 0:
                 self.save_button.config(state=tk.NORMAL)
             if self.num_features == 0:
@@ -480,7 +480,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             print(f"Remaining number of cosmic rays (grouped pixels): {self.num_features}")
             # redraw image to show the changes
             self.image.set_data(self.data)
-            self.canvas.draw()
+            self.canvas.draw_idle()
         if review.num_cr_cleaned > 0:
             self.save_button.config(state=tk.NORMAL)
         if self.num_features == 0:

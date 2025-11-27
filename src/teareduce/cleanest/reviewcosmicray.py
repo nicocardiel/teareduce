@@ -103,7 +103,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.ndeg_label.pack(side=tk.LEFT, padx=5)
         self.remove_crosses_button = tk.Button(self.button_frame1, text="remove all x's", command=self.remove_crosses)
         self.remove_crosses_button.pack(side=tk.LEFT, padx=5)
-        self.restore_cr_button = tk.Button(self.button_frame1, text="[r]estore CR", command=self.restore_cr)
+        self.restore_cr_button = tk.Button(self.button_frame1, text="[r]estore CR data", command=self.restore_cr)
         self.restore_cr_button.pack(side=tk.LEFT, padx=5)
         self.restore_cr_button.config(state=tk.DISABLED)
         self.next_button = tk.Button(self.button_frame1, text="[c]ontinue", command=self.continue_cr)
@@ -177,7 +177,7 @@ class ReviewCosmicRay(ImageDisplay):
 
         self.update_display()
 
-    def update_display(self):
+    def update_display(self, cleaned=False):
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         ycr_list_original, xcr_list_original = np.where(self.cr_labels_original == self.cr_index)
         if self.first_plot:
@@ -226,8 +226,11 @@ class ReviewCosmicRay(ImageDisplay):
         for xcr, ycr in zip(xcr_list, ycr_list):
             xcr += 1  # from index to pixel
             ycr += 1  # from index to pixel
-            self.ax.plot([xcr - 0.5, xcr + 0.5], [ycr + 0.5, ycr - 0.5], 'r-')
-            self.ax.plot([xcr - 0.5, xcr + 0.5], [ycr - 0.5, ycr + 0.5], 'r-')
+            if cleaned:
+                self.ax.plot(xcr, ycr, 'C1o', markersize=4)
+            else:
+                self.ax.plot([xcr - 0.5, xcr + 0.5], [ycr + 0.5, ycr - 0.5], 'r-')
+                self.ax.plot([xcr - 0.5, xcr + 0.5], [ycr - 0.5, ycr + 0.5], 'r-')
         self.ax.set_xlim(xlim)
         self.ax.set_ylim(ylim)
         self.ax.set_title(f"Cosmic ray #{self.cr_index}/{self.num_features}")
@@ -274,7 +277,7 @@ class ReviewCosmicRay(ImageDisplay):
         if interpolation_performed:
             self.num_cr_cleaned += 1
         self.set_buttons_after_cleaning_cr()
-        self.update_display()
+        self.update_display(cleaned=interpolation_performed)
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
             self.canvas.draw_idle()
@@ -295,7 +298,7 @@ class ReviewCosmicRay(ImageDisplay):
         if interpolation_performed:
             self.num_cr_cleaned += 1
         self.set_buttons_after_cleaning_cr()
-        self.update_display()
+        self.update_display(cleaned=interpolation_performed)
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
             self.canvas.draw_idle()
@@ -313,7 +316,7 @@ class ReviewCosmicRay(ImageDisplay):
         if interpolation_performed:
             self.num_cr_cleaned += 1
         self.set_buttons_after_cleaning_cr()
-        self.update_display()
+        self.update_display(cleaned=interpolation_performed)
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
             self.canvas.draw_idle()
@@ -329,7 +332,7 @@ class ReviewCosmicRay(ImageDisplay):
             self.mask_fixed[iy, ix] = True
         self.num_cr_cleaned += 1
         self.set_buttons_after_cleaning_cr()
-        self.update_display()
+        self.update_display(cleaned=True)
 
     def use_auxdata(self):
         if self.auxdata is None:
@@ -342,7 +345,7 @@ class ReviewCosmicRay(ImageDisplay):
             self.mask_fixed[iy, ix] = True
         self.num_cr_cleaned += 1
         self.set_buttons_after_cleaning_cr()
-        self.update_display()
+        self.update_display(cleaned=True)
 
     def remove_crosses(self):
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
