@@ -100,7 +100,7 @@ class ReviewCosmicRay(ImageDisplay):
             Handle key press events for shortcuts.
         on_click(event)
             Handle mouse click events to mark/unmark pixels as cosmic rays.
-        
+
         Attributes
         ----------
         root : tk.Toplevel
@@ -245,7 +245,7 @@ class ReviewCosmicRay(ImageDisplay):
 
     def update_display(self, cleaned=False):
         """Update the display to show the current cosmic ray.
-        
+
         Parameters
         ----------
         cleaned : bool, optional
@@ -383,7 +383,7 @@ class ReviewCosmicRay(ImageDisplay):
 
     def interp_a(self, method):
         """Perform interpolation using the specified method to clean a cosmic ray.
-        
+
         Parameters
         ----------
         method : str
