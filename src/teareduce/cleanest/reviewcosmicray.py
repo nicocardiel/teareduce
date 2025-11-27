@@ -36,7 +36,7 @@ matplotlib.use("TkAgg")
 class ReviewCosmicRay(ImageDisplay):
     """Class to review suspected cosmic ray pixels."""
 
-    def __init__(self, root, data, cleandata_lacosmic, cr_labels, num_features,
+    def __init__(self, root, data, auxdata, cleandata_lacosmic, cr_labels, num_features,
                  first_cr_index=1, single_cr=False, last_dilation=None):
         """Initialize the review window.
 
@@ -46,6 +46,8 @@ class ReviewCosmicRay(ImageDisplay):
             The parent Tkinter root window.
         data : 2D numpy array
             The original image data.
+        auxdata : 2D numpy array or None
+            The auxiliary image data.
         cleandata_lacosmic: 2D numpy array or None
             The cleaned image data from L.A.Cosmic.
         cr_labels : 2D numpy array
@@ -65,7 +67,11 @@ class ReviewCosmicRay(ImageDisplay):
         """
         self.root = root
         self.root.title("Review Cosmic Rays")
-        self.root.geometry("800x700+100+100")
+        self.auxdata = auxdata
+        if self.auxdata is not None:
+            self.root.geometry("1100x700+100+100")
+        else:
+            self.root.geometry("800x700+100+100")
         self.data = data
         self.cleandata_lacosmic = cleandata_lacosmic
         self.data_original = data.copy()
@@ -131,6 +137,10 @@ class ReviewCosmicRay(ImageDisplay):
             self.interp_l_button.config(state=tk.DISABLED)
         if self.cleandata_lacosmic is None:
             self.interp_l_button.config(state=tk.DISABLED)
+        self.interp_aux_button = tk.Button(self.button_frame2, text="[a]ux. data", command=self.use_auxdata)
+        self.interp_aux_button.pack(side=tk.LEFT, padx=5)
+        if self.auxdata is None:
+            self.interp_aux_button.config(state=tk.DISABLED)
 
         # Row 3 of buttons
         self.button_frame3 = tk.Frame(self.root)
@@ -146,7 +156,11 @@ class ReviewCosmicRay(ImageDisplay):
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
 
         # Figure
-        self.fig, self.ax = plt.subplots(figsize=(8, 5))
+        if self.auxdata is not None:
+            self.fig, (self.ax, self.ax_aux) = plt.subplots(
+                ncols=2, figsize=(10, 5), constrained_layout=True)
+        else:
+            self.fig, self.ax = plt.subplots(figsize=(8, 5), constrained_layout=True)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         # The next two instructions prevent a segmentation fault when pressing "q"
         self.canvas.mpl_disconnect(self.canvas.mpl_connect("key_press_event", key_press_handler))
@@ -179,6 +193,15 @@ class ReviewCosmicRay(ImageDisplay):
         jmax = j0 + semiwidth if j0 + semiwidth < self.data.shape[1] else self.data.shape[1] - 1
         imin = i0 - semiwidth if i0 - semiwidth >= 0 else 0
         imax = i0 + semiwidth if i0 + semiwidth < self.data.shape[0] else self.data.shape[0] - 1
+        # Force the region to be of size (2*semiwidth + 1) x (2*semiwidth + 1)
+        if jmin == 0:
+            jmax = 2 * semiwidth
+        elif jmax == self.data.shape[1] - 1:
+            jmin = self.data.shape[1] - 1 - 2 * semiwidth
+        if imin == 0:
+            imax = 2 * semiwidth
+        elif imax == self.data.shape[0] - 1:
+            imin = self.data.shape[0] - 1 - 2 * semiwidth
         self.region = SliceRegion2D(f'[{jmin+1}:{jmax+1}, {imin+1}:{imax+1}]', mode='fits').python
         self.ax.clear()
         vmin = self.get_vmin()
@@ -189,6 +212,15 @@ class ReviewCosmicRay(ImageDisplay):
                                   xlabel=xlabel, ylabel=ylabel,
                                   vmin=vmin, vmax=vmax)
         self.image.set_extent([jmin + 0.5, jmax + 1.5, imin + 0.5, imax + 1.5])
+        if self.auxdata is not None:
+            self.ax_aux.clear()
+            self.image_aux, _, _ = imshow(self.fig, self.ax_aux, self.auxdata[self.region],
+                                          colorbar=False,
+                                          xlabel=xlabel, ylabel=ylabel,
+                                          vmin=vmin, vmax=vmax)
+            self.image_aux.set_extent([jmin + 0.5, jmax + 1.5, imin + 0.5, imax + 1.5])
+            self.ax_aux.set_title("Auxiliary data")
+        # Overplot cosmic ray pixels
         xlim = self.ax.get_xlim()
         ylim = self.ax.get_ylim()
         for xcr, ycr in zip(xcr_list, ycr_list):
@@ -201,8 +233,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.ax.set_title(f"Cosmic ray #{self.cr_index}/{self.num_features}")
         if self.first_plot:
             self.first_plot = False
-            self.fig.tight_layout()
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def set_ndeg(self):
         new_npoints = simpledialog.askinteger("Set Npoints", "Enter Npoints:",
@@ -225,6 +256,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_s_button.config(state=tk.DISABLED)
         self.interp_m_button.config(state=tk.DISABLED)
         self.interp_l_button.config(state=tk.DISABLED)
+        self.interp_aux_button.config(state=tk.DISABLED)
 
     def interp_x(self):
         if 2 * self.npoints <= self.degree:
@@ -245,7 +277,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.update_display()
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
-            self.canvas.draw()
+            self.canvas.draw_idle()
 
     def interp_y(self):
         if 2 * self.npoints <= self.degree:
@@ -266,7 +298,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.update_display()
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
-            self.canvas.draw()
+            self.canvas.draw_idle()
 
     def interp_a(self, method):
         print(f"{method} interpolation of cosmic ray {self.cr_index}")
@@ -284,7 +316,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.update_display()
         if len(xfit_all) > 0:
             self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
-            self.canvas.draw()
+            self.canvas.draw_idle()
 
     def use_lacosmic(self):
         if self.cleandata_lacosmic is None:
@@ -294,6 +326,19 @@ class ReviewCosmicRay(ImageDisplay):
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         for iy, ix in zip(ycr_list, xcr_list):
             self.data[iy, ix] = self.cleandata_lacosmic[iy, ix]
+            self.mask_fixed[iy, ix] = True
+        self.num_cr_cleaned += 1
+        self.set_buttons_after_cleaning_cr()
+        self.update_display()
+
+    def use_auxdata(self):
+        if self.auxdata is None:
+            print("Auxiliary data not available.")
+            return
+        print(f"Auxiliary data interpolation of cosmic ray {self.cr_index}")
+        ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
+        for iy, ix in zip(ycr_list, xcr_list):
+            self.data[iy, ix] = self.auxdata[iy, ix]
             self.mask_fixed[iy, ix] = True
         self.num_cr_cleaned += 1
         self.set_buttons_after_cleaning_cr()
@@ -310,6 +355,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_s_button.config(state=tk.DISABLED)
         self.interp_m_button.config(state=tk.DISABLED)
         self.interp_l_button.config(state=tk.DISABLED)
+        self.interp_aux_button.config(state=tk.DISABLED)
         self.update_display()
 
     def restore_cr(self):
@@ -324,6 +370,8 @@ class ReviewCosmicRay(ImageDisplay):
             if self.cleandata_lacosmic is not None:
                 if self.last_dilation is None or self.last_dilation == 0:
                     self.interp_l_button.config(state=tk.NORMAL)
+            if self.auxdata is not None:
+                self.interp_aux_button.config(state=tk.NORMAL)
         print(f"Restored all pixels of cosmic ray {self.cr_index}")
         self.num_cr_cleaned -= 1
         self.remove_crosses_button.config(state=tk.NORMAL)
@@ -347,6 +395,9 @@ class ReviewCosmicRay(ImageDisplay):
         if self.cleandata_lacosmic is not None:
             if self.last_dilation is None or self.last_dilation == 0:
                 self.interp_l_button.config(state=tk.NORMAL)
+        if self.auxdata is not None:
+            self.interp_aux_button.config(state=tk.NORMAL)
+        self.remove_crosses_button.config(state=tk.NORMAL)
         self.update_display()
 
     def exit_review(self):
@@ -373,6 +424,9 @@ class ReviewCosmicRay(ImageDisplay):
         elif event.key == 'l':
             if self.interp_l_button.cget("state") != "disabled":
                 self.use_lacosmic()
+        elif event.key == 'a':
+            if self.interp_aux_button.cget("state") != "disabled":
+                self.use_auxdata()
         elif event.key == 'right' or event.key == 'c':
             self.continue_cr()
         elif event.key == ',':
@@ -386,7 +440,7 @@ class ReviewCosmicRay(ImageDisplay):
             print(f"Key pressed: {event.key}")
 
     def on_click(self, event):
-        if event.inaxes:
+        if event.inaxes == self.ax:
             x, y = event.xdata, event.ydata
             ix = int(x+0.5) - 1  # from pixel to index
             iy = int(y+0.5) - 1  # from pixel to index
@@ -403,6 +457,7 @@ class ReviewCosmicRay(ImageDisplay):
                 self.interp_s_button.config(state=tk.DISABLED)
                 self.interp_m_button.config(state=tk.DISABLED)
                 self.interp_l_button.config(state=tk.DISABLED)
+                self.interp_aux_button.config(state=tk.DISABLED)
                 self.remove_crosses_button.config(state=tk.DISABLED)
             else:
                 self.interp_x_button.config(state=tk.NORMAL)
@@ -412,6 +467,8 @@ class ReviewCosmicRay(ImageDisplay):
                 if self.cleandata_lacosmic is not None:
                     if self.last_dilation is None or self.last_dilation == 0:
                         self.interp_l_button.config(state=tk.NORMAL)
+                if self.auxdata is not None:
+                    self.interp_aux_button.config(state=tk.NORMAL)
                 self.remove_crosses_button.config(state=tk.NORMAL)
             # Update the display to reflect the change
             self.update_display()

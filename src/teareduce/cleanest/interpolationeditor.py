@@ -16,16 +16,18 @@ from .definitions import VALID_CLEANING_METHODS
 
 
 class InterpolationEditor:
-    def __init__(self, root, last_dilation):
+    def __init__(self, root, last_dilation, auxdata):
         self.root = root
         self.root.title("Cleaning Parameters")
         self.last_dilation = last_dilation
+        self.auxdata = auxdata
         self.dict_interp_methods = {
             "x interp.": "x",
             "y interp.": "y",
             "surface interp.": "a-plane",
             "median": "a-median",
-            "lacosmic": "lacosmic"
+            "lacosmic": "lacosmic",
+            "auxdata": "auxdata"
         }
         self.check_interp_methods()
         # Initialize parameters
@@ -48,8 +50,14 @@ class InterpolationEditor:
         row = 1
         self.cleaning_method_var = tk.StringVar(value="surface interp.")
         for interp_method in self.dict_interp_methods.keys():
+            valid_method = True
             # Skip replace by L.A.Cosmic values if last dilation is not zero
-            if interp_method != "lacosmic" or self.last_dilation == 0:
+            if interp_method == "lacosmic" and self.last_dilation != 0:
+                valid_method = False
+            # Skip auxdata method if auxdata is not available
+            if interp_method == "auxdata" and self.auxdata is None:
+                valid_method = False
+            if valid_method:
                 tk.Radiobutton(
                     main_frame,
                     text=interp_method,
@@ -135,6 +143,9 @@ class InterpolationEditor:
             self.entry_npoints.config(state='normal')
             self.entry_degree.config(state='disabled')
         elif selected_method == 'lacosmic':
+            self.entry_npoints.config(state='disabled')
+            self.entry_degree.config(state='disabled')
+        elif selected_method == 'auxdata':
             self.entry_npoints.config(state='disabled')
             self.entry_degree.config(state='disabled')
 

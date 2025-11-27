@@ -29,6 +29,8 @@ class ImageDisplay:
             return
         self.vmin_button.config(text=f"vmin: {new_vmin:.2f}")
         self.image.set_clim(vmin=new_vmin)
+        if hasattr(self, 'auxdata') and self.auxdata is not None:
+            self.image_aux.set_clim(vmin=new_vmin)
         self.canvas.draw()
 
     def set_vmax(self):
@@ -42,6 +44,8 @@ class ImageDisplay:
             return
         self.vmax_button.config(text=f"vmax: {new_vmax:.2f}")
         self.image.set_clim(vmax=new_vmax)
+        if hasattr(self, 'auxdata') and self.auxdata is not None:
+            self.image_aux.set_clim(vmax=new_vmax)
         self.canvas.draw()
 
     def get_vmin(self):
@@ -84,6 +88,9 @@ class ImageDisplay:
         self.vmax_button.config(text=f"vmax: {vmax_new:.2f}")
         self.image.set_clim(vmin=vmin_new)
         self.image.set_clim(vmax=vmax_new)
+        if hasattr(self, 'auxdata') and self.auxdata is not None:
+            self.image_aux.set_clim(vmin=vmin_new)
+            self.image_aux.set_clim(vmax=vmax_new)
         self.canvas.draw()
 
     def set_zscale(self):
@@ -93,4 +100,7 @@ class ImageDisplay:
         self.vmax_button.config(text=f"vmax: {vmax_new:.2f}")
         self.image.set_clim(vmin=vmin_new)
         self.image.set_clim(vmax=vmax_new)
+        if hasattr(self, 'auxdata') and self.auxdata is not None:
+            self.image_aux.set_clim(vmin=vmin_new)
+            self.image_aux.set_clim(vmax=vmax_new)
         self.canvas.draw()

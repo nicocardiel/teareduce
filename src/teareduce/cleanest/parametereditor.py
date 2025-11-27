@@ -119,7 +119,7 @@ class ParameterEditor:
 
         # Button frame
         button_frame = tk.Frame(main_frame)
-        button_frame.grid(row=row, column=0, columnspan=3, pady=(15, 0))
+        button_frame.grid(row=row, column=0, columnspan=3, pady=(5, 0))
 
         # OK button
         ok_button = tk.Button(button_frame, text="OK", width=5, command=self.on_ok)

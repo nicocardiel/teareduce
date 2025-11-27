@@ -32,7 +32,14 @@ lacosmic_default_dict = {
 }
 
 # Default parameters for cleaning methods
-VALID_CLEANING_METHODS = ['x interp.', 'y interp.', 'surface interp.', 'median', 'lacosmic']
+VALID_CLEANING_METHODS = [
+    'x interp.',
+    'y interp.',
+    'surface interp.',
+    'median',
+    'lacosmic',
+    'auxdata'
+]
 
 # Maximum pixel distance to consider when finding closest CR pixel
 MAX_PIXEL_DISTANCE_TO_CR = 15

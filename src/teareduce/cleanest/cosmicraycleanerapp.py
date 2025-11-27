@@ -12,6 +12,7 @@
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
+import sys
 
 from astropy.io import fits
 from ccdproc import cosmicray_lacosmic
@@ -71,7 +72,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.data = None
         self.auxfile = auxfile
         self.extension_auxfile = extension_auxfile
-        self.aux_data = None
+        self.auxdata = None
         self.overplot_cr_pixels = True
         self.mask_crfound = None
         self.load_fits_file()
@@ -102,10 +103,13 @@ class CosmicRayCleanerApp(ImageDisplay):
         if self.auxfile is not None:
             try:
                 with fits.open(self.auxfile, mode='readonly') as hdul_aux:
-                    self.aux_data = hdul_aux[self.extension_auxfile].data
-                    raise ValueError("Auxiliary file has different shape.")
+                    self.auxdata = hdul_aux[self.extension_auxfile].data
+                    if self.auxdata.shape != self.data.shape:
+                        print(f"data shape...: {self.data.shape}")
+                        print(f"auxdata shape: {self.auxdata.shape}")
+                        raise ValueError("Auxiliary file has different shape.")
             except Exception as e:
-                print(f"Error loading auxiliary FITS file: {e}")
+                sys.exit(f"Error loading auxiliary FITS file: {e}")
 
     def save_fits_file(self):
         base, ext = os.path.splitext(self.input_fits)
@@ -331,7 +335,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             editor_window = tk.Toplevel(self.root)
             editor = InterpolationEditor(
                 root=editor_window,
-                last_dilation=self.lacosmic_params['dilation']['value']
+                last_dilation=self.lacosmic_params['dilation']['value'],
+                auxdata=self.auxdata
             )
             # Make it modal (blocks interaction with main window)
             editor_window.transient(self.root)
@@ -347,6 +352,17 @@ class CosmicRayCleanerApp(ImageDisplay):
             if cleaning_method == 'lacosmic':
                 # Replace all detected CR pixels with L.A.Cosmic values
                 self.data[self.mask_crfound] = self.cleandata_lacosmic[self.mask_crfound]
+                # update mask_fixed to include the newly fixed pixels
+                self.mask_fixed[self.mask_crfound] = True
+                # upate mask_crfound by eliminating the cleaned pixels
+                self.mask_crfound[self.mask_crfound] = False
+                num_cr_cleaned = self.num_features
+            elif cleaning_method == 'auxdata':
+                if self.auxdata is None:
+                    print("No auxiliary data available. Cleaning skipped!")
+                    return
+                # Replace all detected CR pixels with auxiliary data values
+                self.data[self.mask_crfound] = self.auxdata[self.mask_crfound]
                 # update mask_fixed to include the newly fixed pixels
                 self.mask_fixed[self.mask_crfound] = True
                 # upate mask_crfound by eliminating the cleaned pixels
@@ -425,6 +441,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             review = ReviewCosmicRay(
                 root=review_window,
                 data=self.data,
+                auxdata=self.auxdata,
                 cleandata_lacosmic=self.cleandata_lacosmic,
                 cr_labels=tmp_cr_labels,
                 num_features=1,
@@ -436,6 +453,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             review = ReviewCosmicRay(
                 root=review_window,
                 data=self.data,
+                auxdata=self.auxdata,
                 cleandata_lacosmic=self.cleandata_lacosmic,
                 cr_labels=self.cr_labels,
                 num_features=self.num_features,
@@ -476,7 +494,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             print("Warning: There are unsaved changes!")
             proceed_with_stop = messagebox.askyesno(
                 "Unsaved Changes",
-                "You have unsaved changes.\nDo you really want to quit?"
+                "You have unsaved changes.\nDo you really want to quit?",
+                default=messagebox.NO
             )
         if proceed_with_stop:
             self.root.quit()
