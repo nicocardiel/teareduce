@@ -10,58 +10,21 @@
 """Surface interpolation (plane fit) or median interpolation"""
 
 import numpy as np
+from scipy.ndimage import binary_dilation
 
 
 def interpolation_a(data, mask_fixed, cr_labels, cr_index, npoints, method):
-    ycr_list, xcr_list = np.where(cr_labels == cr_index)
-    ycr_min = np.min(ycr_list)
-    ycr_max = np.max(ycr_list)
-    xfit_all = []
-    yfit_all = []
-    zfit_all = []
+    # Mask of CR pixels
+    mask = (cr_labels == cr_index)
+    # Dilate the mask to find border pixels
+    dilated_mask = binary_dilation(mask, structure=np.ones((3, 3)), iterations=npoints)
+    # Border pixels are those in the dilated mask but not in the original mask
+    border_mask = dilated_mask & (~mask)
+    # Get coordinates of border pixels
+    yfit_all, xfit_all = np.where(border_mask)
+    zfit_all = data[yfit_all, xfit_all].tolist()
+    # Perform interpolation
     interpolation_performed = False
-    # First do horizontal lines
-    for ycr in range(ycr_min, ycr_max + 1):
-        xmarked = xcr_list[np.where(ycr_list == ycr)]
-        if len(xmarked) > 0:
-            jmin = np.min(xmarked)
-            jmax = np.max(xmarked)
-            # mark intermediate pixels too
-            for ix in range(jmin, jmax + 1):
-                cr_labels[ycr, ix] = cr_index
-            xmarked = xcr_list[np.where(ycr_list == ycr)]
-            for i in range(jmin - npoints, jmin):
-                if 0 <= i < data.shape[1]:
-                    xfit_all.append(i)
-                    yfit_all.append(ycr)
-                    zfit_all.append(data[ycr, i])
-            for i in range(jmax + 1, jmax + 1 + npoints):
-                if 0 <= i < data.shape[1]:
-                    xfit_all.append(i)
-                    yfit_all.append(ycr)
-                    zfit_all.append(data[ycr, i])
-                xcr_min = np.min(xcr_list)
-    # Now do vertical lines
-    xcr_max = np.max(xcr_list)
-    for xcr in range(xcr_min, xcr_max + 1):
-        ymarked = ycr_list[np.where(xcr_list == xcr)]
-        if len(ymarked) > 0:
-            imin = np.min(ymarked)
-            imax = np.max(ymarked)
-            # mark intermediate pixels too
-            for iy in range(imin, imax + 1):
-                cr_labels[iy, xcr] = cr_index
-            ymarked = ycr_list[np.where(xcr_list == xcr)]
-            for i in range(imin - npoints, imin):
-                if 0 <= i < data.shape[0]:
-                    yfit_all.append(i)
-                    xfit_all.append(xcr)
-                    zfit_all.append(data[i, xcr])
-            for i in range(imax + 1, imax + 1 + npoints):
-                if 0 <= i < data.shape[0]:
-                    yfit_all.append(i)
-                    xfit_all.append(xcr)
-                    zfit_all.append(data[i, xcr])
     if method == 'surface':
         if len(xfit_all) > 3:
             # Construct the design matrix for a 2D polynomial fit to a plane,

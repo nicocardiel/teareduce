@@ -162,7 +162,7 @@ class ReviewCosmicRay(ImageDisplay):
 
         # Figure
         if self.auxdata is not None:
-            self.fig, (self.ax, self.ax_aux) = plt.subplots(
+            self.fig, (self.ax_aux, self.ax) = plt.subplots(
                 ncols=2, figsize=(10, 5), constrained_layout=True)
         else:
             self.fig, self.ax = plt.subplots(figsize=(8, 5), constrained_layout=True)

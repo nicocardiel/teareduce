@@ -13,6 +13,8 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 
+from .definitions import lacosmic_default_dict
+
 
 class ParameterEditor:
     def __init__(self, root, param_dict, window_title, xmin, xmax, ymin, ymax, imgshape):
@@ -186,6 +188,11 @@ class ParameterEditor:
 
     def on_reset(self):
         """Reset all fields to original values"""
+        self.param_dict = lacosmic_default_dict.copy()
+        self.param_dict['xmin']['value'] = 1
+        self.param_dict['xmax']['value'] = self.imgshape[1]
+        self.param_dict['ymin']['value'] = 1
+        self.param_dict['ymax']['value'] = self.imgshape[0]
         for key, info in self.param_dict.items():
             self.entries[key].delete(0, tk.END)
             self.entries[key].insert(0, str(info['value']))
