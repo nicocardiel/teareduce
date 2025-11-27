@@ -189,6 +189,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Figure
         self.fig, self.ax = plt.subplots(figsize=(7, 5.5))
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
+        self.canvas.get_tk_widget().pack(padx=5, pady=5)
         # The next two instructions prevent a segmentation fault when pressing "q"
         self.canvas.mpl_disconnect(self.canvas.mpl_connect("key_press_event", key_press_handler))
         self.canvas.mpl_connect("key_press_event", self.on_key)

@@ -37,7 +37,7 @@ class ReviewCosmicRay(ImageDisplay):
     """Class to review suspected cosmic ray pixels."""
 
     def __init__(self, root, data, auxdata, cleandata_lacosmic, cr_labels, num_features,
-                 first_cr_index=1, single_cr=False, 
+                 first_cr_index=1, single_cr=False,
                  last_dilation=None, last_npoints=None, last_degree=None):
         """Initialize the review window.
 
@@ -74,7 +74,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.root.title("Review Cosmic Rays")
         self.auxdata = auxdata
         if self.auxdata is not None:
-            self.root.geometry("1100x700+100+100")
+            self.root.geometry("1200x700+100+100")
         else:
             self.root.geometry("800x700+100+100")
         self.data = data
@@ -167,6 +167,7 @@ class ReviewCosmicRay(ImageDisplay):
         else:
             self.fig, self.ax = plt.subplots(figsize=(8, 5), constrained_layout=True)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
+        self.canvas.get_tk_widget().pack(padx=5, pady=5)
         # The next two instructions prevent a segmentation fault when pressing "q"
         self.canvas.mpl_disconnect(self.canvas.mpl_connect("key_press_event", key_press_handler))
         self.canvas.mpl_connect("key_press_event", self.on_key)
