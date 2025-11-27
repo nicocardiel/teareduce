@@ -18,7 +18,50 @@ from ..zscale import zscale
 
 # The functionality defined here is used in multiple classes
 class ImageDisplay:
+    """Class to handle image display with min/max and zscale controls.
+
+    Methods
+    -------
+    set_vmin()
+        Prompt user to set a new minimum display value (vmin).
+    set_vmax()
+        Prompt user to set a new maximum display value (vmax).
+    get_vmin()
+        Get the current minimum display value (vmin).
+    get_vmax()
+        Get the current maximum display value (vmax).
+    get_displayed_region()
+        Get the currently displayed region of the image.
+    set_minmax()
+        Set vmin and vmax based on the currently displayed region.
+    set_zscale()
+        Set vmin and vmax using zscale on the currently displayed region.
+
+    Attributes
+    ----------
+    vmin_button : tkinter.Button
+        Button to display and set the minimum display value (vmin).
+    vmax_button : tkinter.Button
+        Button to display and set the maximum display value (vmax).
+    image : matplotlib.image.AxesImage
+        The main image being displayed.
+    image_aux : matplotlib.image.AxesImage, optional
+        An auxiliary image being displayed (if any).
+    canvas : matplotlib.backends.backend_tkagg.FigureCanvasTkAgg
+        The canvas on which the image is drawn.
+
+    Notes
+    -----
+    This class is intented to be used as a parent class for different
+    classes that display images and need functionality to adjust the
+    display limits (vmin and vmax) interactively.
+
+    This class assumes that the image data is stored in `self.data` and that
+    the displayed region can be determined from either the axes limits or a
+    predefined region attribute.
+    """
     def set_vmin(self):
+        """Prompt user to set a new minimum display value (vmin)."""
         old_vmin = self.get_vmin()
         old_vmax = self.get_vmax()
         new_vmin = simpledialog.askfloat("Set vmin", "Enter new vmin:", initialvalue=old_vmin)
@@ -34,6 +77,7 @@ class ImageDisplay:
         self.canvas.draw_idle()
 
     def set_vmax(self):
+        """Prompt user to set a new maximum display value (vmax)."""
         old_vmin = self.get_vmin()
         old_vmax = self.get_vmax()
         new_vmax = simpledialog.askfloat("Set vmax", "Enter new vmax:", initialvalue=old_vmax)
@@ -49,12 +93,15 @@ class ImageDisplay:
         self.canvas.draw_idle()
 
     def get_vmin(self):
+        """Get the current minimum display value (vmin)."""
         return float(self.vmin_button.cget("text").split(":")[1])
 
     def get_vmax(self):
+        """Get the current maximum display value (vmax)."""
         return float(self.vmax_button.cget("text").split(":")[1])
 
     def get_displayed_region(self):
+        """Get the currently displayed region of the image."""
         if hasattr(self, 'ax'):
             xmin, xmax = self.ax.get_xlim()
             xmin = int(xmin + 0.5)
@@ -81,6 +128,7 @@ class ImageDisplay:
         return region
 
     def set_minmax(self):
+        """Set vmin and vmax based on the currently displayed region."""
         region = self.get_displayed_region()
         vmin_new = np.min(self.data[region])
         vmax_new = np.max(self.data[region])
@@ -94,6 +142,7 @@ class ImageDisplay:
         self.canvas.draw_idle()
 
     def set_zscale(self):
+        """Set vmin and vmax using zscale on the currently displayed region."""
         region = self.get_displayed_region()
         vmin_new, vmax_new = zscale(self.data[region])
         self.vmin_button.config(text=f"vmin: {vmin_new:.2f}")

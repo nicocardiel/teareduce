@@ -16,7 +16,53 @@ from .definitions import VALID_CLEANING_METHODS
 
 
 class InterpolationEditor:
+    """Dialog to select interpolation cleaning parameters."""
     def __init__(self, root, last_dilation, last_npoints, last_degree, auxdata):
+        """Initialize the interpolation editor dialog.
+
+        Parameters
+        ----------
+        root : tk.Tk
+            The root Tkinter window.
+        last_dilation : int
+            The last used dilation parameter.
+        last_npoints : int
+            The last used number of points for interpolation.
+        last_degree : int
+            The last used degree for interpolation.
+        auxdata : array-like or None
+            Auxiliary data for cleaning, if available.
+
+        Methods
+        -------
+        create_widgets()
+            Create the widgets for the dialog.
+        on_ok()
+            Handle the OK button click event.
+        on_cancel()
+            Handle the Cancel button click event.
+        action_on_method_change()
+            Handle changes in the selected cleaning method.
+        check_interp_methods()
+            Check that all interpolation methods are valid.
+
+        Attributes
+        ----------
+        root : tk.Tk
+            The root Tkinter window.
+        last_dilation : int
+            The last used dilation parameter.
+        auxdata : array-like or None
+            Auxiliary data for cleaning, if available.
+        dict_interp_methods : dict
+            Mapping of interpolation method names to their codes.
+        cleaning_method : str or None
+            The selected cleaning method code.
+        npoints : int
+            The number of points for interpolation.
+        degree : int
+            The degree for interpolation.
+        """
         self.root = root
         self.root.title("Cleaning Parameters")
         self.last_dilation = last_dilation
@@ -38,6 +84,7 @@ class InterpolationEditor:
         self.create_widgets()
 
     def create_widgets(self):
+        """Create the widgets for the dialog."""
         # Main frame
         main_frame = tk.Frame(self.root, padx=10, pady=10)
         main_frame.pack()
@@ -97,6 +144,7 @@ class InterpolationEditor:
         self.action_on_method_change()
 
     def on_ok(self):
+        """Handle the OK button click event."""
         self.cleaning_method = self.dict_interp_methods[self.cleaning_method_var.get()]
         try:
             self.npoints = int(self.entry_npoints.get())

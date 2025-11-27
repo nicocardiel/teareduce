@@ -14,6 +14,32 @@ from scipy.ndimage import binary_dilation
 
 
 def interpolation_a(data, mask_fixed, cr_labels, cr_index, npoints, method):
+    """Interpolate cosmic ray pixels using surface fit or median of border pixels.
+
+    Parameters
+    ----------
+    data : 2D numpy.ndarray
+        The image data array where cosmic rays are to be interpolated.
+    mask_fixed : 2D numpy.ndarray of bool
+        A boolean mask array indicating which pixels have been fixed.
+    cr_labels : 2D numpy.ndarray
+        An array labeling cosmic ray features.
+    cr_index : int
+        The index of the current cosmic ray feature to interpolate.
+    npoints : int
+        The number of points to use for interpolation.
+    method : str
+        The interpolation method to use ('surface' or 'median').
+
+    Returns
+    -------
+    interpolation_performed : bool
+        True if interpolation was performed, False otherwise.
+    xfit_all : list
+        X-coordinates of border pixels used for interpolation.
+    yfit_all : list
+        Y-coordinates of border pixels used for interpolation.
+    """
     # Mask of CR pixels
     mask = (cr_labels == cr_index)
     # Dilate the mask to find border pixels

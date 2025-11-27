@@ -13,6 +13,31 @@ import numpy as np
 
 
 def interpolation_x(data, mask_fixed, cr_labels, cr_index, npoints, degree):
+    """Interpolate cosmic ray affected pixels in the X direction.
+    Parameters
+    ----------
+    data : 2D numpy.ndarray
+        The image data array to be processed.
+    mask_fixed : 2D numpy.ndarray of bool
+        A boolean mask array indicating which pixels have been fixed.
+    cr_labels : 2D numpy.ndarray
+        An array labeling cosmic ray features.
+    cr_index : int
+        The index of the current cosmic ray feature to interpolate.
+    npoints : int
+        The number of points to use for interpolation.
+    degree : int
+        The degree of the polynomial to fit.
+
+    Returns
+    -------
+    interpolation_performed : bool
+        True if interpolation was performed, False otherwise.
+    xfit_all : list
+        X-coordinates of border pixels used for interpolation.
+    yfit_all : list
+        Y-coordinates of border pixels used for interpolation.
+    """
     ycr_list, xcr_list = np.where(cr_labels == cr_index)
     ycr_min = np.min(ycr_list)
     ycr_max = np.max(ycr_list)

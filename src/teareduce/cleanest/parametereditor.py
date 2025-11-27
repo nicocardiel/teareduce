@@ -17,7 +17,55 @@ from .definitions import lacosmic_default_dict
 
 
 class ParameterEditor:
+    """A dialog to edit L.A.Cosmic parameters."""
     def __init__(self, root, param_dict, window_title, xmin, xmax, ymin, ymax, imgshape):
+        """Initialize the parameter editor dialog.
+
+        Parameters
+        ----------
+        root : tk.Tk
+            The root Tkinter window.
+        param_dict : dict
+            Dictionary with L.A.Cosmic parameters.
+        window_title : str
+            Title of the dialog window.
+        xmin : int
+            Minimum x-coordinate of the region to be examined.
+        xmax : int
+            Maximum x-coordinate of the region to be examined.
+        ymin : int
+            Minimum y-coordinate of the region to be examined.
+        ymax : int
+            Maximum y-coordinate of the region to be examined.
+        imgshape : tuple
+            Shape of the image (height, width).
+
+        Methods
+        -------
+        create_widgets()
+            Create the widgets for the dialog.
+        on_ok()
+            Validate and save the updated values.
+        on_cancel()
+            Close the dialog without saving.
+        on_reset()
+            Reset all fields to original values.
+        get_result()
+            Return the updated dictionary.
+
+        Attributes
+        ----------
+        root : tk.Tk
+            The root Tkinter window.
+        param_dict : dict
+            Dictionary with L.A.Cosmic parameters.
+        imgshape : tuple
+            Shape of the image (height, width).
+        entries : dict
+            Dictionary to hold entry widgets.
+        result_dict : dict or None
+            The updated dictionary of parameters or None if cancelled.
+        """
         self.root = root
         self.root.title(window_title)
         self.param_dict = param_dict
@@ -34,6 +82,7 @@ class ParameterEditor:
         self.create_widgets()
 
     def create_widgets(self):
+        """Create the widgets for the dialog."""
         # Main frame
         main_frame = tk.Frame(self.root, padx=10, pady=10)
         main_frame.pack()

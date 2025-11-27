@@ -64,6 +64,74 @@ class CosmicRayCleanerApp(ImageDisplay):
             Path to an auxiliary FITS file (default is None).
         extension_auxfile : int, optional
             FITS extension for auxiliary file (default is 0).
+
+        Methods
+        -------
+        load_fits_file()
+            Load the FITS file and auxiliary file (if provided).
+        save_fits_file()
+            Save the cleaned data to a FITS file.
+        create_widgets()
+            Create the GUI widgets.
+        run_lacosmic()
+            Run the L.A.Cosmic algorithm.
+        toggle_cr_overlay()
+            Toggle the overlay of cosmic ray pixels on the image.
+        update_cr_overlay()
+            Update the overlay of cosmic ray pixels on the image.
+        apply_lacosmic()
+            Apply the L.A.Cosmic algorithm to the data.
+        examine_detected_cr()
+            Examine detected cosmic rays.
+        stop_app()
+            Stop the application.
+        on_key(event)
+            Handle key press events.
+        on_click(event)
+            Handle mouse click events.
+
+        Attributes
+        ----------
+        root : tk.Tk
+            The main Tkinter window.
+        lacosmic_params : dict
+            Dictionary of L.A.Cosmic parameters.
+        input_fits : str
+            Path to the FITS file to be cleaned.
+        extension : int
+            FITS extension to use.
+        data : np.ndarray
+            The image data from the FITS file.
+        auxfile : str
+            Path to an auxiliary FITS file.
+        extension_auxfile : int
+            FITS extension for auxiliary file.
+        auxdata : np.ndarray
+            The image data from the auxiliary FITS file.
+        overplot_cr_pixels : bool
+            Flag to indicate whether to overlay cosmic ray pixels.
+        mask_crfound : np.ndarray
+            Boolean mask of detected cosmic ray pixels.
+        last_xmin : int
+            Last used minimum x-coordinate for region selection.
+        last_xmax : int
+            Last used maximum x-coordinate for region selection.
+        last_ymin : int
+            Last used minimum y-coordinate for region selection.
+        last_ymax : int
+            Last used maximum y-coordinate for region selection.
+        last_npoints : int
+            Last used number of points for interpolation.
+        last_degree : int
+            Last used degree for interpolation.
+        cleandata_lacosmic : np.ndarray
+            The cleaned data returned from L.A.Cosmic.
+        cr_labels : np.ndarray
+            Labeled cosmic ray features.
+        num_features : int
+            Number of detected cosmic ray features.
+        working_in_review_window : bool
+            Flag to indicate if the review window is active.
         """
         self.root = root
         self.root.title("Cosmic Ray Cleaner")
@@ -91,6 +159,19 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.working_in_review_window = False
 
     def load_fits_file(self):
+        """Load the FITS file and auxiliary file (if provided).
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        This method loads the FITS file specified by `self.input_fits` and
+        reads the data from the specified extension. If an auxiliary file is
+        provided, it also loads the auxiliary data from the specified extension.
+        The loaded data is stored in `self.data` and `self.auxdata` attributes.
+        """
         try:
             with fits.open(self.input_fits, mode='readonly') as hdul:
                 self.data = hdul[self.extension].data
@@ -116,9 +197,29 @@ class CosmicRayCleanerApp(ImageDisplay):
                 sys.exit(f"Error loading auxiliary FITS file: {e}")
 
     def save_fits_file(self):
+        """Save the cleaned FITS file.
+
+        This method prompts the user to select a location and filename to
+        save the cleaned FITS file. It writes the cleaned data and
+        the cosmic ray mask to the specified FITS file.
+
+        If the initial file contains a 'CRMASK' extension, it updates
+        that extension with the new mask. Otherwise, it creates a new
+        'CRMASK' extension to store the mask.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        After successfully saving the cleaned FITS file, the chosen output
+        filename is stored in `self.input_fits`, and the save button is disabled
+        to prevent multiple saves without further modifications.
+        """
         base, ext = os.path.splitext(self.input_fits)
         suggested_name = f"{base}_cleaned"
-        self.output_fits = filedialog.asksaveasfilename(
+        output_fits = filedialog.asksaveasfilename(
             initialdir=os.getcwd(),
             title="Save cleaned FITS file",
             defaultextension=".fits",
@@ -133,16 +234,31 @@ class CosmicRayCleanerApp(ImageDisplay):
                 else:
                     crmask_hdu = fits.ImageHDU(self.mask_fixed.astype(np.uint8), name='CRMASK')
                     hdul.append(crmask_hdu)
-                hdul.writeto(self.output_fits, overwrite=True)
-            print(f"Cleaned data saved to {self.output_fits}")
-            self.ax.set_title(os.path.basename(self.output_fits))
+                hdul.writeto(output_fits, overwrite=True)
+            print(f"Cleaned data saved to {output_fits}")
+            self.ax.set_title(os.path.basename(output_fits))
             self.canvas.draw_idle()
-            self.input_fits = os.path.basename(self.output_fits)
+            self.input_fits = os.path.basename(output_fits)
             self.save_button.config(state=tk.DISABLED)
         except Exception as e:
             print(f"Error saving FITS file: {e}")
 
     def create_widgets(self):
+        """Create the GUI widgets.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        This method sets up the GUI layout, including buttons for running
+        L.A.Cosmic, toggling cosmic ray overlay, applying cleaning methods,
+        examining detected cosmic rays, saving the cleaned FITS file, and
+        stopping the application. It also initializes the matplotlib figure
+        and canvas for image display, along with the toolbar for navigation.
+        The relevant attributes are stored in the instance for later use.
+        """
         # Row 1 of buttons
         self.button_frame1 = tk.Frame(self.root)
         self.button_frame1.pack(pady=5)
@@ -214,6 +330,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.fig.tight_layout()
 
     def run_lacosmic(self):
+        """Run L.A.Cosmic to detect cosmic rays."""
         self.run_lacosmic_button.config(state=tk.DISABLED)
         # Define parameters for L.A.Cosmic from default dictionary
         editor_window = tk.Toplevel(self.root)
@@ -305,6 +422,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.run_lacosmic_button.config(state=tk.NORMAL)
 
     def toggle_cr_overlay(self):
+        """Toggle the overlay of cosmic ray pixels on the image."""
         self.overplot_cr_pixels = not self.overplot_cr_pixels
         if self.overplot_cr_pixels:
             self.overplot_cr_button.config(text="CR overlay: On")
@@ -313,6 +431,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.update_cr_overlay()
 
     def update_cr_overlay(self):
+        """Update the overlay of cosmic ray pixels on the image."""
         if self.overplot_cr_pixels:
             # Remove previous CR pixel overlay (if any)
             if hasattr(self, 'scatter_cr'):
@@ -330,6 +449,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.canvas.draw_idle()
 
     def apply_lacosmic(self):
+        """Apply the selected cleaning method to the detected cosmic rays."""
         if np.any(self.mask_crfound):
             # recalculate labels and number of features
             structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
@@ -441,6 +561,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.update_cr_overlay()
 
     def examine_detected_cr(self, first_cr_index=1, single_cr=False, ixpix=None, iypix=None):
+        """Open a window to examine and possibly clean detected cosmic rays."""
         self.working_in_review_window = True
         review_window = tk.Toplevel(self.root)
         if ixpix is not None and iypix is not None:
@@ -504,6 +625,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.update_cr_overlay()
 
     def stop_app(self):
+        """Stop the application, prompting to save if there are unsaved changes."""
         proceed_with_stop = True
         if self.save_button['state'] == tk.NORMAL:
             print("Warning: There are unsaved changes!")
@@ -517,6 +639,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.root.destroy()
 
     def on_key(self, event):
+        """Handle key press events."""
         if event.key == 'q':
             pass  # Ignore the "q" key to prevent closing the window
         elif event.key == ',':
@@ -527,6 +650,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             print(f"Key pressed: {event.key}")
 
     def on_click(self, event):
+        """Handle mouse click events on the image."""
         # ignore clicks if we are working in the review window
         if self.working_in_review_window:
             print("Currently working in review window; click ignored.")

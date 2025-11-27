@@ -69,6 +69,65 @@ class ReviewCosmicRay(ImageDisplay):
             The last used number of points parameter for interpolation.
         last_degree : int or None, optional
             The last used degree parameter for interpolation.
+
+        Methods
+        -------
+        create_widgets()
+            Create the GUI widgets for the review window.
+        update_display(cleaned=False)
+            Update the display to show the current cosmic ray.
+        set_ndeg()
+            Set the Npoints and Degree parameters for interpolation.
+        interp_x()
+            Perform X-interpolation for the current cosmic ray.
+        interp_y()
+            Perform Y-interpolation for the current cosmic ray.
+        interp_a(method)
+            Perform interpolation using the specified method for the current cosmic ray.
+        use_lacosmic()
+            Replace cosmic ray pixels with L.A.Cosmic cleaned data.
+        use_auxdata()
+            Replace cosmic ray pixels with auxiliary data.
+        remove_crosses()
+            Remove all pixels of the current cosmic ray from the review.
+        restore_cr()
+            Restore all pixels of the current cosmic ray to their original values.
+        continue_cr()
+            Move to the next cosmic ray for review.
+        exit_review()
+            Close the review window.
+        on_key(event)
+            Handle key press events for shortcuts.
+        on_click(event)
+            Handle mouse click events to mark/unmark pixels as cosmic rays.
+        
+        Attributes
+        ----------
+        root : tk.Toplevel
+            The parent Tkinter root window.
+        data : 2D numpy array
+            The original image data.
+        auxdata : 2D numpy array or None
+            The auxiliary image data.
+        cleandata_lacosmic: 2D numpy array or None
+            The cleaned image data from L.A.Cosmic.
+        cr_labels : 2D numpy array
+            Labels of connected cosmic ray pixel groups.
+        num_features : int
+            Number of connected cosmic ray pixel groups.
+        num_cr_cleaned : int
+            Number of cosmic rays cleaned during the review.
+        mask_fixed : 2D numpy array
+            Mask of pixels fixed during the review.
+        first_plot : bool
+            Flag to indicate if it's the first plot.
+        degree : int
+            Degree parameter for interpolation.
+        npoints : int
+            Number of points parameter for interpolation.
+        last_dilation : int or None
+            The last used dilation parameter employed after L.A.Cosmic
+            detection.
         """
         self.root = root
         self.root.title("Review Cosmic Rays")
@@ -100,6 +159,7 @@ class ReviewCosmicRay(ImageDisplay):
             self.create_widgets()
 
     def create_widgets(self):
+        """Create the GUI widgets for the review window."""
         # Row 1 of buttons
         self.button_frame1 = tk.Frame(self.root)
         self.button_frame1.pack(pady=5)
@@ -184,6 +244,14 @@ class ReviewCosmicRay(ImageDisplay):
         self.update_display()
 
     def update_display(self, cleaned=False):
+        """Update the display to show the current cosmic ray.
+        
+        Parameters
+        ----------
+        cleaned : bool, optional
+            Whether the cosmic ray has been cleaned (default is False).
+            If True, the cosmic ray pixels will be marked differently.
+        """
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         ycr_list_original, xcr_list_original = np.where(self.cr_labels_original == self.cr_index)
         if self.first_plot:
@@ -245,6 +313,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.canvas.draw_idle()
 
     def set_ndeg(self):
+        """Set the number of points and degree for interpolation."""
         new_npoints = simpledialog.askinteger("Set Npoints", "Enter Npoints:",
                                               initialvalue=self.npoints,  minvalue=1)
         if new_npoints is None:
@@ -258,6 +327,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.ndeg_label.config(text=f"Npoints={self.npoints}, Degree={self.degree}")
 
     def set_buttons_after_cleaning_cr(self):
+        """Set the state of buttons after cleaning a cosmic ray."""
         self.restore_cr_button.config(state=tk.NORMAL)
         self.remove_crosses_button.config(state=tk.DISABLED)
         self.interp_x_button.config(state=tk.DISABLED)
@@ -268,6 +338,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_aux_button.config(state=tk.DISABLED)
 
     def interp_x(self):
+        """Perform x-direction interpolation to clean a cosmic ray."""
         if 2 * self.npoints <= self.degree:
             messagebox.showerror("Input Error", "2*Npoints must be greater than Degree for x interpolation.")
             return
@@ -289,6 +360,7 @@ class ReviewCosmicRay(ImageDisplay):
             self.canvas.draw_idle()
 
     def interp_y(self):
+        """Perform y-direction interpolation to clean a cosmic ray."""
         if 2 * self.npoints <= self.degree:
             messagebox.showerror("Input Error", "2*Npoints must be greater than Degree for y interpolation.")
             return
@@ -310,6 +382,13 @@ class ReviewCosmicRay(ImageDisplay):
             self.canvas.draw_idle()
 
     def interp_a(self, method):
+        """Perform interpolation using the specified method to clean a cosmic ray.
+        
+        Parameters
+        ----------
+        method : str
+            The interpolation method to use ('surface' or 'median').
+        """
         print(f"{method} interpolation of cosmic ray {self.cr_index}")
         interpolation_performed, xfit_all, yfit_all = interpolation_a(
             data=self.data,
@@ -328,6 +407,7 @@ class ReviewCosmicRay(ImageDisplay):
             self.canvas.draw_idle()
 
     def use_lacosmic(self):
+        """Use L.A.Cosmic cleaned data to clean a cosmic ray."""
         if self.cleandata_lacosmic is None:
             print("L.A.Cosmic cleaned data not available.")
             return
@@ -341,6 +421,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.update_display(cleaned=True)
 
     def use_auxdata(self):
+        """Use auxiliary data to clean a cosmic ray."""
         if self.auxdata is None:
             print("Auxiliary data not available.")
             return
@@ -354,6 +435,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.update_display(cleaned=True)
 
     def remove_crosses(self):
+        """Remove all pixels of the current cosmic ray from the review."""
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         for iy, ix in zip(ycr_list, xcr_list):
             self.cr_labels[iy, ix] = 0
@@ -368,6 +450,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.update_display()
 
     def restore_cr(self):
+        """Restore all pixels of the current cosmic ray to their original values."""
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         for iy, ix in zip(ycr_list, xcr_list):
             self.data[iy, ix] = self.data_original[iy, ix]
@@ -388,6 +471,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.update_display()
 
     def continue_cr(self):
+        """Move to the next cosmic ray for review."""
         if self.single_cr:
             self.exit_review()
             return  # important: do not remove (to avoid errors)
@@ -410,9 +494,11 @@ class ReviewCosmicRay(ImageDisplay):
         self.update_display()
 
     def exit_review(self):
+        """Close the review window."""
         self.root.destroy()
 
     def on_key(self, event):
+        """Handle key press events."""
         if event.key == 'q':
             pass  # Ignore the "q" key to prevent closing the window
         elif event.key == 'r':
@@ -449,6 +535,7 @@ class ReviewCosmicRay(ImageDisplay):
             print(f"Key pressed: {event.key}")
 
     def on_click(self, event):
+        """Handle mouse click events on the image."""
         if event.inaxes == self.ax:
             x, y = event.xdata, event.ydata
             ix = int(x+0.5) - 1  # from pixel to index
