@@ -39,6 +39,17 @@ def interpolation_a(data, mask_fixed, cr_labels, cr_index, npoints, method):
         X-coordinates of border pixels used for interpolation.
     yfit_all : list
         Y-coordinates of border pixels used for interpolation.
+
+    Notes
+    -----
+    The `data` array is modified in place with interpolated values for the
+    cosmic ray pixels. This function also returns an updated `mask_fixed`
+    array with interpolated pixels marked as fixed.
+
+    It is important to highlight that contrary to what is performed when
+    using the X- and Y-interpolation, this function does not fill the gaps
+    between the marked pixels. Only the pixels explicitly marked as affected
+    by cosmic rays are interpolated.
     """
     # Mask of CR pixels
     mask = (cr_labels == cr_index)
@@ -77,6 +88,8 @@ def interpolation_a(data, mask_fixed, cr_labels, cr_index, npoints, method):
                 data[iy, ix] = zmed
                 mask_fixed[iy, ix] = True
             interpolation_performed = True
+        else:
+            print("No surrounding points found for median interpolation")
     else:
         print(f"Unknown interpolation method: {method}")
 

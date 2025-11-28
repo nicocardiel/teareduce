@@ -37,6 +37,24 @@ def interpolation_y(data, mask_fixed, cr_labels, cr_index, npoints, degree):
         X-coordinates of border pixels used for interpolation.
     yfit_all : list
         Y-coordinates of border pixels used for interpolation.
+
+    Notes
+    -----
+    The `data` array is modified in place with interpolated values for the
+    cosmic ray pixels. This function also returns an updated `mask_fixed`
+    array with interpolated pixels marked as fixed.
+
+    It is important to highlight that this function assumes that at
+    every x-coordinate where cosmic ray pixels are found, the pixels
+    form a contiguous vertical segment. In this sense, gaps in the
+    y-direction are assumed to be also part of the same cosmic ray
+    feature, and the `cr_labels` array is updated accordingly. In other
+    words, all the pixels between the minimum and maximum y-coordinates
+    of the cosmic ray pixels at a given x-coordinate are treated as
+    affected by the cosmic ray. This simplyfies the interactive marking
+    of cosmic rays, as the user does not need to ensure that all pixels
+    in a vertical segment are marked; marking just the extreme pixels
+    is sufficient.
     """
     ycr_list, xcr_list = np.where(cr_labels == cr_index)
     xcr_min = np.min(xcr_list)
