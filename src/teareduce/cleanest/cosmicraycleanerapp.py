@@ -19,15 +19,16 @@ from ccdproc import cosmicray_lacosmic
 import matplotlib.pyplot as plt
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from scipy import ndimage
 import numpy as np
 import os
 from rich import print
-from scipy import ndimage
 
 from .definitions import lacosmic_default_dict
 from .definitions import DEFAULT_NPOINTS_INTERP
 from .definitions import DEFAULT_DEGREE_INTERP
 from .definitions import MAX_PIXEL_DISTANCE_TO_CR
+from .dilatemask import dilatemask
 from .find_closest_true import find_closest_true
 from .interpolation_a import interpolation_a
 from .interpolation_x import interpolation_x
@@ -387,11 +388,10 @@ class CosmicRayCleanerApp(ImageDisplay):
                 dilation = self.lacosmic_params['dilation']['value']
                 if dilation > 0:
                     # Dilate the mask by the specified number of pixels
-                    structure = ndimage.generate_binary_structure(2, 2)  # 8-connectivity
-                    self.mask_crfound = ndimage.binary_dilation(
-                        self.mask_crfound,
-                        structure=structure,
-                        iterations=self.lacosmic_params['dilation']['value']
+                    self.mask_crfound = dilatemask(
+                        mask=self.mask_crfound,
+                        iterations=self.lacosmic_params['dilation']['value'],
+                        connectivity=1
                     )
                     num_cr_pixels_after_dilation = np.sum(self.mask_crfound)
                     sdum = str(num_cr_pixels_after_dilation)

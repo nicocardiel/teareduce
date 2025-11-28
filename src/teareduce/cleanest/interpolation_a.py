@@ -10,7 +10,8 @@
 """Surface interpolation (plane fit) or median interpolation"""
 
 import numpy as np
-from scipy.ndimage import binary_dilation
+
+from .dilatemask import dilatemask
 
 
 def interpolation_a(data, mask_fixed, cr_labels, cr_index, npoints, method):
@@ -54,7 +55,12 @@ def interpolation_a(data, mask_fixed, cr_labels, cr_index, npoints, method):
     # Mask of CR pixels
     mask = (cr_labels == cr_index)
     # Dilate the mask to find border pixels
-    dilated_mask = binary_dilation(mask, structure=np.ones((3, 3)), iterations=npoints)
+    # dilated_mask = binary_dilation(mask, structure=np.ones((3, 3)), iterations=npoints)
+    dilated_mask = dilatemask(
+        mask=mask,
+        iterations=npoints,
+        connectivity=1
+    )
     # Border pixels are those in the dilated mask but not in the original mask
     border_mask = dilated_mask & (~mask)
     # Get coordinates of border pixels
