@@ -30,6 +30,7 @@ classifiers = [
 
 dependencies = [
     "astropy",
+    "ccdproc",
     "lmfit",
     "matplotlib",
     "numpy >= 1.22",
