@@ -33,6 +33,7 @@ dependencies = [
     "lmfit",
     "matplotlib",
     "numpy >= 1.22",
+    "requests",
     "rich",
     "rich-argparse",
     "scipy",
