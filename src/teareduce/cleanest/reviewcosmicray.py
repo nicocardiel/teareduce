@@ -193,8 +193,11 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_s_button = tk.Button(self.button_frame2, text="[s]urface interp.",
                                          command=lambda: self.interp_a('surface'))
         self.interp_s_button.pack(side=tk.LEFT, padx=5)
-        self.interp_m_button = tk.Button(self.button_frame2, text="[m]edian",
+        self.interp_d_button = tk.Button(self.button_frame2, text="me[d]ian",
                                          command=lambda: self.interp_a('median'))
+        self.interp_d_button.pack(side=tk.LEFT, padx=5)
+        self.interp_m_button = tk.Button(self.button_frame2, text="[m]ean",
+                                         command=lambda: self.interp_a('mean'))
         self.interp_m_button.pack(side=tk.LEFT, padx=5)
         self.interp_l_button = tk.Button(self.button_frame2, text="[l]acosmic", command=self.use_lacosmic)
         self.interp_l_button.pack(side=tk.LEFT, padx=5)
@@ -333,6 +336,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_x_button.config(state=tk.DISABLED)
         self.interp_y_button.config(state=tk.DISABLED)
         self.interp_s_button.config(state=tk.DISABLED)
+        self.interp_d_button.config(state=tk.DISABLED)
         self.interp_m_button.config(state=tk.DISABLED)
         self.interp_l_button.config(state=tk.DISABLED)
         self.interp_aux_button.config(state=tk.DISABLED)
@@ -387,7 +391,7 @@ class ReviewCosmicRay(ImageDisplay):
         Parameters
         ----------
         method : str
-            The interpolation method to use ('surface' or 'median').
+            The interpolation method to use ('surface', 'median' or 'mean').
         """
         print(f"{method} interpolation of cosmic ray {self.cr_index}")
         interpolation_performed, xfit_all, yfit_all = interpolation_a(
@@ -444,6 +448,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_x_button.config(state=tk.DISABLED)
         self.interp_y_button.config(state=tk.DISABLED)
         self.interp_s_button.config(state=tk.DISABLED)
+        self.interp_d_button.config(state=tk.DISABLED)
         self.interp_m_button.config(state=tk.DISABLED)
         self.interp_l_button.config(state=tk.DISABLED)
         self.interp_aux_button.config(state=tk.DISABLED)
@@ -458,6 +463,7 @@ class ReviewCosmicRay(ImageDisplay):
             self.interp_x_button.config(state=tk.NORMAL)
             self.interp_y_button.config(state=tk.NORMAL)
             self.interp_s_button.config(state=tk.NORMAL)
+            self.interp_d_button.config(state=tk.NORMAL)
             self.interp_m_button.config(state=tk.NORMAL)
             if self.cleandata_lacosmic is not None:
                 if self.last_dilation is None or self.last_dilation == 0:
@@ -484,6 +490,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_x_button.config(state=tk.NORMAL)
         self.interp_y_button.config(state=tk.NORMAL)
         self.interp_s_button.config(state=tk.NORMAL)
+        self.interp_d_button.config(state=tk.NORMAL)
         self.interp_m_button.config(state=tk.NORMAL)
         if self.cleandata_lacosmic is not None:
             if self.last_dilation is None or self.last_dilation == 0:
@@ -513,9 +520,12 @@ class ReviewCosmicRay(ImageDisplay):
         elif event.key == 's':
             if self.interp_s_button.cget("state") != "disabled":
                 self.interp_a('surface')
+        elif event.key == 'd':
+            if self.interp_d_button.cget("state") != "disabled":
+                self.interp_a('median')
         elif event.key == 'm':
             if self.interp_m_button.cget("state") != "disabled":
-                self.interp_a('median')
+                self.interp_a('mean')
         elif event.key == 'l':
             if self.interp_l_button.cget("state") != "disabled":
                 self.use_lacosmic()
@@ -551,6 +561,7 @@ class ReviewCosmicRay(ImageDisplay):
                 self.interp_x_button.config(state=tk.DISABLED)
                 self.interp_y_button.config(state=tk.DISABLED)
                 self.interp_s_button.config(state=tk.DISABLED)
+                self.interp_d_button.config(state=tk.DISABLED)
                 self.interp_m_button.config(state=tk.DISABLED)
                 self.interp_l_button.config(state=tk.DISABLED)
                 self.interp_aux_button.config(state=tk.DISABLED)
@@ -559,6 +570,7 @@ class ReviewCosmicRay(ImageDisplay):
                 self.interp_x_button.config(state=tk.NORMAL)
                 self.interp_y_button.config(state=tk.NORMAL)
                 self.interp_s_button.config(state=tk.NORMAL)
+                self.interp_d_button.config(state=tk.NORMAL)
                 self.interp_m_button.config(state=tk.NORMAL)
                 if self.cleandata_lacosmic is not None:
                     if self.last_dilation is None or self.last_dilation == 0:

@@ -15,7 +15,7 @@ from .dilatemask import dilatemask
 
 
 def interpolation_a(data, mask_fixed, cr_labels, cr_index, npoints, method):
-    """Interpolate cosmic ray pixels using surface fit or median of border pixels.
+    """Fix cosmic ray pixels using surface fit, median or mean.
 
     Parameters
     ----------
@@ -30,7 +30,7 @@ def interpolation_a(data, mask_fixed, cr_labels, cr_index, npoints, method):
     npoints : int
         The number of points to use for interpolation.
     method : str
-        The interpolation method to use ('surface' or 'median').
+        The interpolation method to use ('surface', 'median' or 'mean').
 
     Returns
     -------
@@ -84,14 +84,17 @@ def interpolation_a(data, mask_fixed, cr_labels, cr_index, npoints, method):
             interpolation_performed = True
         else:
             print("Not enough points to fit a plane")
-    elif method == 'median':
+    elif method in ['median', 'mean']:
         # Compute median of all surrounding points
         if len(zfit_all) > 0:
-            zmed = np.median(zfit_all)
+            if method == 'median':
+                zval = np.median(zfit_all)
+            else:
+                zval = np.mean(zfit_all)
             # recompute all CR pixels to take into account "holes" between marked pixels
             ycr_list, xcr_list = np.where(cr_labels == cr_index)
             for iy, ix in zip(ycr_list, xcr_list):
-                data[iy, ix] = zmed
+                data[iy, ix] = zval
                 mask_fixed[iy, ix] = True
             interpolation_performed = True
         else:

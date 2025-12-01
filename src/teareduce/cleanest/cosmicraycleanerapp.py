@@ -136,7 +136,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         """
         self.root = root
         self.root.title("Cosmic Ray Cleaner")
-        self.root.geometry("800x700+50+0")
+        self.root.geometry("800x800+50+0")
         self.lacosmic_params = lacosmic_default_dict.copy()
         self.input_fits = input_fits
         self.extension = extension
