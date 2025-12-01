@@ -72,6 +72,7 @@ class InterpolationEditor:
             "y interp.": "y",
             "surface interp.": "a-plane",
             "median": "a-median",
+            "mean": "a-mean",
             "lacosmic": "lacosmic",
             "auxdata": "auxdata"
         }
@@ -188,6 +189,9 @@ class InterpolationEditor:
             self.entry_npoints.config(state='normal')
             self.entry_degree.config(state='disabled')
         elif selected_method == 'median':
+            self.entry_npoints.config(state='normal')
+            self.entry_degree.config(state='disabled')
+        elif selected_method == 'mean':
             self.entry_npoints.config(state='normal')
             self.entry_degree.config(state='disabled')
         elif selected_method == 'lacosmic':

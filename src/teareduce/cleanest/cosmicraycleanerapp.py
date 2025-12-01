@@ -538,6 +538,15 @@ class CosmicRayCleanerApp(ImageDisplay):
                             npoints=editor.npoints,
                             method='median'
                         )
+                    elif cleaning_method == 'a-mean':
+                        interpolation_performed, _, _ = interpolation_a(
+                            data=self.data,
+                            mask_fixed=tmp_mask_fixed,
+                            cr_labels=self.cr_labels,
+                            cr_index=i,
+                            npoints=editor.npoints,
+                            method='mean'
+                        )
                     else:
                         raise ValueError(f"Unknown cleaning method: {cleaning_method}")
                     if interpolation_performed:

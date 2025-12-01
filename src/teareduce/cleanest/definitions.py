@@ -37,6 +37,7 @@ VALID_CLEANING_METHODS = [
     'y interp.',
     'surface interp.',
     'median',
+    'mean',
     'lacosmic',
     'auxdata'
 ]

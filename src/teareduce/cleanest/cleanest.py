@@ -7,7 +7,7 @@
 # License-Filename: LICENSE.txt
 #
 
-"""Clean cosmic rays identified in a mask."""
+"""Interpolate pixels identified in a mask."""
 
 from scipy import ndimage
 import numpy as np
@@ -21,10 +21,10 @@ from .interpolation_a import interpolation_a
 def cleanest(data, mask_crfound, auxdata=None, dilation=0,
              interp_method=None, npoints=None, degree=None,
              debug=False):
-    """Interpolate cosmic ray pixels identified in a mask.
+    """Interpolate pixels identified in a mask.
 
     The original data and mask are not modified. A copy of both
-    arrays is created and returned with the cosmic ray pixels cleaned.
+    arrays are created and returned with the interpolated pixels.
 
     Parameters
     ----------
@@ -34,7 +34,8 @@ def cleanest(data, mask_crfound, auxdata=None, dilation=0,
         A boolean mask array indicating which pixels are affected by
         cosmic rays.
     auxdata : 2D numpy.ndarray, optional
-        An auxiliary data array that can be used for interpolation.
+        An auxiliary array that can be used to replace masked
+        pixels by the auxiliary data.
     dilation : int, optional
         The number of pixels to dilate the cosmic ray mask before
         cleaning.
