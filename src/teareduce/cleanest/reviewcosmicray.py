@@ -265,7 +265,11 @@ class ReviewCosmicRay(ImageDisplay):
         # to avoid image shifts when some pixels are unmarked or new ones are marked
         i0 = int(np.mean(ycr_list_original) + 0.5)
         j0 = int(np.mean(xcr_list_original) + 0.5)
-        semiwidth = MAX_PIXEL_DISTANCE_TO_CR
+        max_distance_from_center = np.max(
+            [np.max(np.abs(ycr_list_original - i0)),
+             np.max(np.abs(xcr_list_original - j0))]
+        )
+        semiwidth = int(np.max([max_distance_from_center, MAX_PIXEL_DISTANCE_TO_CR]))
         jmin = j0 - semiwidth if j0 - semiwidth >= 0 else 0
         jmax = j0 + semiwidth if j0 + semiwidth < self.data.shape[1] else self.data.shape[1] - 1
         imin = i0 - semiwidth if i0 - semiwidth >= 0 else 0
