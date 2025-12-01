@@ -276,13 +276,13 @@ class ReviewCosmicRay(ImageDisplay):
         imax = i0 + semiwidth if i0 + semiwidth < self.data.shape[0] else self.data.shape[0] - 1
         # Force the region to be of size (2*semiwidth + 1) x (2*semiwidth + 1)
         if jmin == 0:
-            jmax = 2 * semiwidth
+            jmax = np.min([2 * semiwidth, self.data.shape[1] - 1])
         elif jmax == self.data.shape[1] - 1:
-            jmin = self.data.shape[1] - 1 - 2 * semiwidth
+            jmin = np.max([0, self.data.shape[1] - 1 - 2 * semiwidth])
         if imin == 0:
-            imax = 2 * semiwidth
+            imax = np.min([2 * semiwidth, self.data.shape[0] - 1])
         elif imax == self.data.shape[0] - 1:
-            imin = self.data.shape[0] - 1 - 2 * semiwidth
+            imin = np.max([0, self.data.shape[0] - 1 - 2 * semiwidth])
         self.region = SliceRegion2D(f'[{jmin+1}:{jmax+1}, {imin+1}:{imax+1}]', mode='fits').python
         self.ax.clear()
         vmin = self.get_vmin()

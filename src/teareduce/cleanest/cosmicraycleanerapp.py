@@ -23,6 +23,7 @@ from scipy import ndimage
 import numpy as np
 import os
 from rich import print
+from tqdm import tqdm
 
 from .definitions import lacosmic_default_dict
 from .definitions import DEFAULT_NPOINTS_INTERP
@@ -500,7 +501,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 self.mask_crfound[self.mask_crfound] = False
                 num_cr_cleaned = self.num_features
             else:
-                for i in range(1, self.num_features + 1):
+                for i in tqdm(range(1, self.num_features + 1)):
                     tmp_mask_fixed = np.zeros_like(self.data, dtype=bool)
                     if cleaning_method == 'x':
                         interpolation_performed, _, _ = interpolation_x(
