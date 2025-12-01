@@ -18,7 +18,7 @@ from .interpolation_y import interpolation_y
 from .interpolation_a import interpolation_a
 
 
-def cleanest(data, mask_crfound, auxdata=None, dilation=0,
+def cleanest(data, mask_crfound, dilation=0,
              interp_method=None, npoints=None, degree=None,
              debug=False):
     """Interpolate pixels identified in a mask.
@@ -33,12 +33,9 @@ def cleanest(data, mask_crfound, auxdata=None, dilation=0,
     mask_crfound : 2D numpy.ndarray of bool
         A boolean mask array indicating which pixels are affected by
         cosmic rays.
-    auxdata : 2D numpy.ndarray, optional
-        An auxiliary array that can be used to replace masked
-        pixels by the auxiliary data.
     dilation : int, optional
-        The number of pixels to dilate the cosmic ray mask before
-        cleaning.
+        The number of pixels to dilate the masked pixels before
+        interpolation.
     interp_method : str, optional
         The interpolation method to use. Options are:
         'x' : Polynomial interpolation in the X direction.
@@ -46,7 +43,6 @@ def cleanest(data, mask_crfound, auxdata=None, dilation=0,
         's' : Surface fit (degree 1) interpolation.
         'd' : Median of border pixels interpolation.
         'm' : Mean of border pixels interpolation.
-        'a' : Auxiliary data interpolation.
     npoints : int, optional
         The number of points to use for interpolation. This
         parameter is relevant for 'x', 'y', 's', 'd', and 'm' methods.
@@ -72,8 +68,10 @@ def cleanest(data, mask_crfound, auxdata=None, dilation=0,
     """
     if interp_method is None:
         raise ValueError("interp_method must be specified.")
-    if npoints is None and interp_method in ['x', 'y', 's', 'd', 'm']:
-        raise ValueError("npoints must be specified for the chosen interp_method.")
+    if interp_method not in ['x', 'y', 's', 'd', 'm']:
+        raise ValueError(f"Unknown interp_method: {interp_method}")
+    if npoints is None:
+        raise ValueError("npoints must be specified.")
     if degree is None and interp_method in ['x', 'y']:
         raise ValueError("degree must be specified for the chosen interp_method.")
 
@@ -132,16 +130,6 @@ def cleanest(data, mask_crfound, auxdata=None, dilation=0,
             )
             if interpolation_performed:
                 num_cr_cleaned += 1
-        elif interp_method == 'a':
-            if auxdata is None:
-                raise ValueError("auxdata must be provided for 'a' interpolation method.")
-            if data.shape != auxdata.shape:
-                raise ValueError("data and auxdata must have the same shape.")
-            ycr_list, xcr_list = np.where(cr_labels == cr_index)
-            for iy, ix in zip(ycr_list, xcr_list):
-                cleaned_data[iy, ix] = auxdata[iy, ix]
-                mask_fixed[iy, ix] = True
-            num_cr_cleaned += 1
         else:
             raise ValueError(f"Unknown interpolation method: {interp_method}")
 
