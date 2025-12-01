@@ -452,7 +452,9 @@ class CosmicRayCleanerApp(ImageDisplay):
         """Apply the selected cleaning method to the detected cosmic rays."""
         if np.any(self.mask_crfound):
             # recalculate labels and number of features
-            structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
+            structure = [[1, 1, 1],
+                         [1, 1, 1],
+                         [1, 1, 1]]
             self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
             print(f"Number of cosmic ray pixels detected by L.A.Cosmic...........: {np.sum(self.mask_crfound)}")
             print(f"Number of cosmic rays (grouped pixels) detected by L.A.Cosmic: {self.num_features}")
