@@ -133,9 +133,13 @@ class ReviewCosmicRay(ImageDisplay):
         self.root.title("Review Cosmic Rays")
         self.auxdata = auxdata
         if self.auxdata is not None:
-            self.root.geometry("1200x700+100+100")
+            # self.root.geometry("1000x700+100+100")  # This does not work in Fedora
+            self.root.minsize(1000, 700)
         else:
-            self.root.geometry("800x700+100+100")
+            # self.root.geometry("800x700+100+100")  # This does not work in Fedora
+            self.root.minsize(800, 700)
+        self.root.update_idletasks()
+        self.root.geometry("+100+100")
         self.data = data
         self.cleandata_lacosmic = cleandata_lacosmic
         self.data_original = data.copy()
@@ -226,9 +230,9 @@ class ReviewCosmicRay(ImageDisplay):
         # Figure
         if self.auxdata is not None:
             self.fig, (self.ax_aux, self.ax) = plt.subplots(
-                ncols=2, figsize=(10, 5), constrained_layout=True)
+                ncols=2, figsize=(11, 5.5), constrained_layout=True)
         else:
-            self.fig, self.ax = plt.subplots(figsize=(8, 5), constrained_layout=True)
+            self.fig, self.ax = plt.subplots(figsize=(8, 5.5), constrained_layout=True)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().pack(padx=5, pady=5)
         # The next two instructions prevent a segmentation fault when pressing "q"
@@ -236,7 +240,8 @@ class ReviewCosmicRay(ImageDisplay):
         self.canvas.mpl_connect("key_press_event", self.on_key)
         self.canvas.mpl_connect("button_press_event", self.on_click)
         self.canvas_widget = self.canvas.get_tk_widget()
-        self.canvas_widget.pack(fill=tk.BOTH, expand=True)
+        # self.canvas_widget.pack(fill=tk.BOTH, expand=True)  # This does not work in Fedora
+        self.canvas_widget.pack(expand=True)
 
         # Matplotlib toolbar
         self.toolbar_frame = tk.Frame(self.root)

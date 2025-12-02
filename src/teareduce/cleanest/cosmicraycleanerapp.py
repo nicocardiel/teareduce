@@ -136,8 +136,11 @@ class CosmicRayCleanerApp(ImageDisplay):
             Flag to indicate if the review window is active.
         """
         self.root = root
+        # self.root.geometry("800x800+50+0")  # This does not work in Fedora
+        self.root.minsize(800, 800)
+        self.root.update_idletasks()
+        self.root.geometry("+50+0")
         self.root.title("Cosmic Ray Cleaner")
-        self.root.geometry("800x800+50+0")
         self.lacosmic_params = lacosmic_default_dict.copy()
         self.input_fits = input_fits
         self.extension = extension
@@ -313,7 +316,8 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.canvas.mpl_connect("key_press_event", self.on_key)
         self.canvas.mpl_connect("button_press_event", self.on_click)
         canvas_widget = self.canvas.get_tk_widget()
-        canvas_widget.pack(fill=tk.BOTH, expand=True)
+        # canvas_widget.pack(fill=tk.BOTH, expand=True)  # This does not work in Fedora
+        canvas_widget.pack(expand=True)
 
         # Matplotlib toolbar
         self.toolbar_frame = tk.Frame(self.root)
