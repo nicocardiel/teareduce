@@ -359,30 +359,71 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.last_xmax = updated_params['xmax']['value']
             self.last_ymin = updated_params['ymin']['value']
             self.last_ymax = updated_params['ymax']['value']
+            usefulregion = SliceRegion2D(f"[{self.last_xmin}:{self.last_xmax},{self.last_ymin}:{self.last_ymax}]",
+                                         mode="fits").python
+            usefulmask = np.zeros_like(self.data)
+            usefulmask[usefulregion] = 1.0
             # Update parameter dictionary with new values
             self.lacosmic_params = updated_params
             print("Parameters updated:")
             for key, info in self.lacosmic_params.items():
                 print(f"  {key}: {info['value']}")
+            if self.lacosmic_params['nruns']['value'] not in [1, 2]:
+                raise ValueError("nruns must be 1 or 2")
             # Execute L.A.Cosmic with updated parameters
             cleandata_lacosmic, mask_crfound = cosmicray_lacosmic(
                 self.data,
-                gain=self.lacosmic_params['gain']['value'],
-                readnoise=self.lacosmic_params['readnoise']['value'],
-                sigclip=self.lacosmic_params['sigclip']['value'],
-                sigfrac=self.lacosmic_params['sigfrac']['value'],
-                objlim=self.lacosmic_params['objlim']['value'],
-                niter=self.lacosmic_params['niter']['value'],
-                verbose=self.lacosmic_params['verbose']['value']
+                gain=self.lacosmic_params['run1_gain']['value'],
+                readnoise=self.lacosmic_params['run1_readnoise']['value'],
+                sigclip=self.lacosmic_params['run1_sigclip']['value'],
+                sigfrac=self.lacosmic_params['run1_sigfrac']['value'],
+                objlim=self.lacosmic_params['run1_objlim']['value'],
+                niter=self.lacosmic_params['run1_niter']['value'],
+                verbose=self.lacosmic_params['run1_verbose']['value']
             )
+            # Apply usefulmask to consider only selected region
+            cleandata_lacosmic *= usefulmask
+            mask_crfound = mask_crfound & (usefulmask.astype(bool))
+            # Second execution if nruns == 2
+            if self.lacosmic_params['nruns']['value'] == 2:
+                cleandata_lacosmic2, mask_crfound2 = cosmicray_lacosmic(
+                    self.data,
+                    gain=self.lacosmic_params['run2_gain']['value'],
+                    readnoise=self.lacosmic_params['run2_readnoise']['value'],
+                    sigclip=self.lacosmic_params['run2_sigclip']['value'],
+                    sigfrac=self.lacosmic_params['run2_sigfrac']['value'],
+                    objlim=self.lacosmic_params['run2_objlim']['value'],
+                    niter=self.lacosmic_params['run2_niter']['value'],
+                    verbose=self.lacosmic_params['run2_verbose']['value']
+                )
+                # Apply usefulmask to consider only selected region
+                cleandata_lacosmic2 *= usefulmask
+                mask_crfound2 = mask_crfound2 & (usefulmask.astype(bool))
+                # Combine results from both runs
+                if np.any(mask_crfound):
+                    print(f"Number of cosmic ray pixels (run1).......: {np.sum(mask_crfound)}")
+                    print(f"Number of cosmic ray pixels (run2).......: {np.sum(mask_crfound2)}")
+                    # find features in second run
+                    structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
+                    cr_labels2, num_features2 = ndimage.label(mask_crfound2, structure=structure)
+                    # generate mask of ones at CR pixels found in first run
+                    mask_peaks = np.zeros(mask_crfound.shape, dtype=float)
+                    mask_peaks[mask_crfound] = 1.0
+                    # preserve only those CR pixels in second run that are in the first run
+                    cr_labels2_preserved = mask_peaks * cr_labels2
+                    # generate new mask with preserved CR pixels from second run
+                    mask_crfound = np.zeros_like(mask_crfound, dtype=bool)
+                    for icr in np.unique(cr_labels2_preserved):
+                        if icr > 0:
+                            mask_crfound[cr_labels2 == icr] = True
+                    print(f'Number of cosmic ray pixels (run1 & run2): {np.sum(mask_crfound)}')
+                # Use the cleandata from the second run
+                cleandata_lacosmic = cleandata_lacosmic2
             # Select the image region to process
-            fits_region = f"[{updated_params['xmin']['value']}:{updated_params['xmax']['value']}"
-            fits_region += f",{updated_params['ymin']['value']}:{updated_params['ymax']['value']}]"
-            region = SliceRegion2D(fits_region, mode="fits").python
             self.cleandata_lacosmic = self.data.copy()
-            self.cleandata_lacosmic[region] = cleandata_lacosmic[region]
+            self.cleandata_lacosmic[usefulregion] = cleandata_lacosmic[usefulregion]
             self.mask_crfound = np.zeros_like(self.data, dtype=bool)
-            self.mask_crfound[region] = mask_crfound[region]
+            self.mask_crfound[usefulregion] = mask_crfound[usefulregion]
             # Process the mask: dilation and labeling
             if np.any(self.mask_crfound):
                 num_cr_pixels_before_dilation = np.sum(self.mask_crfound)
@@ -408,7 +449,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 # diagonal connections too, so we define a 3x3 square.
                 structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
                 self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
-                print(f"Number of cosmic rays features (grouped pixels)...: {self.num_features:{len(sdum)}}")
+                print(f"Number of cosmic rays features (grouped pixels)...: {self.num_features:>{len(sdum)}}")
                 self.apply_lacosmic_button.config(state=tk.NORMAL)
                 self.examine_detected_cr_button.config(state=tk.NORMAL)
                 self.update_cr_overlay()
@@ -457,8 +498,9 @@ class CosmicRayCleanerApp(ImageDisplay):
                          [1, 1, 1],
                          [1, 1, 1]]
             self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
-            print(f"Number of cosmic ray pixels detected by L.A.Cosmic...........: {np.sum(self.mask_crfound)}")
-            print(f"Number of cosmic rays (grouped pixels) detected by L.A.Cosmic: {self.num_features}")
+            sdum = str(np.sum(self.mask_crfound))
+            print(f"Number of cosmic ray pixels detected by L.A.Cosmic...........: {sdum}")
+            print(f"Number of cosmic rays (grouped pixels) detected by L.A.Cosmic: {self.num_features:>{len(sdum)}}")
             # Define parameters for L.A.Cosmic from default dictionary
             editor_window = tk.Toplevel(self.root)
             editor = InterpolationEditor(
@@ -466,7 +508,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 last_dilation=self.lacosmic_params['dilation']['value'],
                 last_npoints=self.last_npoints,
                 last_degree=self.last_degree,
-                auxdata=self.auxdata
+                auxdata=self.auxdata,
             )
             # Make it modal (blocks interaction with main window)
             editor_window.transient(self.root)
@@ -560,8 +602,9 @@ class CosmicRayCleanerApp(ImageDisplay):
             # recalculate labels and number of features
             structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
             self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
-            print(f"Remaining number of cosmic ray pixels...........: {np.sum(self.mask_crfound)}")
-            print(f"Remaining number of cosmic rays (grouped pixels): {self.num_features}")
+            sdum = str(np.sum(self.mask_crfound))
+            print(f"Remaining number of cosmic ray pixels...........: {sdum}")
+            print(f"Remaining number of cosmic rays (grouped pixels): {self.num_features:>{len(sdum)}}")
             # redraw image to show the changes
             self.image.set_data(self.data)
             self.canvas.draw_idle()
@@ -624,8 +667,9 @@ class CosmicRayCleanerApp(ImageDisplay):
             # recalculate labels and number of features
             structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
             self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
-            print(f"Remaining number of cosmic ray pixels...........: {np.sum(self.mask_crfound)}")
-            print(f"Remaining number of cosmic rays (grouped pixels): {self.num_features}")
+            sdum = str(np.sum(self.mask_crfound))
+            print(f"Remaining number of cosmic ray pixels...........: {sdum}")
+            print(f"Remaining number of cosmic rays (grouped pixels): {self.num_features:>{len(sdum)}}")
             # redraw image to show the changes
             self.image.set_data(self.data)
             self.canvas.draw_idle()

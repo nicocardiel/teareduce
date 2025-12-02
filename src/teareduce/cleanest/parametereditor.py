@@ -75,7 +75,7 @@ class ParameterEditor:
         self.param_dict['ymin']['value'] = ymin
         self.param_dict['ymax']['value'] = ymax
         self.imgshape = imgshape
-        self.entries = {}  # dictionary to hold entry widgets
+        self.entries = {'run1': {}, 'run2': {}}  # dictionary to hold entry widgets
         self.result_dict = None
 
         # Create the form
@@ -91,33 +91,48 @@ class ParameterEditor:
 
         # Subtitle for L.A.Cosmic parameters
         subtitle_label = tk.Label(main_frame, text="L.A.Cosmic Parameters", font=("Arial", 14, "bold"))
-        subtitle_label.grid(row=row, column=0, columnspan=3, pady=(0, 15))
+        subtitle_label.grid(row=row, column=0, columnspan=4, pady=(0, 15))
         row += 1
 
-        # Create labels and entry fields for each parameter
+        # Create labels and entry fields for each parameter.
+        # Note: here we are using entry_vars to trace changes in the entries
+        # so that we can update the color of run2 entries if they differ from run1.
+        self.entry_vars = {}
         for key, info in self.param_dict.items():
-            if key.lower() not in ['dilation', 'xmin', 'xmax', 'ymin', 'ymax']:
-                # Parameter name label
-                label = tk.Label(main_frame, text=f"{key}:", anchor='e', width=15)
-                label.grid(row=row, column=0, sticky='w', pady=5)
-                # Entry field
-                entry = tk.Entry(main_frame, width=10)
-                entry.insert(0, str(info['value']))
-                entry.grid(row=row, column=1, padx=10, pady=5)
-                self.entries[key] = entry  # dictionary to hold entry widgets
-                # Type label
-                type_label = tk.Label(main_frame, text=f"({info['type'].__name__})", fg='gray', anchor='w', width=10)
-                type_label.grid(row=row, column=2, sticky='w', pady=5)
-                row += 1
+            if not key.startswith('run1_'):
+                continue
+            # Parameter name label
+            label = tk.Label(main_frame, text=f"{key[5:]}:", anchor='e', width=15)
+            label.grid(row=row, column=0, sticky='w', pady=5)
+            # Entry field for run1
+            self.entry_vars[key] = tk.StringVar()
+            self.entry_vars[key].trace_add('write', lambda *args: self.update_colour_param_run1_run2())
+            entry = tk.Entry(main_frame, textvariable=self.entry_vars[key], width=10)
+            entry.insert(0, str(info['value']))
+            entry.grid(row=row, column=1, padx=10, pady=5)
+            self.entries[key] = entry  # dictionary to hold entry widgets
+            # Entry field for run2
+            key2 = 'run2_' + key[5:]
+            self.entry_vars[key2] = tk.StringVar()
+            self.entry_vars[key2].trace_add('write', lambda *args: self.update_colour_param_run1_run2())
+            entry = tk.Entry(main_frame, textvariable=self.entry_vars[key2], width=10)
+            entry.insert(0, str(self.param_dict[key2]['value']))
+            entry.grid(row=row, column=2, padx=10, pady=5)
+            self.entries['run2_'+key[5:]] = entry  # dictionary to hold entry widgets
+            # Type label
+            type_label = tk.Label(main_frame, text=f"({info['type'].__name__})", fg='gray', anchor='w', width=10)
+            type_label.grid(row=row, column=3, sticky='w', pady=5)
+            row += 1
+        # self.update_colour_param_run1_run2()
 
         # Separator
         separator1 = ttk.Separator(main_frame, orient='horizontal')
-        separator1.grid(row=row, column=0, columnspan=3, sticky='ew', pady=(10, 10))
+        separator1.grid(row=row, column=0, columnspan=4, sticky='ew', pady=(10, 10))
         row += 1
 
         # Subtitle for additional parameters
         subtitle_label = tk.Label(main_frame, text="Additional Parameters", font=("Arial", 14, "bold"))
-        subtitle_label.grid(row=row, column=0, columnspan=3, pady=(0, 15))
+        subtitle_label.grid(row=row, column=0, columnspan=4, pady=(0, 15))
         row += 1
 
         # Dilation label and entry
@@ -134,12 +149,12 @@ class ParameterEditor:
 
         # Separator
         separator2 = ttk.Separator(main_frame, orient='horizontal')
-        separator2.grid(row=row, column=0, columnspan=3, sticky='ew', pady=(10, 10))
+        separator2.grid(row=row, column=0, columnspan=4, sticky='ew', pady=(10, 10))
         row += 1
 
         # Subtitle for region to be examined
         subtitle_label = tk.Label(main_frame, text="Region to be Examined", font=("Arial", 14, "bold"))
-        subtitle_label.grid(row=row, column=0, columnspan=3, pady=(0, 15))
+        subtitle_label.grid(row=row, column=0, columnspan=4, pady=(0, 15))
         row += 1
 
         # Region to be examined label and entries
@@ -165,12 +180,12 @@ class ParameterEditor:
 
         # Separator
         separator3 = ttk.Separator(main_frame, orient='horizontal')
-        separator3.grid(row=row, column=0, columnspan=3, sticky='ew', pady=(10, 10))
+        separator3.grid(row=row, column=0, columnspan=4, sticky='ew', pady=(10, 10))
         row += 1
 
         # Button frame
         button_frame = tk.Frame(main_frame)
-        button_frame.grid(row=row, column=0, columnspan=3, pady=(5, 0))
+        button_frame.grid(row=row, column=0, columnspan=4, pady=(5, 0))
 
         # OK button
         ok_button = tk.Button(button_frame, text="OK", width=5, command=self.on_ok)
@@ -190,6 +205,8 @@ class ParameterEditor:
             updated_dict = {}
 
             for key, info in self.param_dict.items():
+                if key == 'nruns':
+                    continue
                 entry_value = self.entries[key].get()
                 value_type = info['type']
 
@@ -212,6 +229,17 @@ class ParameterEditor:
                     'type': value_type
                 }
 
+            # Check whether any run1 and run2 parameters differ
+            nruns = 1
+            for key in self.param_dict.keys():
+                if key.startswith('run1_'):
+                    parname = key[5:]
+                    key2 = 'run2_' + parname
+                    if updated_dict[key]['value'] != updated_dict[key2]['value']:
+                        nruns = 2
+                        print(f"Parameter '{parname}' differs between run1 and run2: "
+                              f"{updated_dict[key]['value']} (run1) vs {updated_dict[key2]['value']} (run2)")
+
             # Additional validation for region limits
             try:
                 if updated_dict['xmax']['value'] <= updated_dict['xmin']['value']:
@@ -219,6 +247,9 @@ class ParameterEditor:
                 if updated_dict['ymax']['value'] <= updated_dict['ymin']['value']:
                     raise ValueError("ymax must be greater than ymin")
                 self.result_dict = updated_dict
+                self.result_dict['nruns'] = {'value': nruns, 'type': int, 'positive': True}
+                if nruns not in [1, 2]:
+                    raise ValueError("nruns must be 1 or 2")
                 self.root.destroy()
             except ValueError as e:
                 messagebox.showerror("Invalid Inputs",
@@ -243,9 +274,23 @@ class ParameterEditor:
         self.param_dict['ymin']['value'] = 1
         self.param_dict['ymax']['value'] = self.imgshape[0]
         for key, info in self.param_dict.items():
+            if key == 'nruns':
+                continue
             self.entries[key].delete(0, tk.END)
             self.entries[key].insert(0, str(info['value']))
 
     def get_result(self):
         """Return the updated dictionary"""
         return self.result_dict
+
+    def update_colour_param_run1_run2(self):
+        """Update the foreground color of run1 and run2 entries."""
+        # Highlight run2 parameter if different from run1
+        for key in self.param_dict.keys():
+            if key.startswith('run1_'):
+                parname = key[5:]
+                if key in self.entries and 'run2_'+parname in self.entries:
+                    if self.entries[key].get() != self.entries['run2_'+parname].get():
+                        self.entries['run2_'+parname].config(fg='red')
+                    else:
+                        self.entries['run2_'+parname].config(fg='black')
