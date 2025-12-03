@@ -23,7 +23,6 @@ from scipy import ndimage
 import numpy as np
 import os
 from rich import print
-from tqdm import tqdm
 
 from .definitions import lacosmic_default_dict
 from .definitions import DEFAULT_NPOINTS_INTERP
@@ -38,6 +37,7 @@ from .interpolationeditor import InterpolationEditor
 from .imagedisplay import ImageDisplay
 from .parametereditor import ParameterEditor
 from .reviewcosmicray import ReviewCosmicRay
+from .modalprogressbar import ModalProgressBar
 
 from ..imshow import imshow
 from ..sliceregion import SliceRegion2D
@@ -547,61 +547,63 @@ class CosmicRayCleanerApp(ImageDisplay):
                 self.mask_crfound[self.mask_crfound] = False
                 num_cr_cleaned = self.num_features
             else:
-                for i in tqdm(range(1, self.num_features + 1)):
-                    tmp_mask_fixed = np.zeros_like(self.data, dtype=bool)
-                    if cleaning_method == 'x':
-                        interpolation_performed, _, _ = interpolation_x(
-                            data=self.data,
-                            mask_fixed=tmp_mask_fixed,
-                            cr_labels=self.cr_labels,
-                            cr_index=i,
-                            npoints=editor.npoints,
-                            degree=editor.degree
-                        )
-                    elif cleaning_method == 'y':
-                        interpolation_performed, _, _ = interpolation_y(
-                            data=self.data,
-                            mask_fixed=tmp_mask_fixed,
-                            cr_labels=self.cr_labels,
-                            cr_index=i,
-                            npoints=editor.npoints,
-                            degree=editor.degree
-                        )
-                    elif cleaning_method == 'a-plane':
-                        interpolation_performed, _, _ = interpolation_a(
-                            data=self.data,
-                            mask_fixed=tmp_mask_fixed,
-                            cr_labels=self.cr_labels,
-                            cr_index=i,
-                            npoints=editor.npoints,
-                            method='surface'
-                        )
-                    elif cleaning_method == 'a-median':
-                        interpolation_performed, _, _ = interpolation_a(
-                            data=self.data,
-                            mask_fixed=tmp_mask_fixed,
-                            cr_labels=self.cr_labels,
-                            cr_index=i,
-                            npoints=editor.npoints,
-                            method='median'
-                        )
-                    elif cleaning_method == 'a-mean':
-                        interpolation_performed, _, _ = interpolation_a(
-                            data=self.data,
-                            mask_fixed=tmp_mask_fixed,
-                            cr_labels=self.cr_labels,
-                            cr_index=i,
-                            npoints=editor.npoints,
-                            method='mean'
-                        )
-                    else:
-                        raise ValueError(f"Unknown cleaning method: {cleaning_method}")
-                    if interpolation_performed:
-                        num_cr_cleaned += 1
-                        # update mask_fixed to include the newly fixed pixels
-                        self.mask_fixed[tmp_mask_fixed] = True
-                        # upate mask_crfound by eliminating the cleaned pixels
-                        self.mask_crfound[tmp_mask_fixed] = False
+                with ModalProgressBar(parent=self.root, iterable=range(1, self.num_features + 1),
+                                      desc="Cleaning cosmic rays") as pbar:
+                    for i in pbar:
+                        tmp_mask_fixed = np.zeros_like(self.data, dtype=bool)
+                        if cleaning_method == 'x':
+                            interpolation_performed, _, _ = interpolation_x(
+                                data=self.data,
+                                mask_fixed=tmp_mask_fixed,
+                                cr_labels=self.cr_labels,
+                                cr_index=i,
+                                npoints=editor.npoints,
+                                degree=editor.degree
+                            )
+                        elif cleaning_method == 'y':
+                            interpolation_performed, _, _ = interpolation_y(
+                                data=self.data,
+                                mask_fixed=tmp_mask_fixed,
+                                cr_labels=self.cr_labels,
+                                cr_index=i,
+                                npoints=editor.npoints,
+                                degree=editor.degree
+                            )
+                        elif cleaning_method == 'a-plane':
+                            interpolation_performed, _, _ = interpolation_a(
+                                data=self.data,
+                                mask_fixed=tmp_mask_fixed,
+                                cr_labels=self.cr_labels,
+                                cr_index=i,
+                                npoints=editor.npoints,
+                                method='surface'
+                            )
+                        elif cleaning_method == 'a-median':
+                            interpolation_performed, _, _ = interpolation_a(
+                                data=self.data,
+                                mask_fixed=tmp_mask_fixed,
+                                cr_labels=self.cr_labels,
+                                cr_index=i,
+                                npoints=editor.npoints,
+                                method='median'
+                            )
+                        elif cleaning_method == 'a-mean':
+                            interpolation_performed, _, _ = interpolation_a(
+                                data=self.data,
+                                mask_fixed=tmp_mask_fixed,
+                                cr_labels=self.cr_labels,
+                                cr_index=i,
+                                npoints=editor.npoints,
+                                method='mean'
+                            )
+                        else:
+                            raise ValueError(f"Unknown cleaning method: {cleaning_method}")
+                        if interpolation_performed:
+                            num_cr_cleaned += 1
+                            # update mask_fixed to include the newly fixed pixels
+                            self.mask_fixed[tmp_mask_fixed] = True
+                            # upate mask_crfound by eliminating the cleaned pixels
+                            self.mask_crfound[tmp_mask_fixed] = False
             print(f"Number of cosmic rays identified and cleaned: {num_cr_cleaned}")
             # recalculate labels and number of features
             structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
