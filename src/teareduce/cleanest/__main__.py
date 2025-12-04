@@ -12,6 +12,7 @@
 import argparse
 import tkinter as tk
 import os
+import platform
 from rich import print
 from rich_argparse import RichHelpFormatter
 
@@ -55,12 +56,18 @@ def main():
 
     # Initialize Tkinter root
     root = tk.Tk()
+    system = platform.system()
+    if system == "Darwin":  # macOS
+        # Center the window on the screen
+        xoffset = root.winfo_screenwidth() // 2 - args.width // 2
+        yoffset = root.winfo_screenheight() // 2 - args.height // 2
+    else:
+        # Note that geometry("XxY+Xoffset+Yoffset") does not work properly on Fedora Linux
+        xoffset = 0
+        yoffset = 0
+    root.geometry(f"+{xoffset}+{yoffset}")
     root.focus_force()  # Request focus
     root.lift()         # Bring to front
-    # Center the window on the screen
-    xoffset = root.winfo_screenwidth() // 2 - args.width // 2
-    yoffset = root.winfo_screenheight() // 2 - args.height // 2
-    root.geometry(f"+{xoffset}+{yoffset}")
 
     # Create and run the application
     CosmicRayCleanerApp(
