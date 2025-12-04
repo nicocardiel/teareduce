@@ -19,8 +19,8 @@ from .definitions import VALID_CLEANING_METHODS
 
 class InterpolationEditor:
     """Dialog to select interpolation cleaning parameters."""
-    def __init__(self, root, last_dilation, last_npoints, last_degree, auxdata,
-                 xmin, xmax, ymin, ymax, imgshape):
+
+    def __init__(self, root, last_dilation, last_npoints, last_degree, auxdata, xmin, xmax, ymin, ymax, imgshape):
         """Initialize the interpolation editor dialog.
 
         Parameters
@@ -97,7 +97,7 @@ class InterpolationEditor:
             "median": "a-median",
             "mean": "a-mean",
             "lacosmic": "lacosmic",
-            "auxdata": "auxdata"
+            "auxdata": "auxdata",
         }
         self.check_interp_methods()
         # Initialize parameters
@@ -148,13 +148,13 @@ class InterpolationEditor:
                     text=interp_method,
                     variable=self.cleaning_method_var,
                     value=interp_method,
-                    command=self.action_on_method_change
-                ).grid(row=row, column=1, sticky='w')
+                    command=self.action_on_method_change,
+                ).grid(row=row, column=1, sticky="w")
                 row += 1
 
         # Separator
-        separator1 = ttk.Separator(main_frame, orient='horizontal')
-        separator1.grid(row=row, column=0, columnspan=3, sticky='ew', pady=(10, 10))
+        separator1 = ttk.Separator(main_frame, orient="horizontal")
+        separator1.grid(row=row, column=0, columnspan=3, sticky="ew", pady=(10, 10))
         row += 1
 
         # Subtitle for additional parameters
@@ -163,22 +163,22 @@ class InterpolationEditor:
         row += 1
 
         # Create labels and entry fields for each additional parameter
-        label = tk.Label(main_frame, text='Npoints:')
-        label.grid(row=row, column=0, sticky='e', padx=(0, 10))
+        label = tk.Label(main_frame, text="Npoints:")
+        label.grid(row=row, column=0, sticky="e", padx=(0, 10))
         self.entry_npoints = tk.Entry(main_frame, width=10)
         self.entry_npoints.insert(0, self.npoints)
-        self.entry_npoints.grid(row=row, column=1, sticky='w')
+        self.entry_npoints.grid(row=row, column=1, sticky="w")
         row += 1
-        label = tk.Label(main_frame, text='Degree:')
-        label.grid(row=row, column=0, sticky='e', padx=(0, 10))
+        label = tk.Label(main_frame, text="Degree:")
+        label.grid(row=row, column=0, sticky="e", padx=(0, 10))
         self.entry_degree = tk.Entry(main_frame, width=10)
         self.entry_degree.insert(0, self.degree)
-        self.entry_degree.grid(row=row, column=1, sticky='w')
+        self.entry_degree.grid(row=row, column=1, sticky="w")
         row += 1
 
         # Separator
-        separator2 = ttk.Separator(main_frame, orient='horizontal')
-        separator2.grid(row=row, column=0, columnspan=3, sticky='ew', pady=(10, 10))
+        separator2 = ttk.Separator(main_frame, orient="horizontal")
+        separator2.grid(row=row, column=0, columnspan=3, sticky="ew", pady=(10, 10))
         row += 1
 
         # Subtitle for region to be examined
@@ -187,10 +187,10 @@ class InterpolationEditor:
         row += 1
 
         # Region to be examined label and entries
-        for key in ['xmin', 'xmax', 'ymin', 'ymax']:
+        for key in ["xmin", "xmax", "ymin", "ymax"]:
             # Parameter name label
-            label = tk.Label(main_frame, text=f"{key}:", anchor='e', width=15)
-            label.grid(row=row, column=0, sticky='w', pady=5)
+            label = tk.Label(main_frame, text=f"{key}:", anchor="e", width=15)
+            label.grid(row=row, column=0, sticky="w", pady=5)
             # Entry field
             entry = tk.Entry(main_frame, width=10)
             entry.insert(0, str(self.__dict__[key]))
@@ -198,17 +198,17 @@ class InterpolationEditor:
             self.entries[key] = entry  # dictionary to hold entry widgets
             # Type label
             dumtext = "(int)"
-            if key in ['xmin', 'xmax']:
+            if key in ["xmin", "xmax"]:
                 dumtext += f" --> [1, {self.imgshape[1]}]"
             else:
                 dumtext += f" --> [1, {self.imgshape[0]}]"
-            type_label = tk.Label(main_frame, text=dumtext, fg='gray', anchor='w', width=15)
-            type_label.grid(row=row, column=2, sticky='w', pady=5)
+            type_label = tk.Label(main_frame, text=dumtext, fg="gray", anchor="w", width=15)
+            type_label.grid(row=row, column=2, sticky="w", pady=5)
             row += 1
 
         # Separator
-        separator3 = ttk.Separator(main_frame, orient='horizontal')
-        separator3.grid(row=row, column=0, columnspan=3, sticky='ew', pady=(10, 10))
+        separator3 = ttk.Separator(main_frame, orient="horizontal")
+        separator3.grid(row=row, column=0, columnspan=3, sticky="ew", pady=(10, 10))
         row += 1
 
         # Button frame
@@ -217,11 +217,11 @@ class InterpolationEditor:
 
         # OK button
         self.ok_button = tk.Button(self.button_frame, text="OK", width=5, command=self.on_ok)
-        self.ok_button.pack(side='left', padx=5)
+        self.ok_button.pack(side="left", padx=5)
 
         # Cancel button
         self.cancel_button = tk.Button(self.button_frame, text="Cancel", width=5, command=self.on_cancel)
-        self.cancel_button.pack(side='left', padx=5)
+        self.cancel_button.pack(side="left", padx=5)
 
         # Initial action depending on the default method
         self.action_on_method_change()
@@ -247,18 +247,18 @@ class InterpolationEditor:
             messagebox.showerror("Input Error", "Degree must be non-negative.")
             return
 
-        if self.cleaning_method in ['x', 'y'] and 2 * self.npoints <= self.degree:
+        if self.cleaning_method in ["x", "y"] and 2 * self.npoints <= self.degree:
             messagebox.showerror("Input Error", "2*Npoints must be greater than Degree for x and y interpolation.")
             return
 
         # Retrieve and validate region parameters
         try:
-            xmin = int(self.entries['xmin'].get())
+            xmin = int(self.entries["xmin"].get())
         except ValueError:
             messagebox.showerror("Input Error", "xmin must be an integer.")
             return
         try:
-            xmax = int(self.entries['xmax'].get())
+            xmax = int(self.entries["xmax"].get())
         except ValueError:
             messagebox.showerror("Input Error", "xmax must be an integer.")
             return
@@ -266,12 +266,12 @@ class InterpolationEditor:
             messagebox.showerror("Input Error", "xmin must be less than xmax.")
             return
         try:
-            ymin = int(self.entries['ymin'].get())
+            ymin = int(self.entries["ymin"].get())
         except ValueError:
             messagebox.showerror("Input Error", "ymin must be an integer.")
             return
         try:
-            ymax = int(self.entries['ymax'].get())
+            ymax = int(self.entries["ymax"].get())
         except ValueError:
             messagebox.showerror("Input Error", "ymax must be an integer.")
             return
@@ -280,7 +280,7 @@ class InterpolationEditor:
             return
         for key, entry in self.entries.items():
             value = int(entry.get())
-            if key in ['xmin', 'xmax']:
+            if key in ["xmin", "xmax"]:
                 if not (1 <= value <= self.imgshape[1]):
                     messagebox.showerror("Input Error", f"{key} must be in the range [1, {self.imgshape[1]}].")
                     return
@@ -303,24 +303,24 @@ class InterpolationEditor:
         """Handle changes in the selected cleaning method."""
         selected_method = self.cleaning_method_var.get()
         print(f"Selected cleaning method: {selected_method}")
-        if selected_method in ['x interp.', 'y interp.']:
-            self.entry_npoints.config(state='normal')
-            self.entry_degree.config(state='normal')
-        elif selected_method == 'surface interp.':
-            self.entry_npoints.config(state='normal')
-            self.entry_degree.config(state='disabled')
-        elif selected_method == 'median':
-            self.entry_npoints.config(state='normal')
-            self.entry_degree.config(state='disabled')
-        elif selected_method == 'mean':
-            self.entry_npoints.config(state='normal')
-            self.entry_degree.config(state='disabled')
-        elif selected_method == 'lacosmic':
-            self.entry_npoints.config(state='disabled')
-            self.entry_degree.config(state='disabled')
-        elif selected_method == 'auxdata':
-            self.entry_npoints.config(state='disabled')
-            self.entry_degree.config(state='disabled')
+        if selected_method in ["x interp.", "y interp."]:
+            self.entry_npoints.config(state="normal")
+            self.entry_degree.config(state="normal")
+        elif selected_method == "surface interp.":
+            self.entry_npoints.config(state="normal")
+            self.entry_degree.config(state="disabled")
+        elif selected_method == "median":
+            self.entry_npoints.config(state="normal")
+            self.entry_degree.config(state="disabled")
+        elif selected_method == "mean":
+            self.entry_npoints.config(state="normal")
+            self.entry_degree.config(state="disabled")
+        elif selected_method == "lacosmic":
+            self.entry_npoints.config(state="disabled")
+            self.entry_degree.config(state="disabled")
+        elif selected_method == "auxdata":
+            self.entry_npoints.config(state="disabled")
+            self.entry_degree.config(state="disabled")
 
     def check_interp_methods(self):
         """Check that all interpolation methods are valid."""

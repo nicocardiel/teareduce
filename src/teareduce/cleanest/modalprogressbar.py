@@ -15,8 +15,9 @@ import time
 
 
 class ModalProgressBar:
-    def __init__(self, parent, iterable=None, total=None, desc="Processing",
-                 completion_msg="Processing completed successfully!"):
+    def __init__(
+        self, parent, iterable=None, total=None, desc="Processing", completion_msg="Processing completed successfully!"
+    ):
         self.parent = parent
         self.iterable = iterable
         self.total = total if total is not None else (len(iterable) if iterable is not None else 100)
@@ -54,7 +55,7 @@ class ModalProgressBar:
         self.desc_label = tk.Label(self.window, text=self.desc, font=bold_font)
         self.desc_label.pack(padx=10, pady=5)
 
-        self.progress = ttk.Progressbar(self.window, length=minwinsize_x - 20, mode='determinate', maximum=self.total)
+        self.progress = ttk.Progressbar(self.window, length=minwinsize_x - 20, mode="determinate", maximum=self.total)
         self.progress.pack(padx=10, pady=10)
 
         self.status_label = tk.Label(self.window, text=f"0/{self.total} (0.0%)")
@@ -103,7 +104,7 @@ class ModalProgressBar:
 
     def update(self, n=1):
         self.current += n
-        self.progress['value'] = self.current
+        self.progress["value"] = self.current
         percentage = (self.current / self.total) * 100
 
         elapsed = time.time() - self.start_time
@@ -147,7 +148,7 @@ class ModalProgressBar:
         default_font = tk.font.nametofont("TkDefaultFont")
         bold_font = default_font.copy()
         bold_font.configure(weight="bold", size=default_font.cget("size") + 2)
-        self.desc_label.config(text=self.completion_msg, fg='green', font=bold_font)
+        self.desc_label.config(text=self.completion_msg, fg="green", font=bold_font)
 
         # Hide progress bar
         self.progress.pack_forget()

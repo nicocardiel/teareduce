@@ -60,6 +60,7 @@ class ImageDisplay:
     the displayed region can be determined from either the axes limits or a
     predefined region attribute.
     """
+
     def set_vmin(self):
         """Prompt user to set a new minimum display value (vmin)."""
         old_vmin = self.get_vmin()
@@ -72,7 +73,7 @@ class ImageDisplay:
             return
         self.vmin_button.config(text=f"vmin: {new_vmin:.2f}")
         self.image.set_clim(vmin=new_vmin)
-        if hasattr(self, 'image_aux'):
+        if hasattr(self, "image_aux"):
             self.image_aux.set_clim(vmin=new_vmin)
         self.canvas.draw_idle()
 
@@ -88,7 +89,7 @@ class ImageDisplay:
             return
         self.vmax_button.config(text=f"vmax: {new_vmax:.2f}")
         self.image.set_clim(vmax=new_vmax)
-        if hasattr(self, 'image_aux'):
+        if hasattr(self, "image_aux"):
             self.image_aux.set_clim(vmax=new_vmax)
         self.canvas.draw_idle()
 
@@ -102,7 +103,7 @@ class ImageDisplay:
 
     def get_displayed_region(self):
         """Get the currently displayed region of the image."""
-        if hasattr(self, 'ax'):
+        if hasattr(self, "ax"):
             xmin, xmax = self.ax.get_xlim()
             xmin = int(xmin + 0.5)
             if xmin < 1:
@@ -118,10 +119,8 @@ class ImageDisplay:
             if ymax > self.data.shape[0]:
                 ymax = self.data.shape[0]
             print(f"Setting min/max using axis limits: x=({xmin:.2f}, {xmax:.2f}), y=({ymin:.2f}, {ymax:.2f})")
-            region = self.region = SliceRegion2D(
-                f'[{xmin}:{xmax}, {ymin}:{ymax}]', mode='fits'
-            ).python
-        elif hasattr(self, 'region'):
+            region = self.region = SliceRegion2D(f"[{xmin}:{xmax}, {ymin}:{ymax}]", mode="fits").python
+        elif hasattr(self, "region"):
             region = self.region
         else:
             raise AttributeError("No axis or region defined for set_minmax.")
@@ -136,7 +135,7 @@ class ImageDisplay:
         self.vmax_button.config(text=f"vmax: {vmax_new:.2f}")
         self.image.set_clim(vmin=vmin_new)
         self.image.set_clim(vmax=vmax_new)
-        if hasattr(self, 'image_aux'):
+        if hasattr(self, "image_aux"):
             self.image_aux.set_clim(vmin=vmin_new)
             self.image_aux.set_clim(vmax=vmax_new)
         self.canvas.draw_idle()
@@ -149,7 +148,7 @@ class ImageDisplay:
         self.vmax_button.config(text=f"vmax: {vmax_new:.2f}")
         self.image.set_clim(vmin=vmin_new)
         self.image.set_clim(vmax=vmax_new)
-        if hasattr(self, 'image_aux'):
+        if hasattr(self, "image_aux"):
             self.image_aux.set_clim(vmin=vmin_new)
             self.image_aux.set_clim(vmax=vmax_new)
         self.canvas.draw_idle()

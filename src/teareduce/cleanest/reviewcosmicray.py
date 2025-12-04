@@ -31,15 +31,27 @@ from ..sliceregion import SliceRegion2D
 from ..zscale import zscale
 
 import matplotlib
+
 matplotlib.use("TkAgg")
 
 
 class ReviewCosmicRay(ImageDisplay):
     """Class to review suspected cosmic ray pixels."""
 
-    def __init__(self, root, data, auxdata, cleandata_lacosmic, cr_labels, num_features,
-                 first_cr_index=1, single_cr=False,
-                 last_dilation=None, last_npoints=None, last_degree=None):
+    def __init__(
+        self,
+        root,
+        data,
+        auxdata,
+        cleandata_lacosmic,
+        cr_labels,
+        num_features,
+        first_cr_index=1,
+        single_cr=False,
+        last_dilation=None,
+        last_npoints=None,
+        last_degree=None,
+    ):
         """Initialize the review window.
 
         Parameters
@@ -158,7 +170,7 @@ class ReviewCosmicRay(ImageDisplay):
         print(f"Number of cosmic ray pixels detected..: {sdum}")
         print(f"Number of cosmic rays (grouped pixels): {self.num_features:>{len(sdum)}}")
         if self.num_features == 0:
-            print('No CR hits found!')
+            print("No CR hits found!")
         else:
             self.cr_index = first_cr_index
             self.single_cr = single_cr
@@ -170,8 +182,9 @@ class ReviewCosmicRay(ImageDisplay):
         # Row 1 of buttons
         self.button_frame1 = tk.Frame(self.root)
         self.button_frame1.pack(pady=5)
-        self.ndeg_label = tk.Button(self.button_frame1, text=f"Npoints={self.npoints}, Degree={self.degree}",
-                                    command=self.set_ndeg)
+        self.ndeg_label = tk.Button(
+            self.button_frame1, text=f"Npoints={self.npoints}, Degree={self.degree}", command=self.set_ndeg
+        )
         self.ndeg_label.pack(side=tk.LEFT, padx=5)
         self.remove_crosses_button = tk.Button(self.button_frame1, text="remove all x's", command=self.remove_crosses)
         self.remove_crosses_button.pack(side=tk.LEFT, padx=5)
@@ -197,14 +210,13 @@ class ReviewCosmicRay(ImageDisplay):
         # the function is trying to deactivate the buttons before they are created, which
         # would lead to an error; in addition, since I have two buttons calling the same function
         # with different arguments, using lambda allows to differentiate them)
-        self.interp_s_button = tk.Button(self.button_frame2, text="[s]urface interp.",
-                                         command=lambda: self.interp_a('surface'))
+        self.interp_s_button = tk.Button(
+            self.button_frame2, text="[s]urface interp.", command=lambda: self.interp_a("surface")
+        )
         self.interp_s_button.pack(side=tk.LEFT, padx=5)
-        self.interp_d_button = tk.Button(self.button_frame2, text="me[d]ian",
-                                         command=lambda: self.interp_a('median'))
+        self.interp_d_button = tk.Button(self.button_frame2, text="me[d]ian", command=lambda: self.interp_a("median"))
         self.interp_d_button.pack(side=tk.LEFT, padx=5)
-        self.interp_m_button = tk.Button(self.button_frame2, text="[m]ean",
-                                         command=lambda: self.interp_a('mean'))
+        self.interp_m_button = tk.Button(self.button_frame2, text="[m]ean", command=lambda: self.interp_a("mean"))
         self.interp_m_button.pack(side=tk.LEFT, padx=5)
         self.interp_l_button = tk.Button(self.button_frame2, text="[l]acosmic", command=self.use_lacosmic)
         self.interp_l_button.pack(side=tk.LEFT, padx=5)
@@ -232,8 +244,7 @@ class ReviewCosmicRay(ImageDisplay):
 
         # Figure
         if self.auxdata is not None:
-            self.fig, (self.ax_aux, self.ax) = plt.subplots(
-                ncols=2, figsize=(11, 5.5), constrained_layout=True)
+            self.fig, (self.ax_aux, self.ax) = plt.subplots(ncols=2, figsize=(11, 5.5), constrained_layout=True)
         else:
             self.fig, self.ax = plt.subplots(figsize=(8, 5.5), constrained_layout=True)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
@@ -266,16 +277,17 @@ class ReviewCosmicRay(ImageDisplay):
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         ycr_list_original, xcr_list_original = np.where(self.cr_labels_original == self.cr_index)
         if self.first_plot:
-            print(f"Cosmic ray {self.cr_index}: "
-                  f"Number of pixels = {len(xcr_list)}, "
-                  f"Centroid = ({np.mean(xcr_list)+1:.2f}, {np.mean(ycr_list)+1:.2f})")
+            print(
+                f"Cosmic ray {self.cr_index}: "
+                f"Number of pixels = {len(xcr_list)}, "
+                f"Centroid = ({np.mean(xcr_list)+1:.2f}, {np.mean(ycr_list)+1:.2f})"
+            )
         # Use original positions to define the region to display in order
         # to avoid image shifts when some pixels are unmarked or new ones are marked
         i0 = int(np.mean(ycr_list_original) + 0.5)
         j0 = int(np.mean(xcr_list_original) + 0.5)
         max_distance_from_center = np.max(
-            [np.max(np.abs(ycr_list_original - i0)),
-             np.max(np.abs(xcr_list_original - j0))]
+            [np.max(np.abs(ycr_list_original - i0)), np.max(np.abs(xcr_list_original - j0))]
         )
         semiwidth = int(np.max([max_distance_from_center, MAX_PIXEL_DISTANCE_TO_CR]))
         jmin = j0 - semiwidth if j0 - semiwidth >= 0 else 0
@@ -291,22 +303,35 @@ class ReviewCosmicRay(ImageDisplay):
             imax = np.min([2 * semiwidth, self.data.shape[0] - 1])
         elif imax == self.data.shape[0] - 1:
             imin = np.max([0, self.data.shape[0] - 1 - 2 * semiwidth])
-        self.region = SliceRegion2D(f'[{jmin+1}:{jmax+1}, {imin+1}:{imax+1}]', mode='fits').python
+        self.region = SliceRegion2D(f"[{jmin+1}:{jmax+1}, {imin+1}:{imax+1}]", mode="fits").python
         self.ax.clear()
         vmin = self.get_vmin()
         vmax = self.get_vmax()
-        xlabel = 'X pixel (from 1 to NAXIS1)'
-        ylabel = 'Y pixel (from 1 to NAXIS2)'
-        self.image, _, _ = imshow(self.fig, self.ax, self.data[self.region], colorbar=False,
-                                  xlabel=xlabel, ylabel=ylabel,
-                                  vmin=vmin, vmax=vmax)
+        xlabel = "X pixel (from 1 to NAXIS1)"
+        ylabel = "Y pixel (from 1 to NAXIS2)"
+        self.image, _, _ = imshow(
+            self.fig,
+            self.ax,
+            self.data[self.region],
+            colorbar=False,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            vmin=vmin,
+            vmax=vmax,
+        )
         self.image.set_extent([jmin + 0.5, jmax + 1.5, imin + 0.5, imax + 1.5])
         if self.auxdata is not None:
             self.ax_aux.clear()
-            self.image_aux, _, _ = imshow(self.fig, self.ax_aux, self.auxdata[self.region],
-                                          colorbar=False,
-                                          xlabel=xlabel, ylabel=ylabel,
-                                          vmin=vmin, vmax=vmax)
+            self.image_aux, _, _ = imshow(
+                self.fig,
+                self.ax_aux,
+                self.auxdata[self.region],
+                colorbar=False,
+                xlabel=xlabel,
+                ylabel=ylabel,
+                vmin=vmin,
+                vmax=vmax,
+            )
             self.image_aux.set_extent([jmin + 0.5, jmax + 1.5, imin + 0.5, imax + 1.5])
             self.ax_aux.set_title("Auxiliary data")
         # Overplot cosmic ray pixels
@@ -316,10 +341,10 @@ class ReviewCosmicRay(ImageDisplay):
             xcr += 1  # from index to pixel
             ycr += 1  # from index to pixel
             if cleaned:
-                self.ax.plot(xcr, ycr, 'C1o', markersize=4)
+                self.ax.plot(xcr, ycr, "C1o", markersize=4)
             else:
-                self.ax.plot([xcr - 0.5, xcr + 0.5], [ycr + 0.5, ycr - 0.5], 'r-')
-                self.ax.plot([xcr - 0.5, xcr + 0.5], [ycr - 0.5, ycr + 0.5], 'r-')
+                self.ax.plot([xcr - 0.5, xcr + 0.5], [ycr + 0.5, ycr - 0.5], "r-")
+                self.ax.plot([xcr - 0.5, xcr + 0.5], [ycr - 0.5, ycr + 0.5], "r-")
         self.ax.set_xlim(xlim)
         self.ax.set_ylim(ylim)
         self.ax.set_title(f"Cosmic ray #{self.cr_index}/{self.num_features}")
@@ -329,12 +354,12 @@ class ReviewCosmicRay(ImageDisplay):
 
     def set_ndeg(self):
         """Set the number of points and degree for interpolation."""
-        new_npoints = simpledialog.askinteger("Set Npoints", "Enter Npoints:",
-                                              initialvalue=self.npoints,  minvalue=1)
+        new_npoints = simpledialog.askinteger("Set Npoints", "Enter Npoints:", initialvalue=self.npoints, minvalue=1)
         if new_npoints is None:
             return
-        new_degree = simpledialog.askinteger("Set degree", "Enter Degree (min=0):",
-                                             initialvalue=self.degree, minvalue=0)
+        new_degree = simpledialog.askinteger(
+            "Set degree", "Enter Degree (min=0):", initialvalue=self.degree, minvalue=0
+        )
         if new_degree is None:
             return
         self.degree = new_degree
@@ -365,14 +390,14 @@ class ReviewCosmicRay(ImageDisplay):
             cr_labels=self.cr_labels,
             cr_index=self.cr_index,
             npoints=self.npoints,
-            degree=self.degree
+            degree=self.degree,
         )
         if interpolation_performed:
             self.num_cr_cleaned += 1
         self.set_buttons_after_cleaning_cr()
         self.update_display(cleaned=interpolation_performed)
         if len(xfit_all) > 0:
-            self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
+            self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, "mo", markersize=4)  # +1: from index to pixel
             self.canvas.draw_idle()
 
     def interp_y(self):
@@ -387,14 +412,14 @@ class ReviewCosmicRay(ImageDisplay):
             cr_labels=self.cr_labels,
             cr_index=self.cr_index,
             npoints=self.npoints,
-            degree=self.degree
+            degree=self.degree,
         )
         if interpolation_performed:
             self.num_cr_cleaned += 1
         self.set_buttons_after_cleaning_cr()
         self.update_display(cleaned=interpolation_performed)
         if len(xfit_all) > 0:
-            self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
+            self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, "mo", markersize=4)  # +1: from index to pixel
             self.canvas.draw_idle()
 
     def interp_a(self, method):
@@ -412,14 +437,14 @@ class ReviewCosmicRay(ImageDisplay):
             cr_labels=self.cr_labels,
             cr_index=self.cr_index,
             npoints=self.npoints,
-            method=method
+            method=method,
         )
         if interpolation_performed:
             self.num_cr_cleaned += 1
         self.set_buttons_after_cleaning_cr()
         self.update_display(cleaned=interpolation_performed)
         if len(xfit_all) > 0:
-            self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, 'mo', markersize=4)  # +1: from index to pixel
+            self.ax.plot(np.array(xfit_all) + 1, np.array(yfit_all) + 1, "mo", markersize=4)  # +1: from index to pixel
             self.canvas.draw_idle()
 
     def use_lacosmic(self):
@@ -518,39 +543,39 @@ class ReviewCosmicRay(ImageDisplay):
 
     def on_key(self, event):
         """Handle key press events."""
-        if event.key == 'q':
+        if event.key == "q":
             pass  # Ignore the "q" key to prevent closing the window
-        elif event.key == 'r':
+        elif event.key == "r":
             if self.restore_cr_button.cget("state") != "disabled":
                 self.restore_cr()
-        elif event.key == 'x':
+        elif event.key == "x":
             if self.interp_x_button.cget("state") != "disabled":
                 self.interp_x()
-        elif event.key == 'y':
+        elif event.key == "y":
             if self.interp_y_button.cget("state") != "disabled":
                 self.interp_y()
-        elif event.key == 's':
+        elif event.key == "s":
             if self.interp_s_button.cget("state") != "disabled":
-                self.interp_a('surface')
-        elif event.key == 'd':
+                self.interp_a("surface")
+        elif event.key == "d":
             if self.interp_d_button.cget("state") != "disabled":
-                self.interp_a('median')
-        elif event.key == 'm':
+                self.interp_a("median")
+        elif event.key == "m":
             if self.interp_m_button.cget("state") != "disabled":
-                self.interp_a('mean')
-        elif event.key == 'l':
+                self.interp_a("mean")
+        elif event.key == "l":
             if self.interp_l_button.cget("state") != "disabled":
                 self.use_lacosmic()
-        elif event.key == 'a':
+        elif event.key == "a":
             if self.interp_aux_button.cget("state") != "disabled":
                 self.use_auxdata()
-        elif event.key == 'right' or event.key == 'c':
+        elif event.key == "right" or event.key == "c":
             self.continue_cr()
-        elif event.key == ',':
+        elif event.key == ",":
             self.set_minmax()
-        elif event.key == '/':
+        elif event.key == "/":
             self.set_zscale()
-        elif event.key == 'e':
+        elif event.key == "e":
             self.exit_review()
             return  # important: do not remove (to avoid errors)
         else:
@@ -560,8 +585,8 @@ class ReviewCosmicRay(ImageDisplay):
         """Handle mouse click events on the image."""
         if event.inaxes == self.ax:
             x, y = event.xdata, event.ydata
-            ix = int(x+0.5) - 1  # from pixel to index
-            iy = int(y+0.5) - 1  # from pixel to index
+            ix = int(x + 0.5) - 1  # from pixel to index
+            iy = int(y + 0.5) - 1  # from pixel to index
             if int(self.cr_labels[iy, ix]) == self.cr_index:
                 self.cr_labels[iy, ix] = 0
                 print(f"Pixel ({ix+1}, {iy+1}) unmarked as cosmic ray.")

@@ -18,9 +18,7 @@ from .interpolation_y import interpolation_y
 from .interpolation_a import interpolation_a
 
 
-def cleanest(data, mask_crfound, dilation=0,
-             interp_method=None, npoints=None, degree=None,
-             debug=False):
+def cleanest(data, mask_crfound, dilation=0, interp_method=None, npoints=None, degree=None, debug=False):
     """Interpolate pixels identified in a mask.
 
     The original data and mask are not modified. A copy of both
@@ -68,11 +66,11 @@ def cleanest(data, mask_crfound, dilation=0,
     """
     if interp_method is None:
         raise ValueError("interp_method must be specified.")
-    if interp_method not in ['x', 'y', 's', 'd', 'm']:
+    if interp_method not in ["x", "y", "s", "d", "m"]:
         raise ValueError(f"Unknown interp_method: {interp_method}")
     if npoints is None:
         raise ValueError("npoints must be specified.")
-    if degree is None and interp_method in ['x', 'y']:
+    if degree is None and interp_method in ["x", "y"]:
         raise ValueError("degree must be specified for the chosen interp_method.")
 
     # Apply dilation to the cosmic ray mask if needed
@@ -85,9 +83,7 @@ def cleanest(data, mask_crfound, dilation=0,
     mask_fixed = np.zeros_like(mask_crfound, dtype=bool)
 
     # Determine number of CR features
-    structure = [[1, 1, 1],
-                 [1, 1, 1],
-                 [1, 1, 1]]
+    structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
     cr_labels, num_features = ndimage.label(updated_mask_crfound, structure=structure)
     if debug:
         print(f"Number of cosmic ray pixels to be cleaned: {np.sum(updated_mask_crfound)}")
@@ -97,10 +93,10 @@ def cleanest(data, mask_crfound, dilation=0,
     cleaned_data = data.copy()
     num_cr_cleaned = 0
     for cr_index in range(1, num_features + 1):
-        if interp_method in ['x', 'y']:
+        if interp_method in ["x", "y"]:
             if 2 * npoints <= degree:
                 raise ValueError("2*npoints must be greater than degree for polynomial interpolation.")
-            if interp_method == 'x':
+            if interp_method == "x":
                 interp_func = interpolation_x
             else:
                 interp_func = interpolation_y
@@ -110,23 +106,24 @@ def cleanest(data, mask_crfound, dilation=0,
                 cr_labels=cr_labels,
                 cr_index=cr_index,
                 npoints=npoints,
-                degree=degree)
+                degree=degree,
+            )
             if interpolation_performed:
                 num_cr_cleaned += 1
-        elif interp_method in ['s', 'd', 'm']:
-            if interp_method == 's':
-                method = 'surface'
-            elif interp_method == 'd':
-                method = 'median'
-            elif interp_method == 'm':
-                method = 'mean'
+        elif interp_method in ["s", "d", "m"]:
+            if interp_method == "s":
+                method = "surface"
+            elif interp_method == "d":
+                method = "median"
+            elif interp_method == "m":
+                method = "mean"
             interpolation_performed, _, _ = interpolation_a(
                 data=cleaned_data,
                 mask_fixed=mask_fixed,
                 cr_labels=cr_labels,
                 cr_index=cr_index,
                 npoints=npoints,
-                method=method
+                method=method,
             )
             if interpolation_performed:
                 num_cr_cleaned += 1

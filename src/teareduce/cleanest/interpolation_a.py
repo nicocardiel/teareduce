@@ -53,14 +53,10 @@ def interpolation_a(data, mask_fixed, cr_labels, cr_index, npoints, method):
     by cosmic rays are interpolated.
     """
     # Mask of CR pixels
-    mask = (cr_labels == cr_index)
+    mask = cr_labels == cr_index
     # Dilate the mask to find border pixels
     # dilated_mask = binary_dilation(mask, structure=np.ones((3, 3)), iterations=npoints)
-    dilated_mask = dilatemask(
-        mask=mask,
-        iterations=npoints,
-        connectivity=1
-    )
+    dilated_mask = dilatemask(mask=mask, iterations=npoints, connectivity=1)
     # Border pixels are those in the dilated mask but not in the original mask
     border_mask = dilated_mask & (~mask)
     # Get coordinates of border pixels
@@ -68,7 +64,7 @@ def interpolation_a(data, mask_fixed, cr_labels, cr_index, npoints, method):
     zfit_all = data[yfit_all, xfit_all].tolist()
     # Perform interpolation
     interpolation_performed = False
-    if method == 'surface':
+    if method == "surface":
         if len(xfit_all) > 3:
             # Construct the design matrix for a 2D polynomial fit to a plane,
             # where each row corresponds to a point (x, y, z) and the model
@@ -84,10 +80,10 @@ def interpolation_a(data, mask_fixed, cr_labels, cr_index, npoints, method):
             interpolation_performed = True
         else:
             print("Not enough points to fit a plane")
-    elif method in ['median', 'mean']:
+    elif method in ["median", "mean"]:
         # Compute median of all surrounding points
         if len(zfit_all) > 0:
-            if method == 'median':
+            if method == "median":
                 zval = np.median(zfit_all)
             else:
                 zval = np.mean(zfit_all)
