@@ -153,8 +153,9 @@ class ReviewCosmicRay(ImageDisplay):
         self.last_dilation = last_dilation
         # Make a copy of the original labels to allow pixel re-marking
         self.cr_labels_original = self.cr_labels.copy()
-        print(f"Number of cosmic ray pixels detected..: {np.sum(self.cr_labels > 0)}")
-        print(f"Number of cosmic rays (grouped pixels): {self.num_features}")
+        sdum = str(np.sum(self.cr_labels > 0))
+        print(f"Number of cosmic ray pixels detected..: {sdum}")
+        print(f"Number of cosmic rays (grouped pixels): {self.num_features:>{len(sdum)}}")
         if self.num_features == 0:
             print('No CR hits found!')
         else:

@@ -31,12 +31,16 @@ class ParameterEditor:
             Title of the dialog window.
         xmin : int
             Minimum x-coordinate of the region to be examined.
+            From 1 to NAXIS1.
         xmax : int
             Maximum x-coordinate of the region to be examined.
+            From 1 to NAXIS1.
         ymin : int
             Minimum y-coordinate of the region to be examined.
+            From 1 to NAXIS2.
         ymax : int
             Maximum y-coordinate of the region to be examined.
+            From 1 to NAXIS2.
         imgshape : tuple
             Shape of the image (height, width).
 
@@ -90,7 +94,10 @@ class ParameterEditor:
         row = 0
 
         # Subtitle for L.A.Cosmic parameters
-        subtitle_label = tk.Label(main_frame, text="L.A.Cosmic Parameters", font=("Arial", 14, "bold"))
+        default_font = tk.font.nametofont("TkDefaultFont")
+        bold_font = default_font.copy()
+        bold_font.configure(weight="bold", size=default_font.cget("size") + 2)
+        subtitle_label = tk.Label(main_frame, text="L.A.Cosmic Parameters", font=bold_font)
         subtitle_label.grid(row=row, column=0, columnspan=4, pady=(0, 15))
         row += 1
 
@@ -131,7 +138,7 @@ class ParameterEditor:
         row += 1
 
         # Subtitle for additional parameters
-        subtitle_label = tk.Label(main_frame, text="Additional Parameters", font=("Arial", 14, "bold"))
+        subtitle_label = tk.Label(main_frame, text="Additional Parameters", font=bold_font)
         subtitle_label.grid(row=row, column=0, columnspan=4, pady=(0, 15))
         row += 1
 
@@ -153,7 +160,7 @@ class ParameterEditor:
         row += 1
 
         # Subtitle for region to be examined
-        subtitle_label = tk.Label(main_frame, text="Region to be Examined", font=("Arial", 14, "bold"))
+        subtitle_label = tk.Label(main_frame, text="Region to be Examined", font=bold_font)
         subtitle_label.grid(row=row, column=0, columnspan=4, pady=(0, 15))
         row += 1
 
