@@ -656,6 +656,13 @@ class CosmicRayCleanerApp(ImageDisplay):
                                     self.mask_fixed[tmp_mask_fixed] = True
                                     # upate mask_crfound by eliminating the cleaned pixels
                                     self.mask_crfound[tmp_mask_fixed] = False
+                                    # mark that data has been modified
+                                    data_has_been_modified = True
+            # If any pixels were cleaned, print message
+            if data_has_been_modified:
+                print("Cosmic ray cleaning applied.")
+            else:
+                print("No cosmic ray pixels cleaned.")
             # recalculate labels and number of features
             structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
             self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
