@@ -38,8 +38,9 @@ class ModalProgressBar:
         self.window.protocol("WM_DELETE_WINDOW", lambda: None)
 
         # Set geometry and force it
-        self.window.minsize(800, 230)
-        self.window.maxsize(800, 230)
+        minwinsize_x = 400
+        minwinsize_y = 150
+        self.window.minsize(minwinsize_x, minwinsize_y)
         self.window.update_idletasks()
         self.window.update()
 
@@ -48,20 +49,20 @@ class ModalProgressBar:
 
         # UI elements
         self.desc_label = tk.Label(self.window, text=self.desc, font=('Arial', 10, 'bold'))
-        self.desc_label.pack(pady=5)
+        self.desc_label.pack(padx=10, pady=5)
 
-        self.progress = ttk.Progressbar(self.window, length=600, mode='determinate', maximum=self.total)
-        self.progress.pack(pady=10)
+        self.progress = ttk.Progressbar(self.window, length=minwinsize_x - 20, mode='determinate', maximum=self.total)
+        self.progress.pack(padx=10, pady=10)
 
         self.status_label = tk.Label(self.window, text=f"0/{self.total} (0.0%)")
-        self.status_label.pack(pady=2)
+        self.status_label.pack(padx=10, pady=2)
 
         self.time_label = tk.Label(self.window, text="Elapsed: 0s | ETA: --")
-        self.time_label.pack(pady=2)
+        self.time_label.pack(padx=10, pady=2)
 
         # Continue button (to close the dialog after completion; hidden until done)
         self.continue_button = tk.Button(self.window, text="Continue", command=self._on_continue)
-        self.continue_button.pack(pady=10)
+        self.continue_button.pack(padx=10, pady=10)
         self.continue_button.pack_forget()  # Hide initially
 
         # Force another update
@@ -154,7 +155,7 @@ class ModalProgressBar:
         self.time_label.config(text=f"Total time: {elapsed_str}")
         
         # Show the Continue button
-        self.continue_button.pack(pady=15)
+        self.continue_button.pack(padx=10, pady=15)
         
         # Create a variable to track when Continue is clicked
         self._continue_var = tk.BooleanVar(value=False)
@@ -163,6 +164,7 @@ class ModalProgressBar:
         self.window.protocol("WM_DELETE_WINDOW", self._on_continue)
         
         self.window.update()
+        self._center_on_parent()
     
     def _on_continue(self):
         """Called when Continue button is clicked"""

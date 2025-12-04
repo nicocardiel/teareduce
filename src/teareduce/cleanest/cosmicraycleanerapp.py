@@ -375,7 +375,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             if self.lacosmic_params['nruns']['value'] not in [1, 2]:
                 raise ValueError("nruns must be 1 or 2")
             # Execute L.A.Cosmic with updated parameters
-            print("[bold green]Running L.A.Cosmic (run 1)...[/bold green]")
+            print("[bold green]Executing L.A.Cosmic (run 1)...[/bold green]")
             cleandata_lacosmic, mask_crfound = cosmicray_lacosmic(
                 self.data,
                 gain=self.lacosmic_params['run1_gain']['value'],
@@ -391,7 +391,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             mask_crfound = mask_crfound & (usefulmask.astype(bool))
             # Second execution if nruns == 2
             if self.lacosmic_params['nruns']['value'] == 2:
-                print("[bold green]Running L.A.Cosmic (run 2)...[/bold green]")
+                print("[bold green]Executing L.A.Cosmic (run 2)...[/bold green]")
                 cleandata_lacosmic2, mask_crfound2 = cosmicray_lacosmic(
                     self.data,
                     gain=self.lacosmic_params['run2_gain']['value'],
