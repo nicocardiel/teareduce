@@ -57,6 +57,10 @@ def main():
     root = tk.Tk()
     root.focus_force()  # Request focus
     root.lift()         # Bring to front
+    # Center the window on the screen
+    xoffset = root.winfo_screenwidth() // 2 - args.width // 2
+    yoffset = root.winfo_screenheight() // 2 - args.height // 2
+    root.geometry(f"+{xoffset}+{yoffset}")
 
     # Create and run the application
     CosmicRayCleanerApp(

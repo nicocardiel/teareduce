@@ -12,7 +12,7 @@
 
 def center_on_parent(child, parent, offset_x=0, offset_y=0):
     """Center child window on parent window.
-    
+
     Parameters
     ----------
     child : tk.Toplevel or tk.Tk
