@@ -179,7 +179,7 @@ class ParameterEditor:
                 self.entries[key] = entry  # dictionary to hold entry widgets
                 # Type label
                 dumtext = f"({info['type'].__name__})"
-                if key.lower() in ['xmax', 'ymax']:
+                if key.lower() in ['xmin', 'xmax']:
                     dumtext += f" --> [1, {self.imgshape[1]}]"
                 else:
                     dumtext += f" --> [1, {self.imgshape[0]}]"

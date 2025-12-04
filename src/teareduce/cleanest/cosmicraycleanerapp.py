@@ -25,6 +25,7 @@ import numpy as np
 import os
 from rich import print
 
+from .centerchildparent import center_on_parent
 from .definitions import lacosmic_default_dict
 from .definitions import DEFAULT_NPOINTS_INTERP
 from .definitions import DEFAULT_DEGREE_INTERP
@@ -306,7 +307,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.overplot_cr_button = tk.Button(self.button_frame1, text="CR overlay: Off",
                                                 command=self.toggle_cr_overlay)
         self.overplot_cr_button.pack(side=tk.LEFT, padx=5)
-        self.apply_lacosmic_button = tk.Button(self.button_frame1, text="Replace all detected CRs",
+        self.apply_lacosmic_button = tk.Button(self.button_frame1, text="Replace detected CRs",
                                                command=self.apply_lacosmic)
         self.apply_lacosmic_button.pack(side=tk.LEFT, padx=5)
         self.apply_lacosmic_button.config(state=tk.DISABLED)  # Initially disabled
@@ -376,6 +377,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.run_lacosmic_button.config(state=tk.DISABLED)
         # Define parameters for L.A.Cosmic from default dictionary
         editor_window = tk.Toplevel(self.root)
+        center_on_parent(child=editor_window, parent=self.root)
         editor = ParameterEditor(
             root=editor_window,
             param_dict=self.lacosmic_params,
@@ -545,6 +547,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             print(f"Number of cosmic rays (grouped pixels) detected by L.A.Cosmic: {self.num_features:>{len(sdum)}}")
             # Define parameters for L.A.Cosmic from default dictionary
             editor_window = tk.Toplevel(self.root)
+            center_on_parent(child=editor_window, parent=self.root)
             editor = InterpolationEditor(
                 root=editor_window,
                 last_dilation=self.lacosmic_params['dilation']['value'],
@@ -578,7 +581,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             data_has_been_modified = False
             if np.any(mask_crfound_region):
                 if cleaning_method == 'lacosmic':
-                    # Replace all detected CR pixels with L.A.Cosmic values
+                    # Replace detected CR pixels with L.A.Cosmic values
                     self.data[mask_crfound_region] = self.cleandata_lacosmic[mask_crfound_region]
                     # update mask_fixed to include the newly fixed pixels
                     self.mask_fixed[mask_crfound_region] = True
@@ -589,7 +592,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                     if self.auxdata is None:
                         print("No auxiliary data available. Cleaning skipped!")
                         return
-                    # Replace all detected CR pixels with auxiliary data values
+                    # Replace detected CR pixels with auxiliary data values
                     self.data[mask_crfound_region] = self.auxdata[mask_crfound_region]
                     # update mask_fixed to include the newly fixed pixels
                     self.mask_fixed[mask_crfound_region] = True
@@ -676,6 +679,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         """Open a window to examine and possibly clean detected cosmic rays."""
         self.working_in_review_window = True
         review_window = tk.Toplevel(self.root)
+        center_on_parent(child=review_window, parent=self.root)
         if ixpix is not None and iypix is not None:
             # select single pixel based on provided coordinates
             tmp_cr_labels = np.zeros_like(self.data, dtype=int)

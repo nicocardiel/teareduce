@@ -198,7 +198,7 @@ class InterpolationEditor:
             self.entries[key] = entry  # dictionary to hold entry widgets
             # Type label
             dumtext = "(int)"
-            if key in ['xmax', 'ymax']:
+            if key in ['xmin', 'xmax']:
                 dumtext += f" --> [1, {self.imgshape[1]}]"
             else:
                 dumtext += f" --> [1, {self.imgshape[0]}]"
