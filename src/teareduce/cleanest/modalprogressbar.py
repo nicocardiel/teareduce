@@ -125,15 +125,15 @@ class ModalProgressBar:
 
     def _format_time(self, seconds):
         if seconds < 60:
-            return f"{seconds:.1f}s"
+            return f"{seconds:.1f} s"
         elif seconds < 3600:
             minutes = int(seconds // 60)
             secs = int(seconds % 60)
-            return f"{minutes}m {secs}s"
+            return f"{minutes}m {secs} s"
         else:
             hours = int(seconds // 3600)
             minutes = int((seconds % 3600) // 60)
-            return f"{hours}h {minutes}m"
+            return f"{hours}h {minutes} m"
 
     def _show_completion(self):
         """Transform the window into a completion dialog"""

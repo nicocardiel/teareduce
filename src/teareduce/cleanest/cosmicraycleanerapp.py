@@ -158,6 +158,9 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.height = height
         self.root.minsize(self.width, self.height)
         self.root.update_idletasks()
+        xoffset = self.root.winfo_screenwidth() // 2 - self.width // 2
+        yoffset = self.root.winfo_screenheight() // 2 - self.height // 2
+        self.root.geometry(f"+{xoffset}+{yoffset}")
         self.root.title("Cosmic Ray Cleaner")
         self.fontfamily = fontfamily
         self.fontsize = fontsize

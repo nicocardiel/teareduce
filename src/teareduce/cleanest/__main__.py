@@ -55,6 +55,8 @@ def main():
 
     # Initialize Tkinter root
     root = tk.Tk()
+    root.focus_force()  # Request focus
+    root.lift()         # Bring to front
 
     # Create and run the application
     CosmicRayCleanerApp(
