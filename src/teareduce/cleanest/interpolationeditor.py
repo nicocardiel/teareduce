@@ -13,6 +13,7 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
 
+from .centerchildparent import center_on_parent
 from .definitions import VALID_CLEANING_METHODS
 
 
@@ -112,6 +113,7 @@ class InterpolationEditor:
         self.entries = {}
         # Create the form
         self.create_widgets()
+        center_on_parent(child=self.root, parent=self.root.master)
 
     def create_widgets(self):
         """Create the widgets for the dialog."""

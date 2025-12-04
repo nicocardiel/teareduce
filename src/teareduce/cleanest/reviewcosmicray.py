@@ -19,6 +19,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 import numpy as np
 from rich import print
 
+from .centerchildparent import center_on_parent
 from .definitions import MAX_PIXEL_DISTANCE_TO_CR
 from .imagedisplay import ImageDisplay
 from .interpolation_a import interpolation_a
@@ -162,6 +163,7 @@ class ReviewCosmicRay(ImageDisplay):
             self.cr_index = first_cr_index
             self.single_cr = single_cr
             self.create_widgets()
+            center_on_parent(child=self.root, parent=self.root.master, offset_x=50, offset_y=50)
 
     def create_widgets(self):
         """Create the GUI widgets for the review window."""
