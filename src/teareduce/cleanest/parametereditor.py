@@ -158,6 +158,18 @@ class ParameterEditor:
         type_label.grid(row=row, column=2, sticky="w", pady=5)
         row += 1
 
+        label = tk.Label(main_frame, text="Border Padding:", anchor="e", width=15)
+        label.grid(row=row, column=0, sticky="w", pady=5)
+        entry = tk.Entry(main_frame, width=10)
+        entry.insert(0, str(self.param_dict["borderpadd"]["value"]))
+        entry.grid(row=row, column=1, padx=10, pady=5)
+        self.entries["borderpadd"] = entry
+        type_label = tk.Label(
+            main_frame, text=f"({self.param_dict['borderpadd']['type'].__name__})", fg="gray", anchor="w", width=10
+        )
+        type_label.grid(row=row, column=2, sticky="w", pady=5)
+        row += 1
+
         # Separator
         separator2 = ttk.Separator(main_frame, orient="horizontal")
         separator2.grid(row=row, column=0, columnspan=4, sticky="ew", pady=(10, 10))

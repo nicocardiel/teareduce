@@ -434,8 +434,10 @@ class CosmicRayCleanerApp(ImageDisplay):
                 raise ValueError("nruns must be 1 or 2")
             # Execute L.A.Cosmic with updated parameters
             print("[bold green]Executing L.A.Cosmic (run 1)...[/bold green]")
+            borderpadd = updated_params["borderpadd"]["value"]
+            data_reflection_padded = np.pad(self.data, pad_width=borderpadd, mode="reflect")
             cleandata_lacosmic, mask_crfound = cosmicray_lacosmic(
-                self.data,
+                ccd=data_reflection_padded,
                 gain=self.lacosmic_params["run1_gain"]["value"],
                 readnoise=self.lacosmic_params["run1_readnoise"]["value"],
                 sigclip=self.lacosmic_params["run1_sigclip"]["value"],
@@ -444,6 +446,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                 niter=self.lacosmic_params["run1_niter"]["value"],
                 verbose=self.lacosmic_params["run1_verbose"]["value"],
             )
+            cleandata_lacosmic = cleandata_lacosmic[borderpadd:-borderpadd, borderpadd:-borderpadd]
+            mask_crfound = mask_crfound[borderpadd:-borderpadd, borderpadd:-borderpadd]
             # Apply usefulmask to consider only selected region
             cleandata_lacosmic *= usefulmask
             mask_crfound = mask_crfound & (usefulmask.astype(bool))
@@ -451,7 +455,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             if self.lacosmic_params["nruns"]["value"] == 2:
                 print("[bold green]Executing L.A.Cosmic (run 2)...[/bold green]")
                 cleandata_lacosmic2, mask_crfound2 = cosmicray_lacosmic(
-                    self.data,
+                    ccd=data_reflection_padded,
                     gain=self.lacosmic_params["run2_gain"]["value"],
                     readnoise=self.lacosmic_params["run2_readnoise"]["value"],
                     sigclip=self.lacosmic_params["run2_sigclip"]["value"],
@@ -460,6 +464,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                     niter=self.lacosmic_params["run2_niter"]["value"],
                     verbose=self.lacosmic_params["run2_verbose"]["value"],
                 )
+                cleandata_lacosmic2 = cleandata_lacosmic2[borderpadd:-borderpadd, borderpadd:-borderpadd]
+                mask_crfound2 = mask_crfound2[borderpadd:-borderpadd, borderpadd:-borderpadd]
                 # Apply usefulmask to consider only selected region
                 cleandata_lacosmic2 *= usefulmask
                 mask_crfound2 = mask_crfound2 & (usefulmask.astype(bool))

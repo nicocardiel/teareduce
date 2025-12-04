@@ -32,6 +32,7 @@ lacosmic_default_dict = {
     "run2_verbose": {"value": True, "type": bool},
     # Dilation of the mask
     "dilation": {"value": 0, "type": int, "positive": True},
+    "borderpadd": {"value": 10, "type": int, "positive": True},
     # Limits for the image section to process (pixels start at 1)
     "xmin": {"value": 1, "type": int, "positive": True},
     "xmax": {"value": None, "type": int, "positive": True},
