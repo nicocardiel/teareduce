@@ -11,6 +11,7 @@
 
 import tkinter as tk
 from tkinter import filedialog
+from tkinter import font as tkfont
 from tkinter import messagebox
 import sys
 
@@ -28,6 +29,10 @@ from .definitions import lacosmic_default_dict
 from .definitions import DEFAULT_NPOINTS_INTERP
 from .definitions import DEFAULT_DEGREE_INTERP
 from .definitions import MAX_PIXEL_DISTANCE_TO_CR
+from .definitions import DEFAULT_TK_WINDOW_SIZE_X
+from .definitions import DEFAULT_TK_WINDOW_SIZE_Y
+from .definitions import DEFAULT_FONT_FAMILY
+from .definitions import DEFAULT_FONT_SIZE
 from .dilatemask import dilatemask
 from .find_closest_true import find_closest_true
 from .interpolation_a import interpolation_a
@@ -50,7 +55,9 @@ matplotlib.use("TkAgg")
 class CosmicRayCleanerApp(ImageDisplay):
     """Main application class for cosmic ray cleaning."""
 
-    def __init__(self, root, input_fits, extension=0, auxfile=None, extension_auxfile=0):
+    def __init__(self, root, input_fits, extension=0, auxfile=None, extension_auxfile=0,
+                 fontfamily=DEFAULT_FONT_FAMILY, fontsize=DEFAULT_FONT_SIZE,
+                 width=DEFAULT_TK_WINDOW_SIZE_X, height=DEFAULT_TK_WINDOW_SIZE_Y):
         """
         Initialize the application.
 
@@ -66,6 +73,10 @@ class CosmicRayCleanerApp(ImageDisplay):
             Path to an auxiliary FITS file (default is None).
         extension_auxfile : int, optional
             FITS extension for auxiliary file (default is 0).
+        fontfamily : str, optional
+            Font family for the GUI (default is "Helvetica").
+        fontsize : int, optional
+            Font size for the GUI (default is 14).
 
         Methods
         -------
@@ -96,6 +107,12 @@ class CosmicRayCleanerApp(ImageDisplay):
         ----------
         root : tk.Tk
             The main Tkinter window.
+        fontfamily : str
+            Font family for the GUI.
+        fontsize : int
+            Font size for the GUI.
+        default_font : tkfont.Font
+            The default font used in the GUI.
         lacosmic_params : dict
             Dictionary of L.A.Cosmic parameters.
         input_fits : str
@@ -137,10 +154,16 @@ class CosmicRayCleanerApp(ImageDisplay):
         """
         self.root = root
         # self.root.geometry("800x800+50+0")  # This does not work in Fedora
-        self.root.minsize(800, 800)
+        self.width = width
+        self.height = height
+        self.root.minsize(self.width, self.height)
         self.root.update_idletasks()
-        self.root.geometry("+50+0")
         self.root.title("Cosmic Ray Cleaner")
+        self.fontfamily = fontfamily
+        self.fontsize = fontsize
+        self.default_font = tkfont.nametofont("TkDefaultFont")
+        self.default_font.configure(family=fontfamily, size=fontsize,
+                                    weight="normal", slant="roman", underline=0, overstrike=0)
         self.lacosmic_params = lacosmic_default_dict.copy()
         self.input_fits = input_fits
         self.extension = extension
@@ -308,16 +331,22 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
 
         # Figure
-        self.fig, self.ax = plt.subplots(figsize=(7, 5.5))
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
-        self.canvas.get_tk_widget().pack(padx=5, pady=5)
+        self.plot_frame = tk.Frame(self.root)
+        self.plot_frame.pack(padx=5, pady=5, fill=tk.BOTH, expand=True)
+        fig_dpi = 100
+        image_ratio = 480/640  # Default image ratio
+        fig_width_inches = self.width / fig_dpi
+        fig_height_inches = self.height * image_ratio / fig_dpi
+        self.fig, self.ax = plt.subplots(figsize=(fig_width_inches, fig_height_inches), dpi=fig_dpi)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.plot_frame)
+        canvas_widget = self.canvas.get_tk_widget()
+        canvas_widget.config(width=self.width, height=self.height * image_ratio)
+        canvas_widget.pack(expand=True)
         # The next two instructions prevent a segmentation fault when pressing "q"
         self.canvas.mpl_disconnect(self.canvas.mpl_connect("key_press_event", key_press_handler))
         self.canvas.mpl_connect("key_press_event", self.on_key)
         self.canvas.mpl_connect("button_press_event", self.on_click)
         canvas_widget = self.canvas.get_tk_widget()
-        # canvas_widget.pack(fill=tk.BOTH, expand=True)  # This does not work in Fedora
-        canvas_widget.pack(expand=True)
 
         # Matplotlib toolbar
         self.toolbar_frame = tk.Frame(self.root)

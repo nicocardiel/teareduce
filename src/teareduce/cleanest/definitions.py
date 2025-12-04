@@ -60,3 +60,11 @@ DEFAULT_NPOINTS_INTERP = 2
 
 # Default degree for interpolation
 DEFAULT_DEGREE_INTERP = 1
+
+# Default Tk window size
+DEFAULT_TK_WINDOW_SIZE_X = 800
+DEFAULT_TK_WINDOW_SIZE_Y = 700
+
+# Default font settings
+DEFAULT_FONT_FAMILY = "Helvetica"
+DEFAULT_FONT_SIZE = 14

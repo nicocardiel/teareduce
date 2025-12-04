@@ -15,6 +15,10 @@ import os
 from rich import print
 from rich_argparse import RichHelpFormatter
 
+from .definitions import DEFAULT_FONT_FAMILY
+from .definitions import DEFAULT_FONT_SIZE
+from .definitions import DEFAULT_TK_WINDOW_SIZE_X
+from .definitions import DEFAULT_TK_WINDOW_SIZE_Y
 from .cosmicraycleanerapp import CosmicRayCleanerApp
 
 import matplotlib
@@ -32,6 +36,14 @@ def main():
                         help="Auxiliary FITS file")
     parser.add_argument("--extension_auxfile", type=int, default=0,
                         help="FITS extension for auxiliary file (default: 0).")
+    parser.add_argument("--fontfamily", type=str, default=DEFAULT_FONT_FAMILY,
+                        help=f"Font family for the GUI (default: {DEFAULT_FONT_FAMILY}).")
+    parser.add_argument("--fontsize", type=int, default=DEFAULT_FONT_SIZE,
+                        help=f"Font size for the GUI (default: {DEFAULT_FONT_SIZE}).")
+    parser.add_argument("--width", type=int, default=DEFAULT_TK_WINDOW_SIZE_X,
+                        help=f"Width of the GUI window in pixels (default: {DEFAULT_TK_WINDOW_SIZE_X}).")
+    parser.add_argument("--height", type=int, default=DEFAULT_TK_WINDOW_SIZE_Y,
+                        help=f"Height of the GUI window in pixels (default: {DEFAULT_TK_WINDOW_SIZE_Y}).")
     args = parser.parse_args()
 
     if not os.path.isfile(args.input_fits):
@@ -50,7 +62,11 @@ def main():
         input_fits=args.input_fits,
         extension=args.extension,
         auxfile=args.auxfile,
-        extension_auxfile=args.extension_auxfile
+        extension_auxfile=args.extension_auxfile,
+        fontfamily=args.fontfamily,
+        fontsize=args.fontsize,
+        width=args.width,
+        height=args.height
     )
 
     # Execute
