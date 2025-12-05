@@ -306,17 +306,11 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Row 1 of buttons
         self.button_frame1 = tk.Frame(self.root)
         self.button_frame1.pack(pady=5)
+        self.cursor_selection_mode = False
+        self.run_cursor_button = tk.Button(self.button_frame1, text="[c]ursor: OFF", command=self.set_cursor_onoff)
+        self.run_cursor_button.pack(side=tk.LEFT, padx=5)
         self.run_lacosmic_button = tk.Button(self.button_frame1, text="Run L.A.Cosmic", command=self.run_lacosmic)
         self.run_lacosmic_button.pack(side=tk.LEFT, padx=5)
-        if self.overplot_cr_pixels:
-            self.overplot_cr_button = tk.Button(
-                self.button_frame1, text="CR overlay: On", command=self.toggle_cr_overlay
-            )
-        else:
-            self.overplot_cr_button = tk.Button(
-                self.button_frame1, text="CR overlay: Off", command=self.toggle_cr_overlay
-            )
-        self.overplot_cr_button.pack(side=tk.LEFT, padx=5)
         self.apply_lacosmic_button = tk.Button(
             self.button_frame1, text="Replace detected CRs", command=self.apply_lacosmic
         )
@@ -331,6 +325,16 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.root)
         self.button_frame2.pack(pady=5)
+        if self.auxdata is not None:
+            self.toggle_auxdata_button = tk.Button(
+                self.button_frame2, text="[t]oggle data", command=self.toggle_auxdata
+            )
+            self.toggle_auxdata_button.pack(side=tk.LEFT, padx=5)
+        self.image_aspect = "equal"
+        self.toggle_aspect_button = tk.Button(
+            self.button_frame2, text=f"[a]spect: {self.image_aspect}", command=self.toggle_aspect
+        )
+        self.toggle_aspect_button.pack(side=tk.LEFT, padx=5)
         self.save_button = tk.Button(self.button_frame2, text="Save cleaned FITS", command=self.save_fits_file)
         self.save_button.pack(side=tk.LEFT, padx=5)
         self.save_button.config(state=tk.DISABLED)  # Initially disabled
@@ -349,6 +353,19 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.set_minmax_button.pack(side=tk.LEFT, padx=5)
         self.set_zscale_button = tk.Button(self.button_frame3, text="zscale [/]", command=self.set_zscale)
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
+        if self.overplot_cr_pixels:
+            self.overplot_cr_button = tk.Button(
+                self.button_frame3,
+                text="CR overlay: ON ",
+                command=self.toggle_cr_overlay,
+            )
+        else:
+            self.overplot_cr_button = tk.Button(
+                self.button_frame3,
+                text="CR overlay: OFF",
+                command=self.toggle_cr_overlay,
+            )
+        self.overplot_cr_button.pack(side=tk.LEFT, padx=5)
 
         # Figure
         self.plot_frame = tk.Frame(self.root)
@@ -378,18 +395,62 @@ class CosmicRayCleanerApp(ImageDisplay):
         xlabel = "X pixel (from 1 to NAXIS1)"
         ylabel = "Y pixel (from 1 to NAXIS2)"
         extent = [0.5, self.data.shape[1] + 0.5, 0.5, self.data.shape[0] + 0.5]
+        self.image_aspect = "equal"
+        self.displaying_auxdata = False
         self.image, _, _ = imshow(
-            self.fig,
-            self.ax,
-            self.data,
+            fig=self.fig,
+            ax=self.ax,
+            data=self.data,
             vmin=vmin,
             vmax=vmax,
-            title=os.path.basename(self.input_fits),
+            title=f"data: {os.path.basename(self.input_fits)}",
             xlabel=xlabel,
             ylabel=ylabel,
             extent=extent,
+            aspect=self.image_aspect,
         )
         self.fig.tight_layout()
+
+    def set_cursor_onoff(self):
+        """Toggle cursor selection mode on or off."""
+        if not self.cursor_selection_mode:
+            self.cursor_selection_mode = True
+            self.run_cursor_button.config(text="[c]ursor: ON ")
+        else:
+            self.cursor_selection_mode = False
+            self.run_cursor_button.config(text="[c]ursor: OFF")
+
+    def toggle_auxdata(self):
+        """Toggle between main data and auxiliary data for display."""
+        if self.displaying_auxdata:
+            # Switch to main data
+            vmin = self.get_vmin()
+            vmax = self.get_vmax()
+            self.image.set_data(self.data)
+            self.image.set_clim(vmin=vmin, vmax=vmax)
+            self.displaying_auxdata = False
+            self.ax.set_title(f"data: {os.path.basename(self.input_fits)}")
+        else:
+            # Switch to auxiliary data
+            vmin = self.get_vmin()
+            vmax = self.get_vmax()
+            self.image.set_data(self.auxdata)
+            self.image.set_clim(vmin=vmin, vmax=vmax)
+            self.displaying_auxdata = True
+            self.ax.set_title(f"auxdata: {os.path.basename(self.auxfile)}")
+        self.canvas.draw_idle()
+
+    def toggle_aspect(self):
+        """Toggle the aspect ratio of the image display."""
+        if self.image_aspect == "equal":
+            self.image_aspect = "auto"
+        else:
+            self.image_aspect = "equal"
+        print(f"Setting image aspect to: {self.image_aspect}")
+        self.toggle_aspect_button.config(text=f"[a]spect: {self.image_aspect}")
+        self.ax.set_aspect(self.image_aspect)
+        self.fig.tight_layout()
+        self.canvas.draw_idle()
 
     def run_lacosmic(self):
         """Run L.A.Cosmic to detect cosmic rays."""
@@ -539,9 +600,9 @@ class CosmicRayCleanerApp(ImageDisplay):
         """Toggle the overlay of cosmic ray pixels on the image."""
         self.overplot_cr_pixels = not self.overplot_cr_pixels
         if self.overplot_cr_pixels:
-            self.overplot_cr_button.config(text="CR overlay: On")
+            self.overplot_cr_button.config(text="CR overlay: ON ")
         else:
-            self.overplot_cr_button.config(text="CR overlay: Off")
+            self.overplot_cr_button.config(text="CR overlay: OFF")
         self.update_cr_overlay()
 
     def update_cr_overlay(self):
@@ -792,12 +853,18 @@ class CosmicRayCleanerApp(ImageDisplay):
 
     def on_key(self, event):
         """Handle key press events."""
-        if event.key == "q":
-            pass  # Ignore the "q" key to prevent closing the window
+        if event.key == "c":
+            self.set_cursor_onoff()
         elif event.key == ",":
             self.set_minmax()
         elif event.key == "/":
             self.set_zscale()
+        elif event.key == "a":
+            self.toggle_aspect()
+        elif event.key == "t" and self.auxdata is not None:
+            self.toggle_auxdata()
+        elif event.key == "q":
+            pass  # Ignore the "q" key to prevent closing the window
         else:
             print(f"Key pressed: {event.key}")
 
@@ -812,6 +879,10 @@ class CosmicRayCleanerApp(ImageDisplay):
         toolbar = self.fig.canvas.toolbar
         if toolbar.mode != "":
             print(f"Toolbar mode '{toolbar.mode}' active; click ignored.")
+            return
+
+        # proceed only if cursor selection mode is on
+        if not self.cursor_selection_mode:
             return
 
         # ignore clicks outside the expected axes
