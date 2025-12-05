@@ -306,9 +306,6 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Row 1 of buttons
         self.button_frame1 = tk.Frame(self.root)
         self.button_frame1.pack(pady=5)
-        self.cursor_selection_mode = False
-        self.run_cursor_button = tk.Button(self.button_frame1, text="[c]ursor: OFF", command=self.set_cursor_onoff)
-        self.run_cursor_button.pack(side=tk.LEFT, padx=5)
         self.run_lacosmic_button = tk.Button(self.button_frame1, text="Run L.A.Cosmic", command=self.run_lacosmic)
         self.run_lacosmic_button.pack(side=tk.LEFT, padx=5)
         self.apply_lacosmic_button = tk.Button(
@@ -321,15 +318,19 @@ class CosmicRayCleanerApp(ImageDisplay):
         )
         self.examine_detected_cr_button.pack(side=tk.LEFT, padx=5)
         self.examine_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
+        self.cursor_selection_mode = False
+        self.run_cursor_button = tk.Button(self.button_frame1, text="[c]ursor: OFF", command=self.set_cursor_onoff)
+        self.run_cursor_button.pack(side=tk.LEFT, padx=5)
 
         # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.root)
         self.button_frame2.pack(pady=5)
-        if self.auxdata is not None:
-            self.toggle_auxdata_button = tk.Button(
-                self.button_frame2, text="[t]oggle data", command=self.toggle_auxdata
-            )
-            self.toggle_auxdata_button.pack(side=tk.LEFT, padx=5)
+        self.toggle_auxdata_button = tk.Button(self.button_frame2, text="[t]oggle data", command=self.toggle_auxdata)
+        self.toggle_auxdata_button.pack(side=tk.LEFT, padx=5)
+        if self.auxdata is None:
+            self.toggle_auxdata_button.config(state=tk.DISABLED)
+        else:
+            self.toggle_auxdata_button.config(state=tk.NORMAL)
         self.image_aspect = "equal"
         self.toggle_aspect_button = tk.Button(
             self.button_frame2, text=f"[a]spect: {self.image_aspect}", command=self.toggle_aspect
@@ -586,6 +587,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                 self.apply_lacosmic_button.config(state=tk.NORMAL)
                 self.examine_detected_cr_button.config(state=tk.NORMAL)
                 self.update_cr_overlay()
+                self.cursor_selection_mode = True
+                self.run_cursor_button.config(text="[c]ursor: ON ")
             else:
                 print("No cosmic ray pixels detected by L.A.Cosmic.")
                 self.cr_labels = None
@@ -855,18 +858,37 @@ class CosmicRayCleanerApp(ImageDisplay):
         """Handle key press events."""
         if event.key == "c":
             self.set_cursor_onoff()
-        elif event.key == ",":
-            self.set_minmax()
-        elif event.key == "/":
-            self.set_zscale()
         elif event.key == "a":
             self.toggle_aspect()
         elif event.key == "t" and self.auxdata is not None:
             self.toggle_auxdata()
+        elif event.key == ",":
+            self.set_minmax()
+        elif event.key == "/":
+            self.set_zscale()
+        elif event.key == "o":
+            self.toolbar.zoom()
+        elif event.key == "h":
+            self.toolbar.home()
+        elif event.key == "p":
+            self.toolbar.pan()
+        elif event.key == "s":
+            self.toolbar.save_figure()
+        elif event.key == "?":
+            # Display list of keyboard shortcuts
+            print("[bold blue]Keyboard Shortcuts:[/bold blue]")
+            print("[red]  c [/red]: Toggle cursor selection mode on/off")
+            print("[red]  t [/red]: Toggle between main data and auxiliary data")
+            print("[red]  a [/red]: Toggle image aspect ratio equal/auto")
+            print("[red]  , [/red]: Set vmin and vmax to minmax")
+            print("[red]  / [/red]: Set vmin and vmax using zscale")
+            print("[red]  h [/red]: Go to home view \\[toolbar]")
+            print("[red]  o [/red]: Activate zoom mode \\[toolbar]")
+            print("[red]  p [/red]: Activate pan mode \\[toolbar]")
+            print("[red]  s [/red]: Save the current figure \\[toolbar]")
+            print("[red]  q [/red]: (ignored) prevent closing the window")
         elif event.key == "q":
             pass  # Ignore the "q" key to prevent closing the window
-        else:
-            print(f"Key pressed: {event.key}")
 
     def on_click(self, event):
         """Handle mouse click events on the image."""

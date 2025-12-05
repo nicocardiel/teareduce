@@ -21,6 +21,7 @@ from .definitions import DEFAULT_FONT_SIZE
 from .definitions import DEFAULT_TK_WINDOW_SIZE_X
 from .definitions import DEFAULT_TK_WINDOW_SIZE_Y
 from .cosmicraycleanerapp import CosmicRayCleanerApp
+from ..version import VERSION
 
 import matplotlib
 
@@ -67,6 +68,13 @@ def main():
     )
     args = parser.parse_args()
 
+    # Welcome message
+    print("[bold green]Cosmic Ray Cleaner[/bold green]")
+    print("Interactive tool to clean cosmic rays from FITS images.")
+    print("teareduce version: " + VERSION)
+    print(f"https://nicocardiel.github.io/teareduce-cookbook/docs/cleanest/cleanest.html\n")
+
+    # Check that input files exist
     if not os.path.isfile(args.input_fits):
         print(f"Error: File '{args.input_fits}' does not exist.")
         return
