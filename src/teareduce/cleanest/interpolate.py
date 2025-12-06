@@ -19,7 +19,7 @@ from .interpolation_y import interpolation_y
 from .interpolation_a import interpolation_a
 
 
-def cleanest(data, mask_crfound, dilation=0, interp_method=None, npoints=None, degree=None, debug=False):
+def interpolate(data, mask_crfound, dilation=0, interp_method=None, npoints=None, degree=None, debug=False):
     """Interpolate pixels identified in a mask.
 
     The original data and mask are not modified. A copy of both
