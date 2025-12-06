@@ -16,7 +16,6 @@ from tkinter import messagebox
 import sys
 
 from astropy.io import fits
-from ccdproc import cosmicray_lacosmic
 import matplotlib.pyplot as plt
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -41,6 +40,7 @@ from .interpolation_x import interpolation_x
 from .interpolation_y import interpolation_y
 from .interpolationeditor import InterpolationEditor
 from .imagedisplay import ImageDisplay
+from .lacosmicpad import lacosmicpad
 from .parametereditor import ParameterEditor
 from .reviewcosmicray import ReviewCosmicRay
 from .modalprogressbar import ModalProgressBar
@@ -497,9 +497,9 @@ class CosmicRayCleanerApp(ImageDisplay):
             # Execute L.A.Cosmic with updated parameters
             print("[bold green]Executing L.A.Cosmic (run 1)...[/bold green]")
             borderpadd = updated_params["borderpadd"]["value"]
-            data_reflection_padded = np.pad(self.data, pad_width=borderpadd, mode="reflect")
-            cleandata_lacosmic, mask_crfound = cosmicray_lacosmic(
-                ccd=data_reflection_padded,
+            cleandata_lacosmic, mask_crfound = lacosmicpad(
+                pad_width=borderpadd,
+                ccd=self.data,
                 gain=self.lacosmic_params["run1_gain"]["value"],
                 readnoise=self.lacosmic_params["run1_readnoise"]["value"],
                 sigclip=self.lacosmic_params["run1_sigclip"]["value"],
@@ -508,16 +508,15 @@ class CosmicRayCleanerApp(ImageDisplay):
                 niter=self.lacosmic_params["run1_niter"]["value"],
                 verbose=self.lacosmic_params["run1_verbose"]["value"],
             )
-            cleandata_lacosmic = cleandata_lacosmic[borderpadd:-borderpadd, borderpadd:-borderpadd]
-            mask_crfound = mask_crfound[borderpadd:-borderpadd, borderpadd:-borderpadd]
             # Apply usefulmask to consider only selected region
             cleandata_lacosmic *= usefulmask
             mask_crfound = mask_crfound & (usefulmask.astype(bool))
             # Second execution if nruns == 2
             if self.lacosmic_params["nruns"]["value"] == 2:
                 print("[bold green]Executing L.A.Cosmic (run 2)...[/bold green]")
-                cleandata_lacosmic2, mask_crfound2 = cosmicray_lacosmic(
-                    ccd=data_reflection_padded,
+                cleandata_lacosmic2, mask_crfound2 = lacosmicpad(
+                    pad_width=borderpadd,
+                    ccd=self.data,
                     gain=self.lacosmic_params["run2_gain"]["value"],
                     readnoise=self.lacosmic_params["run2_readnoise"]["value"],
                     sigclip=self.lacosmic_params["run2_sigclip"]["value"],
@@ -526,8 +525,6 @@ class CosmicRayCleanerApp(ImageDisplay):
                     niter=self.lacosmic_params["run2_niter"]["value"],
                     verbose=self.lacosmic_params["run2_verbose"]["value"],
                 )
-                cleandata_lacosmic2 = cleandata_lacosmic2[borderpadd:-borderpadd, borderpadd:-borderpadd]
-                mask_crfound2 = mask_crfound2[borderpadd:-borderpadd, borderpadd:-borderpadd]
                 # Apply usefulmask to consider only selected region
                 cleandata_lacosmic2 *= usefulmask
                 mask_crfound2 = mask_crfound2 & (usefulmask.astype(bool))
