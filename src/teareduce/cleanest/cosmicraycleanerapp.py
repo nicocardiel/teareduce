@@ -41,6 +41,7 @@ from .interpolation_y import interpolation_y
 from .interpolationeditor import InterpolationEditor
 from .imagedisplay import ImageDisplay
 from .lacosmicpad import lacosmicpad
+from .mergemasks import merge_peak_tail_masks
 from .parametereditor import ParameterEditor
 from .reviewcosmicray import ReviewCosmicRay
 from .modalprogressbar import ModalProgressBar
@@ -532,19 +533,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 if np.any(mask_crfound):
                     print(f"Number of cosmic ray pixels (run1).......: {np.sum(mask_crfound)}")
                     print(f"Number of cosmic ray pixels (run2).......: {np.sum(mask_crfound2)}")
-                    # find features in second run
-                    structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
-                    cr_labels2, num_features2 = ndimage.label(mask_crfound2, structure=structure)
-                    # generate mask of ones at CR pixels found in first run
-                    mask_peaks = np.zeros(mask_crfound.shape, dtype=float)
-                    mask_peaks[mask_crfound] = 1.0
-                    # preserve only those CR pixels in second run that are in the first run
-                    cr_labels2_preserved = mask_peaks * cr_labels2
-                    # generate new mask with preserved CR pixels from second run
-                    mask_crfound = np.zeros_like(mask_crfound, dtype=bool)
-                    for icr in np.unique(cr_labels2_preserved):
-                        if icr > 0:
-                            mask_crfound[cr_labels2 == icr] = True
+                    mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound2)
                     print(f"Number of cosmic ray pixels (run1 & run2): {np.sum(mask_crfound)}")
                 # Use the cleandata from the second run
                 cleandata_lacosmic = cleandata_lacosmic2
