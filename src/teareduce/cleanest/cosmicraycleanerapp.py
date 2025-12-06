@@ -318,9 +318,9 @@ class CosmicRayCleanerApp(ImageDisplay):
         )
         self.examine_detected_cr_button.pack(side=tk.LEFT, padx=5)
         self.examine_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
-        self.cursor_selection_mode = False
-        self.run_cursor_button = tk.Button(self.button_frame1, text="[c]ursor: OFF", command=self.set_cursor_onoff)
-        self.run_cursor_button.pack(side=tk.LEFT, padx=5)
+        self.use_cursor = False
+        self.use_cursor_button = tk.Button(self.button_frame1, text="[c]ursor: OFF", command=self.set_cursor_onoff)
+        self.use_cursor_button.pack(side=tk.LEFT, padx=5)
 
         # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.root)
@@ -414,12 +414,12 @@ class CosmicRayCleanerApp(ImageDisplay):
 
     def set_cursor_onoff(self):
         """Toggle cursor selection mode on or off."""
-        if not self.cursor_selection_mode:
-            self.cursor_selection_mode = True
-            self.run_cursor_button.config(text="[c]ursor: ON ")
+        if not self.use_cursor:
+            self.use_cursor = True
+            self.use_cursor_button.config(text="[c]ursor: ON ")
         else:
-            self.cursor_selection_mode = False
-            self.run_cursor_button.config(text="[c]ursor: OFF")
+            self.use_cursor = False
+            self.use_cursor_button.config(text="[c]ursor: OFF")
 
     def toggle_auxdata(self):
         """Toggle between main data and auxiliary data for display."""
@@ -587,8 +587,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                 self.apply_lacosmic_button.config(state=tk.NORMAL)
                 self.examine_detected_cr_button.config(state=tk.NORMAL)
                 self.update_cr_overlay()
-                self.cursor_selection_mode = True
-                self.run_cursor_button.config(text="[c]ursor: ON ")
+                self.use_cursor = True
+                self.use_cursor_button.config(text="[c]ursor: ON ")
             else:
                 print("No cosmic ray pixels detected by L.A.Cosmic.")
                 self.cr_labels = None
@@ -763,9 +763,13 @@ class CosmicRayCleanerApp(ImageDisplay):
             # recalculate labels and number of features
             structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
             self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
-            sdum = str(np.sum(self.mask_crfound))
+            num_cr_remaining = np.sum(self.mask_crfound)
+            sdum = str(num_cr_remaining)
             print(f"Remaining number of cosmic ray pixels...................: {sdum}")
             print(f"Remaining number of cosmic ray features (grouped pixels): {self.num_features:>{len(sdum)}}")
+            if num_cr_remaining == 0:
+                self.use_cursor = False
+                self.use_cursor_button.config(text="[c]ursor: OFF")
             # redraw image to show the changes
             self.image.set_data(self.data)
             self.canvas.draw_idle()
@@ -829,9 +833,13 @@ class CosmicRayCleanerApp(ImageDisplay):
             # recalculate labels and number of features
             structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
             self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
-            sdum = str(np.sum(self.mask_crfound))
+            num_remaining = np.sum(self.mask_crfound)
+            sdum = str(num_remaining)
             print(f"Remaining number of cosmic ray pixels...................: {sdum}")
             print(f"Remaining number of cosmic ray features (grouped pixels): {self.num_features:>{len(sdum)}}")
+            if num_remaining == 0:
+                self.use_cursor = False
+                self.use_cursor_button.config(text="[c]ursor: OFF")
             # redraw image to show the changes
             self.image.set_data(self.data)
             self.canvas.draw_idle()
@@ -904,7 +912,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             return
 
         # proceed only if cursor selection mode is on
-        if not self.cursor_selection_mode:
+        if not self.use_cursor:
             return
 
         # ignore clicks outside the expected axes

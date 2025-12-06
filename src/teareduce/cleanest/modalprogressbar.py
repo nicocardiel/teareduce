@@ -116,11 +116,11 @@ class ModalProgressBar:
 
             elapsed_str = self._format_time(elapsed)
             eta_str = self._format_time(eta_seconds)
+            total_str = self._format_time(elapsed + eta_seconds)
             rate_str = f"{rate:.2f} CR/s" if rate >= 1 else f"{1/rate:.2f} s/CR"
 
             self.status_label.config(text=f"{self.current}/{self.total} ({percentage:.1f}%) | {rate_str}")
-            self.time_label.config(text=f"Elapsed: {elapsed_str} | ETA: {eta_str}")
-
+            self.time_label.config(text=f"Expected Total: {total_str} | Elapsed: {elapsed_str} | ETA: {eta_str}")
         self.window.update_idletasks()
         self.window.update()
 
