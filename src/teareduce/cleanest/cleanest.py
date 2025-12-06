@@ -11,6 +11,7 @@
 
 from scipy import ndimage
 import numpy as np
+from tqdm import tqdm
 
 from .dilatemask import dilatemask
 from .interpolation_x import interpolation_x
@@ -29,8 +30,8 @@ def cleanest(data, mask_crfound, dilation=0, interp_method=None, npoints=None, d
     data : 2D numpy.ndarray
         The image data array to be processed.
     mask_crfound : 2D numpy.ndarray of bool
-        A boolean mask array indicating which pixels are affected by
-        cosmic rays.
+        A boolean mask array indicating which pixels are flagged
+        and need to be interpolated (True = pixel to be fixed).
     dilation : int, optional
         The number of pixels to dilate the masked pixels before
         interpolation.
@@ -48,7 +49,7 @@ def cleanest(data, mask_crfound, dilation=0, interp_method=None, npoints=None, d
         The degree of the polynomial to fit. This parameter is
         relevant for 'x' and 'y' methods.
     debug : bool, optional
-        If True, print debug information.
+        If True, print debug information and enable tqdm progress bar.
 
     Returns
     -------
@@ -86,13 +87,14 @@ def cleanest(data, mask_crfound, dilation=0, interp_method=None, npoints=None, d
     structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
     cr_labels, num_features = ndimage.label(updated_mask_crfound, structure=structure)
     if debug:
-        print(f"Number of cosmic ray pixels to be cleaned: {np.sum(updated_mask_crfound)}")
-        print(f"Number of cosmic rays (grouped pixels)...: {num_features}")
+        sdum = str(np.sum(updated_mask_crfound))
+        print(f"Number of cosmic ray pixels to be cleaned: {sdum}")
+        print(f"Number of cosmic rays (grouped pixels)...: {num_features:>{len(sdum)}}")
 
     # Fix cosmic rays using the specified interpolation method
     cleaned_data = data.copy()
     num_cr_cleaned = 0
-    for cr_index in range(1, num_features + 1):
+    for cr_index in tqdm(range(1, num_features + 1), disable=not debug):
         if interp_method in ["x", "y"]:
             if 2 * npoints <= degree:
                 raise ValueError("2*npoints must be greater than degree for polynomial interpolation.")
@@ -131,6 +133,6 @@ def cleanest(data, mask_crfound, dilation=0, interp_method=None, npoints=None, d
             raise ValueError(f"Unknown interpolation method: {interp_method}")
 
     if debug:
-        print(f"Number of cosmic rays cleaned............: {num_cr_cleaned}")
+        print(f"Number of cosmic rays cleaned............: {num_cr_cleaned:>{len(sdum)}}")
 
     return cleaned_data, mask_fixed
