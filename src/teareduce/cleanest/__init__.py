@@ -9,3 +9,4 @@
 
 from .interpolate import interpolate
 from .lacosmicpad import lacosmicpad
+from .mergemasks import merge_peak_tail_masks
