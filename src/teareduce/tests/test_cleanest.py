@@ -12,7 +12,7 @@
 import numpy as np
 
 
-from ..cleanest.cleanest import cleanest
+from ..cleanest.interpolate import interpolate
 
 
 def test_cleanest_no_cr():
@@ -23,7 +23,7 @@ def test_cleanest_no_cr():
     mask_crfound = np.zeros_like(data, dtype=bool)
 
     for interp_method in ['x', 'y', 's', 'd', 'm']:
-        cleaned_data, mask_fixed = cleanest(data, mask_crfound, interp_method=interp_method, npoints=2, degree=1)
+        cleaned_data, mask_fixed = interpolate(data, mask_crfound, interp_method=interp_method, npoints=2, degree=1)
 
         assert np.array_equal(cleaned_data, data), "Data should remain unchanged when no cosmic rays are present."
         assert np.array_equal(mask_fixed, mask_crfound), "Mask should remain unchanged when no cosmic rays are present."
@@ -38,7 +38,7 @@ def test_cleanest_interpolation_x():
                              [False, False, True, False, False],
                              [False, False, True, False, False]], dtype=bool)
 
-    cleaned_data, mask_fixed = cleanest(data, mask_crfound,
+    cleaned_data, mask_fixed = interpolate(data, mask_crfound,
                                         interp_method='x', npoints=2, degree=1)
 
     expected_data = np.array([[1, 1, 1, 1, 1],
@@ -62,8 +62,8 @@ def test_cleanest_interpolation_y():
                              [False, False, False],
                              [False, False, False]], dtype=bool)
 
-    cleaned_data, mask_fixed = cleanest(data, mask_crfound,
-                                        interp_method='y', npoints=2, degree=1)
+    cleaned_data, mask_fixed = interpolate(data, mask_crfound,
+                                           interp_method='y', npoints=2, degree=1)
 
     expected_data = np.array([[1, 2, 3],
                               [1, 2, 3],
@@ -83,8 +83,8 @@ def test_cleanest_interpolation_surface():
                              [False, True, False],
                              [False, False, False]], dtype=bool)
 
-    cleaned_data, mask_fixed = cleanest(data, mask_crfound,
-                                        interp_method='s', npoints=1)
+    cleaned_data, mask_fixed = interpolate(data, mask_crfound,
+                                           interp_method='s', npoints=1)
 
     expected_data = np.array([[1, 2, 3],
                               [4, 5, 6],
@@ -102,8 +102,8 @@ def test_cleanest_interpolation_median():
                              [False, True, False],
                              [False, False, False]], dtype=bool)
 
-    cleaned_data, mask_fixed = cleanest(data, mask_crfound,
-                                        interp_method='d', npoints=1)
+    cleaned_data, mask_fixed = interpolate(data, mask_crfound,
+                                           interp_method='d', npoints=1)
 
     expected_data = np.array([[1, 2, 3],
                               [4, 5, 6],
@@ -121,8 +121,8 @@ def test_cleanest_interpolation_mean():
                              [False, True, False],
                              [False, False, False]], dtype=bool)
 
-    cleaned_data, mask_fixed = cleanest(data, mask_crfound,
-                                        interp_method='m', npoints=1)
+    cleaned_data, mask_fixed = interpolate(data, mask_crfound,
+                                           interp_method='m', npoints=1)
 
     expected_data = np.array([[1, 2, 3],
                               [4, 5, 6],

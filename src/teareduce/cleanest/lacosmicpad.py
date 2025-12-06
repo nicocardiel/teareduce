@@ -52,12 +52,6 @@ def lacosmicpad(pad_width, **kwargs):
     # Apply LACosmic algorithm to the padded array
     cleaned_padded_array, mask_padded_array = cosmicray_lacosmic(ccd=padded_array, **kwargs)
     # Remove padding
-    cleaned_array = cleaned_padded_array[
-        pad_width:-pad_width,
-        pad_width:-pad_width
-    ]
-    mask_array = mask_padded_array[
-        pad_width:-pad_width,
-        pad_width:-pad_width
-    ]
+    cleaned_array = cleaned_padded_array[pad_width:-pad_width, pad_width:-pad_width]
+    mask_array = mask_padded_array[pad_width:-pad_width, pad_width:-pad_width]
     return cleaned_array, mask_array
