@@ -101,10 +101,21 @@ class ParameterEditor:
         bold_font = default_font.copy()
         bold_font.configure(weight="bold", size=default_font.cget("size") + 2)
         subtitle_label = tk.Label(main_frame, text="L.A.Cosmic Parameters", font=bold_font)
-        subtitle_label.grid(row=row, column=0, columnspan=4, pady=(0, 15))
+        subtitle_label.grid(row=row, column=0, columnspan=4, pady=(0, 10))
         row += 1
 
         # Create labels and entry fields for each parameter.
+        bold_font_subheader = default_font.copy()
+        bold_font_subheader.configure(weight="bold", size=default_font.cget("size") + 1)
+        label = tk.Label(main_frame, text="Parameter", font=bold_font_subheader, anchor="w", fg="gray")
+        label.grid(row=row, column=0, sticky="e", pady=0)
+        label = tk.Label(main_frame, text="Run 1", font=bold_font_subheader, anchor="w", fg="gray", width=10)
+        label.grid(row=row, column=1, sticky="w", padx=10, pady=0)
+        label = tk.Label(main_frame, text="Run 2", font=bold_font_subheader, anchor="w", fg="gray", width=10)
+        label.grid(row=row, column=2, sticky="w", padx=10, pady=0)
+        label = tk.Label(main_frame, text="Type", font=bold_font_subheader, anchor="w", fg="gray", width=10)
+        label.grid(row=row, column=3, sticky="w", pady=0)
+        row += 1
         # Note: here we are using entry_vars to trace changes in the entries
         # so that we can update the color of run2 entries if they differ from run1.
         self.entry_vars = {}
@@ -142,7 +153,7 @@ class ParameterEditor:
 
         # Subtitle for additional parameters
         subtitle_label = tk.Label(main_frame, text="Additional Parameters", font=bold_font)
-        subtitle_label.grid(row=row, column=0, columnspan=4, pady=(0, 15))
+        subtitle_label.grid(row=row, column=0, columnspan=4, pady=(0, 10))
         row += 1
 
         # Dilation label and entry
@@ -177,7 +188,7 @@ class ParameterEditor:
 
         # Subtitle for region to be examined
         subtitle_label = tk.Label(main_frame, text="Region to be Examined", font=bold_font)
-        subtitle_label.grid(row=row, column=0, columnspan=4, pady=(0, 15))
+        subtitle_label.grid(row=row, column=0, columnspan=4, pady=(0, 10))
         row += 1
 
         # Region to be examined label and entries
