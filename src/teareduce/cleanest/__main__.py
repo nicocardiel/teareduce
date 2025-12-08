@@ -70,6 +70,8 @@ def main():
         default=DEFAULT_TK_WINDOW_SIZE_Y,
         help=f"Height of the GUI window in pixels (default: {DEFAULT_TK_WINDOW_SIZE_Y}).",
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {VERSION}")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output.")
     args = parser.parse_args()
 
     # Welcome message
@@ -156,6 +158,7 @@ def main():
         fontsize=args.fontsize,
         width=args.width,
         height=args.height,
+        verbose=args.verbose,
     )
 
     # Execute

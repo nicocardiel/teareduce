@@ -71,6 +71,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         fontsize=DEFAULT_FONT_SIZE,
         width=DEFAULT_TK_WINDOW_SIZE_X,
         height=DEFAULT_TK_WINDOW_SIZE_Y,
+        verbose=False,
     ):
         """
         Initialize the application.
@@ -91,9 +92,19 @@ class CosmicRayCleanerApp(ImageDisplay):
             Font family for the GUI (default is "Helvetica").
         fontsize : int, optional
             Font size for the GUI (default is 14).
+        width : int, optional
+            Width of the GUI window in pixels (default is 800).
+        height : int, optional
+            Height of the GUI window in pixels (default is 600).
+        verbose : bool, optional
+            Enable verbose output (default is False).
 
         Methods
         -------
+        process_detected_cr(dilation)
+            Process the detected cosmic ray mask.
+        load_detected_cr_from_file()
+            Load detected cosmic ray mask from a FITS file.
         load_fits_file()
             Load the FITS file and auxiliary file (if provided).
         save_fits_file()
@@ -127,6 +138,12 @@ class CosmicRayCleanerApp(ImageDisplay):
             Font size for the GUI.
         default_font : tkfont.Font
             The default font used in the GUI.
+        width : int
+            Width of the GUI window in pixels.
+        height : int
+            Height of the GUI window in pixels.
+        verbose : bool
+            Enable verbose output.
         lacosmic_params : dict
             Dictionary of L.A.Cosmic parameters.
         input_fits : str
@@ -174,6 +191,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         # self.root.geometry("800x800+50+0")  # This does not work in Fedora
         self.width = width
         self.height = height
+        self.verbose = verbose
         self.root.minsize(self.width, self.height)
         self.root.update_idletasks()
         self.root.title("Cosmic Ray Cleaner")
@@ -184,6 +202,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             family=fontfamily, size=fontsize, weight="normal", slant="roman", underline=0, overstrike=0
         )
         self.lacosmic_params = lacosmic_default_dict.copy()
+        self.lacosmic_params["run1_verbose"]["value"] = self.verbose
+        self.lacosmic_params["run2_verbose"]["value"] = self.verbose
         self.input_fits = input_fits
         self.extension = extension
         self.data = None
@@ -612,9 +632,10 @@ class CosmicRayCleanerApp(ImageDisplay):
             usefulmask[usefulregion] = 1.0
             # Update parameter dictionary with new values
             self.lacosmic_params = updated_params
-            print("Parameters updated:")
-            for key, info in self.lacosmic_params.items():
-                print(f"  {key}: {info['value']}")
+            if self.verbose:
+                print("Parameters updated:")
+                for key, info in self.lacosmic_params.items():
+                    print(f"  {key}: {info['value']}")
             if self.lacosmic_params["nruns"]["value"] not in [1, 2]:
                 raise ValueError("nruns must be 1 or 2")
             # Execute L.A.Cosmic with updated parameters
