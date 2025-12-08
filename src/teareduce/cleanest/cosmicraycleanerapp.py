@@ -62,9 +62,9 @@ class CosmicRayCleanerApp(ImageDisplay):
         self,
         root,
         input_fits,
-        extension=0,
+        extension="0",
         auxfile=None,
-        extension_auxfile=0,
+        extension_auxfile="0",
         fontfamily=DEFAULT_FONT_FAMILY,
         fontsize=DEFAULT_FONT_SIZE,
         width=DEFAULT_TK_WINDOW_SIZE_X,
@@ -79,12 +79,12 @@ class CosmicRayCleanerApp(ImageDisplay):
             The main Tkinter window.
         input_fits : str
             Path to the FITS file to be cleaned.
-        extension : int, optional
-            FITS extension to use (default is 0).
+        extension : str, optional
+            FITS extension to use (default is "0").
         auxfile : str, optional
             Path to an auxiliary FITS file (default is None).
-        extension_auxfile : int, optional
-            FITS extension for auxiliary file (default is 0).
+        extension_auxfile : str, optional
+            FITS extension for auxiliary file (default is "0").
         fontfamily : str, optional
             Font family for the GUI (default is "Helvetica").
         fontsize : int, optional
@@ -217,8 +217,20 @@ class CosmicRayCleanerApp(ImageDisplay):
         provided, it also loads the auxiliary data from the specified extension.
         The loaded data is stored in `self.data` and `self.auxdata` attributes.
         """
+        # check if extension is compatible with an integer
+        try:
+            extnum = int(self.extension)
+            self.extension = extnum
+        except ValueError:
+            pass  # Keep as string (delaying the check to later)
         try:
             with fits.open(self.input_fits, mode="readonly") as hdul:
+                if isinstance(self.extension, int):
+                    if self.extension < 0 or self.extension >= len(hdul):
+                        raise IndexError(f"Extension index {self.extension} out of range.")
+                else:
+                    if self.extension not in hdul:
+                        raise KeyError(f"Extension name '{self.extension}' not found.")
                 self.data = hdul[self.extension].data
                 if "CRMASK" in hdul:
                     self.mask_fixed = hdul["CRMASK"].data.astype(bool)
@@ -226,13 +238,26 @@ class CosmicRayCleanerApp(ImageDisplay):
                     self.mask_fixed = np.zeros(self.data.shape, dtype=bool)
         except Exception as e:
             print(f"Error loading FITS file: {e}")
+            sys.exit(1)
         self.mask_crfound = np.zeros(self.data.shape, dtype=bool)
         naxis2, naxis1 = self.data.shape
         self.region = SliceRegion2D(f"[1:{naxis1}, 1:{naxis2}]", mode="fits").python
         # Read auxiliary file if provided
         if self.auxfile is not None:
+            # check if extension_auxfile is compatible with an integer
+            try:
+                extnum_aux = int(self.extension_auxfile)
+                self.extension_auxfile = extnum_aux
+            except ValueError:
+                pass  # Keep as string (delaying the check to later)
             try:
                 with fits.open(self.auxfile, mode="readonly") as hdul_aux:
+                    if isinstance(self.extension_auxfile, int):
+                        if self.extension_auxfile < 0 or self.extension_auxfile >= len(hdul_aux):
+                            raise IndexError(f"Extension index {self.extension_auxfile} out of range.")
+                    else:
+                        if self.extension_auxfile not in hdul_aux:
+                            raise KeyError(f"Extension name '{self.extension_auxfile}' not found.")
                     self.auxdata = hdul_aux[self.extension_auxfile].data
                     if self.auxdata.shape != self.data.shape:
                         print(f"data shape...: {self.data.shape}")

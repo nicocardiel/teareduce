@@ -10,8 +10,12 @@
 """Interactive Cosmic Ray cleaning tool."""
 
 import argparse
+from ast import arg
 import tkinter as tk
+from tkinter import filedialog
+from tkinter import simpledialog
 import os
+from pathlib import Path
 import platform
 from rich import print
 from rich_argparse import RichHelpFormatter
@@ -33,13 +37,13 @@ def main():
         description="Interactive cosmic ray cleaner for FITS images.",
         formatter_class=RichHelpFormatter,
     )
-    parser.add_argument("input_fits", help="Path to the FITS file to be cleaned.")
-    parser.add_argument("--extension", type=int, default=0, help="FITS extension to use (default: 0).")
+    parser.add_argument("input_fits", nargs="?", default=None, help="Path to the FITS file to be cleaned.")
+    parser.add_argument("--extension", type=str, default="0", help="FITS extension to use (default: 0).")
     parser.add_argument("--auxfile", type=str, default=None, help="Auxiliary FITS file")
     parser.add_argument(
         "--extension_auxfile",
-        type=int,
-        default=0,
+        type=str,
+        default="0",
         help="FITS extension for auxiliary file (default: 0).",
     )
     parser.add_argument(
@@ -74,13 +78,57 @@ def main():
     print("teareduce version: " + VERSION)
     print(f"https://nicocardiel.github.io/teareduce-cookbook/docs/cleanest/cleanest.html\n")
 
-    # Check that input files exist
+    # If input_file is not provided, ask for it using a file dialog
+    if args.input_fits is None:
+        root = tk.Tk()
+        root.withdraw()  # Hide the root window
+        args.input_fits = filedialog.askopenfilename(
+            title="Select FITS file to be cleaned",
+            filetypes=[("FITS files", "*.fits *.fit *.fts"), ("All files", "*.*")],
+        )
+        if not args.input_fits:
+            print("No input FITS file selected. Exiting.")
+            exit(1)
+        print(f"Selected input FITS file: {args.input_fits}")
+        args.extension = simpledialog.askstring(
+                "Select Extension",
+                f"\nEnter extension number or name for file:\n{Path(args.input_fits).name}",
+                initialvalue=args.extension,
+            )
+        # Ask for auxiliary file if not provided
+        if args.auxfile is None:
+            use_auxfile = tk.messagebox.askyesno(
+                "Auxiliary File",
+                "Do you want to use an auxiliary FITS file?",
+                default=tk.messagebox.NO,
+            )
+            if use_auxfile:
+                args.auxfile = filedialog.askopenfilename(
+                    title="Select Auxiliary FITS file",
+                    filetypes=[("FITS files", "*.fits *.fit *.fts"), ("All files", "*.*")],
+                    initialfile=args.auxfile,
+                )
+                if not args.auxfile:
+                    print("No auxiliary FITS file selected. Exiting.")
+                    exit(1)
+        else:
+            use_auxfile = True
+        if use_auxfile:
+            print(f"Selected auxiliary FITS file: {args.auxfile}")
+            args.extension_auxfile = simpledialog.askstring(
+                "Select Extension for Auxiliary File",
+                f"\nEnter extension number or name for auxiliary file:\n{Path(args.auxfile).name}",
+                initialvalue=args.extension_auxfile,
+            )
+        root.destroy()
+
+    # Check that input files, and the corresponding extensions, exist
     if not os.path.isfile(args.input_fits):
         print(f"Error: File '{args.input_fits}' does not exist.")
-        return
+        exit(1)
     if args.auxfile is not None and not os.path.isfile(args.auxfile):
         print(f"Error: Auxiliary file '{args.auxfile}' does not exist.")
-        return
+        exit(1)
 
     # Initialize Tkinter root
     root = tk.Tk()
