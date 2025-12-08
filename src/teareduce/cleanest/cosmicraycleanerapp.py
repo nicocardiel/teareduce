@@ -13,6 +13,7 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter import font as tkfont
 from tkinter import messagebox
+from tkinter import simpledialog
 import sys
 
 from astropy.io import fits
@@ -22,6 +23,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from scipy import ndimage
 import numpy as np
 import os
+from pathlib import Path
 from rich import print
 
 from .centerchildparent import center_on_parent
@@ -203,6 +205,93 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.num_features = 0
         self.working_in_review_window = False
 
+    def process_detected_cr(self, dilation):
+        """Process the detected cosmic ray mask.
+        
+        Parameters
+        ----------
+        dilation : int
+            Number of pixels to dilate the cosmic ray mask.
+        """
+        # Process the mask: dilation and labeling
+        if np.any(self.mask_crfound):
+            num_cr_pixels_before_dilation = np.sum(self.mask_crfound)
+            if dilation > 0:
+                # Dilate the mask by the specified number of pixels
+                self.mask_crfound = dilatemask(
+                    mask=self.mask_crfound, iterations=dilation, connectivity=1
+                )
+                num_cr_pixels_after_dilation = np.sum(self.mask_crfound)
+                sdum = str(num_cr_pixels_after_dilation)
+            else:
+                sdum = str(num_cr_pixels_before_dilation)
+            print(
+                "Number of cosmic ray pixels detected..........: "
+                f"{num_cr_pixels_before_dilation:>{len(sdum)}}"
+            )
+            if dilation > 0:
+                print(
+                    f"Number of cosmic ray pixels after dilation....: "
+                    f"{num_cr_pixels_after_dilation:>{len(sdum)}}"
+                )
+            # Label connected components in the mask; note that by default,
+            # structure is a cross [0,1,0;1,1,1;0,1,0], but we want to consider
+            # diagonal connections too, so we define a 3x3 square.
+            structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
+            self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
+            print(f"Number of cosmic ray features (grouped pixels): {self.num_features:>{len(sdum)}}")
+            self.replace_detected_cr_button.config(state=tk.NORMAL)
+            self.examine_detected_cr_button.config(state=tk.NORMAL)
+            self.update_cr_overlay()
+            self.use_cursor = True
+            self.use_cursor_button.config(text="[c]ursor: ON ")
+        else:
+            print("No cosmic ray pixels detected!")
+            self.cr_labels = None
+            self.num_features = 0
+            self.replace_detected_cr_button.config(state=tk.DISABLED)
+            self.examine_detected_cr_button.config(state=tk.DISABLED)
+
+    def load_detected_cr_from_file(self):
+        """Load detected cosmic ray mask from a FITS file."""
+        crmask_file = filedialog.askopenfilename(
+            initialdir=os.getcwd(),
+            title="Select FITS file with cosmic ray mask",
+            filetypes=[("FITS files", "*.fits"), ("All files", "*.*")],
+        )
+        if crmask_file:
+            print(f"Selected input FITS file: {crmask_file}")
+            extension = simpledialog.askstring(
+                "Select Extension",
+                f"\nEnter extension number or name for file:\n{Path(crmask_file).name}",
+                initialvalue=None,
+            )
+            try:
+                extension = int(extension)
+            except ValueError:
+                pass  # Keep as string
+            dilation = simpledialog.askinteger(
+                "Dilation", "Enter Dilation (min=0):", initialvalue=0, minvalue=0
+            )
+            try:
+                with fits.open(crmask_file, mode="readonly") as hdul:
+                    if isinstance(extension, int):
+                        if extension < 0 or extension >= len(hdul):
+                            raise IndexError(f"Extension index {extension} out of range.")
+                    else:
+                        if extension not in hdul:
+                            raise KeyError(f"Extension name '{extension}' not found.")
+                    mask_crfound_loaded = hdul[extension].data.astype(bool)
+                    if mask_crfound_loaded.shape != self.data.shape:
+                        print(f"data shape...: {self.data.shape}")
+                        print(f"mask shape...: {mask_crfound_loaded.shape}")
+                        raise ValueError("Cosmic ray mask has different shape.")
+                    self.mask_crfound = mask_crfound_loaded
+                    print(f"Loaded cosmic ray mask from {crmask_file}")
+                    self.process_detected_cr(dilation=dilation)
+            except Exception as e:
+                print(f"Error loading cosmic ray mask: {e}")
+
     def load_fits_file(self):
         """Load the FITS file and auxiliary file (if provided).
 
@@ -222,7 +311,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             extnum = int(self.extension)
             self.extension = extnum
         except ValueError:
-            pass  # Keep as string (delaying the check to later)
+            # Keep as string (delaying checking until opening the file)
+            self.extension = self.extension.upper()  # Convert to uppercase
         try:
             with fits.open(self.input_fits, mode="readonly") as hdul:
                 if isinstance(self.extension, int):
@@ -231,6 +321,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 else:
                     if self.extension not in hdul:
                         raise KeyError(f"Extension name '{self.extension}' not found.")
+                print(f"Reading file [bold green]{self.input_fits}[/bold green], extension {self.extension}")
                 self.data = hdul[self.extension].data
                 if "CRMASK" in hdul:
                     self.mask_fixed = hdul["CRMASK"].data.astype(bool)
@@ -249,7 +340,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                 extnum_aux = int(self.extension_auxfile)
                 self.extension_auxfile = extnum_aux
             except ValueError:
-                pass  # Keep as string (delaying the check to later)
+                # Keep as string (delaying checking until opening the file)
+                self.extension_auxfile = self.extension_auxfile.upper()  # Convert to uppercase
             try:
                 with fits.open(self.auxfile, mode="readonly") as hdul_aux:
                     if isinstance(self.extension_auxfile, int):
@@ -258,6 +350,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                     else:
                         if self.extension_auxfile not in hdul_aux:
                             raise KeyError(f"Extension name '{self.extension_auxfile}' not found.")
+                    print(f"Reading auxiliary file [bold green]{self.auxfile}[/bold green], extension {self.extension_auxfile}")
                     self.auxdata = hdul_aux[self.extension_auxfile].data
                     if self.auxdata.shape != self.data.shape:
                         print(f"data shape...: {self.data.shape}")
@@ -334,19 +427,20 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.button_frame1.pack(pady=5)
         self.run_lacosmic_button = tk.Button(self.button_frame1, text="Run L.A.Cosmic", command=self.run_lacosmic)
         self.run_lacosmic_button.pack(side=tk.LEFT, padx=5)
-        self.apply_lacosmic_button = tk.Button(
+        self.load_detected_cr_button = tk.Button(
+            self.button_frame1, text="Load detected CRs", command=self.load_detected_cr_from_file
+        )
+        self.load_detected_cr_button.pack(side=tk.LEFT, padx=5)
+        self.replace_detected_cr_button = tk.Button(
             self.button_frame1, text="Replace detected CRs", command=self.apply_lacosmic
         )
-        self.apply_lacosmic_button.pack(side=tk.LEFT, padx=5)
-        self.apply_lacosmic_button.config(state=tk.DISABLED)  # Initially disabled
+        self.replace_detected_cr_button.pack(side=tk.LEFT, padx=5)
+        self.replace_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
         self.examine_detected_cr_button = tk.Button(
             self.button_frame1, text="Examine detected CRs", command=lambda: self.examine_detected_cr(1)
         )
         self.examine_detected_cr_button.pack(side=tk.LEFT, padx=5)
         self.examine_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
-        self.use_cursor = False
-        self.use_cursor_button = tk.Button(self.button_frame1, text="[c]ursor: OFF", command=self.set_cursor_onoff)
-        self.use_cursor_button.pack(side=tk.LEFT, padx=5)
 
         # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.root)
@@ -371,6 +465,9 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Row 3 of buttons
         self.button_frame3 = tk.Frame(self.root)
         self.button_frame3.pack(pady=5)
+        self.use_cursor = False
+        self.use_cursor_button = tk.Button(self.button_frame3, text="[c]ursor: OFF", command=self.set_cursor_onoff)
+        self.use_cursor_button.pack(side=tk.LEFT, padx=5)
         vmin, vmax = zscale(self.data)
         self.vmin_button = tk.Button(self.button_frame3, text=f"vmin: {vmin:.2f}", command=self.set_vmin)
         self.vmin_button.pack(side=tk.LEFT, padx=5)
@@ -568,44 +665,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.mask_crfound = np.zeros_like(self.data, dtype=bool)
             self.mask_crfound[usefulregion] = mask_crfound[usefulregion]
             # Process the mask: dilation and labeling
-            if np.any(self.mask_crfound):
-                num_cr_pixels_before_dilation = np.sum(self.mask_crfound)
-                dilation = self.lacosmic_params["dilation"]["value"]
-                if dilation > 0:
-                    # Dilate the mask by the specified number of pixels
-                    self.mask_crfound = dilatemask(
-                        mask=self.mask_crfound, iterations=self.lacosmic_params["dilation"]["value"], connectivity=1
-                    )
-                    num_cr_pixels_after_dilation = np.sum(self.mask_crfound)
-                    sdum = str(num_cr_pixels_after_dilation)
-                else:
-                    sdum = str(num_cr_pixels_before_dilation)
-                print(
-                    "Number of cosmic ray pixels detected by L.A.Cosmic: "
-                    f"{num_cr_pixels_before_dilation:>{len(sdum)}}"
-                )
-                if dilation > 0:
-                    print(
-                        f"Number of cosmic ray pixels after dilation........: "
-                        f"{num_cr_pixels_after_dilation:>{len(sdum)}}"
-                    )
-                # Label connected components in the mask; note that by default,
-                # structure is a cross [0,1,0;1,1,1;0,1,0], but we want to consider
-                # diagonal connections too, so we define a 3x3 square.
-                structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
-                self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
-                print(f"Number of cosmic ray features (grouped pixels)....: {self.num_features:>{len(sdum)}}")
-                self.apply_lacosmic_button.config(state=tk.NORMAL)
-                self.examine_detected_cr_button.config(state=tk.NORMAL)
-                self.update_cr_overlay()
-                self.use_cursor = True
-                self.use_cursor_button.config(text="[c]ursor: ON ")
-            else:
-                print("No cosmic ray pixels detected by L.A.Cosmic.")
-                self.cr_labels = None
-                self.num_features = 0
-                self.apply_lacosmic_button.config(state=tk.DISABLED)
-                self.examine_detected_cr_button.config(state=tk.DISABLED)
+            self.process_detected_cr(dilation=self.lacosmic_params["dilation"]["value"])
         else:
             print("Parameter editing cancelled. L.A.Cosmic detection skipped!")
         self.run_lacosmic_button.config(state=tk.NORMAL)
@@ -788,7 +848,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 self.save_button.config(state=tk.NORMAL)
             if self.num_features == 0:
                 self.examine_detected_cr_button.config(state=tk.DISABLED)
-                self.apply_lacosmic_button.config(state=tk.DISABLED)
+                self.replace_detected_cr_button.config(state=tk.DISABLED)
             self.update_cr_overlay()
 
     def examine_detected_cr(self, first_cr_index=1, single_cr=False, ixpix=None, iypix=None):
@@ -858,7 +918,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.save_button.config(state=tk.NORMAL)
         if self.num_features == 0:
             self.examine_detected_cr_button.config(state=tk.DISABLED)
-            self.apply_lacosmic_button.config(state=tk.DISABLED)
+            self.replace_detected_cr_button.config(state=tk.DISABLED)
         self.update_cr_overlay()
 
     def stop_app(self):
