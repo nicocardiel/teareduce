@@ -13,6 +13,7 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import simpledialog
 
+from maskfill import maskfill
 import matplotlib.pyplot as plt
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -150,7 +151,7 @@ class ReviewCosmicRay(ImageDisplay):
             self.root.minsize(1000, 700)
         else:
             # self.root.geometry("800x700+100+100")  # This does not work in Fedora
-            self.root.minsize(800, 700)
+            self.root.minsize(900, 700)
         self.root.update_idletasks()
         self.root.geometry("+100+100")
         self.data = data
@@ -224,6 +225,8 @@ class ReviewCosmicRay(ImageDisplay):
             self.interp_l_button.config(state=tk.DISABLED)
         if self.cleandata_lacosmic is None:
             self.interp_l_button.config(state=tk.DISABLED)
+        self.interp_maskfill_button = tk.Button(self.button_frame2, text="[f]illmask", command=self.use_maskfill)
+        self.interp_maskfill_button.pack(side=tk.LEFT, padx=5)
         self.interp_aux_button = tk.Button(self.button_frame2, text="[a]ux. data", command=self.use_auxdata)
         self.interp_aux_button.pack(side=tk.LEFT, padx=5)
         if self.auxdata is None:
@@ -246,7 +249,7 @@ class ReviewCosmicRay(ImageDisplay):
         if self.auxdata is not None:
             self.fig, (self.ax_aux, self.ax) = plt.subplots(ncols=2, figsize=(11, 5.5), constrained_layout=True)
         else:
-            self.fig, self.ax = plt.subplots(figsize=(8, 5.5), constrained_layout=True)
+            self.fig, self.ax = plt.subplots(figsize=(9, 5.5), constrained_layout=True)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().pack(padx=5, pady=5)
         # The next two instructions prevent a segmentation fault when pressing "q"
@@ -376,6 +379,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_d_button.config(state=tk.DISABLED)
         self.interp_m_button.config(state=tk.DISABLED)
         self.interp_l_button.config(state=tk.DISABLED)
+        self.interp_maskfill_button.config(state=tk.DISABLED)
         self.interp_aux_button.config(state=tk.DISABLED)
 
     def interp_x(self):
@@ -461,6 +465,27 @@ class ReviewCosmicRay(ImageDisplay):
         self.set_buttons_after_cleaning_cr()
         self.update_display(cleaned=True)
 
+    def use_maskfill(self):
+        """Use maskfill cleaned data to clean a cosmic ray."""
+        print(f"Maskfill interpolation of cosmic ray {self.cr_index}")
+        ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
+        mask = np.zeros(self.data.shape, dtype=bool)
+        for iy, ix in zip(ycr_list, xcr_list):
+            mask[iy, ix] = True
+        smoothed_output, _ = maskfill(
+            input_image=self.data,
+            mask=mask,
+            size=3,
+            operator="median",
+            smooth=True,
+        )
+        for iy, ix in zip(ycr_list, xcr_list):
+            self.data[iy, ix] = smoothed_output[iy, ix]
+            self.mask_fixed[iy, ix] = True
+        self.num_cr_cleaned += 1
+        self.set_buttons_after_cleaning_cr()
+        self.update_display(cleaned=True)
+
     def use_auxdata(self):
         """Use auxiliary data to clean a cosmic ray."""
         if self.auxdata is None:
@@ -505,6 +530,7 @@ class ReviewCosmicRay(ImageDisplay):
             if self.cleandata_lacosmic is not None:
                 if self.last_dilation is None or self.last_dilation == 0:
                     self.interp_l_button.config(state=tk.NORMAL)
+            self.interp_maskfill_button.config(state=tk.NORMAL)
             if self.auxdata is not None:
                 self.interp_aux_button.config(state=tk.NORMAL)
         print(f"Restored all pixels of cosmic ray {self.cr_index}")
@@ -566,6 +592,9 @@ class ReviewCosmicRay(ImageDisplay):
         elif event.key == "l":
             if self.interp_l_button.cget("state") != "disabled":
                 self.use_lacosmic()
+        elif event.key == "f":
+            if self.interp_maskfill_button.cget("state") != "disabled":
+                self.use_maskfill()
         elif event.key == "a":
             if self.interp_aux_button.cget("state") != "disabled":
                 self.use_auxdata()

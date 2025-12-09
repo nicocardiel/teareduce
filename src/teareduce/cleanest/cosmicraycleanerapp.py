@@ -17,6 +17,7 @@ from tkinter import simpledialog
 import sys
 
 from astropy.io import fits
+from maskfill import maskfill
 import matplotlib.pyplot as plt
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -768,6 +769,21 @@ class CosmicRayCleanerApp(ImageDisplay):
                 if cleaning_method == "lacosmic":
                     # Replace detected CR pixels with L.A.Cosmic values
                     self.data[mask_crfound_region] = self.cleandata_lacosmic[mask_crfound_region]
+                    # update mask_fixed to include the newly fixed pixels
+                    self.mask_fixed[mask_crfound_region] = True
+                    # upate mask_crfound by eliminating the cleaned pixels
+                    self.mask_crfound[mask_crfound_region] = False
+                    data_has_been_modified = True
+                elif cleaning_method == "maskfill":
+                    # Replace detected CR pixels with local median values
+                    smoothed_output, _ = maskfill(
+                        input_image=self.data,
+                        mask=mask_crfound_region,
+                        size=3,
+                        operator="median",
+                        smooth=True,
+                    )
+                    self.data[mask_crfound_region] = smoothed_output[mask_crfound_region]
                     # update mask_fixed to include the newly fixed pixels
                     self.mask_fixed[mask_crfound_region] = True
                     # upate mask_crfound by eliminating the cleaned pixels

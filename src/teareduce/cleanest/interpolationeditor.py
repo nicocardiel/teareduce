@@ -97,6 +97,7 @@ class InterpolationEditor:
             "median": "a-median",
             "mean": "a-mean",
             "lacosmic": "lacosmic",
+            "maskfill": "maskfill",
             "auxdata": "auxdata",
         }
         self.check_interp_methods()

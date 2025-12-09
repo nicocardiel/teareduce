@@ -33,6 +33,7 @@ dependencies = [
     "ccdproc",
     "lmfit",
     "matplotlib",
+    "maskfill",
     "numpy >= 1.22",
     "requests",
     "rich",
