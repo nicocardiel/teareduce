@@ -225,7 +225,7 @@ class ReviewCosmicRay(ImageDisplay):
             self.interp_l_button.config(state=tk.DISABLED)
         if self.cleandata_lacosmic is None:
             self.interp_l_button.config(state=tk.DISABLED)
-        self.interp_maskfill_button = tk.Button(self.button_frame2, text="[f]illmask", command=self.use_maskfill)
+        self.interp_maskfill_button = tk.Button(self.button_frame2, text="mas[k]fill", command=self.use_maskfill)
         self.interp_maskfill_button.pack(side=tk.LEFT, padx=5)
         self.interp_aux_button = tk.Button(self.button_frame2, text="[a]ux. data", command=self.use_auxdata)
         self.interp_aux_button.pack(side=tk.LEFT, padx=5)
@@ -592,7 +592,7 @@ class ReviewCosmicRay(ImageDisplay):
         elif event.key == "l":
             if self.interp_l_button.cget("state") != "disabled":
                 self.use_lacosmic()
-        elif event.key == "f":
+        elif event.key == "k":
             if self.interp_maskfill_button.cget("state") != "disabled":
                 self.use_maskfill()
         elif event.key == "a":
