@@ -2,7 +2,7 @@
 # Minimum requirements for the build system to execute.
 # (include packages imported in the different modules; otherwise
 # a ModuleNotFoundError is raised when using $ pip install -e .)
-requires = ["setuptools >= 61.0.0"]
+requires = ["setuptools >= 61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -28,13 +28,12 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Astronomy",
 ]
 
+# Core dependencies (always installed)
 dependencies = [
     "astropy",
-    "ccdproc",
     "lmfit",
     "matplotlib",
-    "maskfill",
-    "numpy >= 1.22",
+    "numpy >= 2",
     "requests",
     "rich",
     "rich-argparse",
@@ -43,6 +42,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Version with dependencies needed to run the tea-cleanest script
+cleanest = [
+    "ccdproc",
+    "maskfill",
+]
+
 test = [
     "pytest",
 ]

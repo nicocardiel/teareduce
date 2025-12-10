@@ -10,7 +10,6 @@
 """Interactive Cosmic Ray cleaning tool."""
 
 import argparse
-from ast import arg
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import simpledialog
