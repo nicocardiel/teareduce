@@ -92,10 +92,10 @@ def main():
             exit(1)
         print(f"Selected input FITS file: {args.input_fits}")
         args.extension = simpledialog.askstring(
-                "Select Extension",
-                f"\nEnter extension number or name for file:\n{Path(args.input_fits).name}",
-                initialvalue=args.extension,
-            )
+            "Select Extension",
+            f"\nEnter extension number or name for file:\n{Path(args.input_fits).name}",
+            initialvalue=args.extension,
+        )
         # Ask for auxiliary file if not provided
         if args.auxfile is None:
             use_auxfile = tk.messagebox.askyesno(

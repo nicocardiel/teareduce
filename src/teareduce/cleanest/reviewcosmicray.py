@@ -628,8 +628,8 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_d_button.config(state=tk.NORMAL)
         self.interp_m_button.config(state=tk.NORMAL)
         if self.cleandata_lacosmic is not None:
-             if self.last_dilation is None or self.last_dilation == 0:
-                 self.interp_l_button.config(state=tk.NORMAL)
+            if self.last_dilation is None or self.last_dilation == 0:
+                self.interp_l_button.config(state=tk.NORMAL)
         self.interp_maskfill_button.config(state=tk.NORMAL)
         if self.auxdata is not None:
             self.interp_aux_button.config(state=tk.NORMAL)

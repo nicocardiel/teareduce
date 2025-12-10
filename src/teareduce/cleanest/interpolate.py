@@ -9,8 +9,16 @@
 
 """Interpolate pixels identified in a mask."""
 
-from scipy import ndimage
+try:
+    from maskfill import maskfill
+except ModuleNotFoundError as e:
+    raise ModuleNotFoundError(
+        "The 'teareduce.cleanest' module requires the 'ccdproc' and 'maskfill' packages. "
+        "Please install teareduce with the 'cleanest' extra dependencies: "
+        "`pip install teareduce[cleanest]`."
+    ) from e
 import numpy as np
+from scipy import ndimage
 from tqdm import tqdm
 
 from .dilatemask import dilatemask
@@ -37,11 +45,12 @@ def interpolate(data, mask_crfound, dilation=0, interp_method=None, npoints=None
         interpolation.
     interp_method : str, optional
         The interpolation method to use. Options are:
-        'x' : Polynomial interpolation in the X direction.
-        'y' : Polynomial interpolation in the Y direction.
-        's' : Surface fit (degree 1) interpolation.
-        'd' : Median of border pixels interpolation.
-        'm' : Mean of border pixels interpolation.
+        'x' : Polynomial interpolation in the X direction using neighbor pixels
+        'y' : Polynomial interpolation in the Y direction using neighbor pixels
+        's' : Surface fit (degree 1) interpolation using neighbor pixels
+        'd' : Median of neighbor pixels interpolation using neighbor pixels
+        'm' : Mean of neighbor pixels interpolation using neighbor pixels
+        'k' : Maskfill method, as described in van Dokkum & Pasha (2024)
     npoints : int, optional
         The number of points to use for interpolation. This
         parameter is relevant for 'x', 'y', 's', 'd', and 'm' methods.
@@ -67,12 +76,14 @@ def interpolate(data, mask_crfound, dilation=0, interp_method=None, npoints=None
     """
     if interp_method is None:
         raise ValueError("interp_method must be specified.")
-    if interp_method not in ["x", "y", "s", "d", "m"]:
+    if interp_method not in ["x", "y", "s", "d", "m", "k"]:
         raise ValueError(f"Unknown interp_method: {interp_method}")
-    if npoints is None:
-        raise ValueError("npoints must be specified.")
-    if degree is None and interp_method in ["x", "y"]:
+    if interp_method in ["x", "y", "s", "d", "m"] and npoints is None:
+        raise ValueError("npoints must be specified for the chosen interp_method.")
+    if interp_method in ["x", "y"] and degree is None:
         raise ValueError("degree must be specified for the chosen interp_method.")
+    if data.shape != mask_crfound.shape:
+        raise ValueError("data and mask_crfound must have the same shape.")
 
     # Apply dilation to the cosmic ray mask if needed
     if dilation > 0:
@@ -93,44 +104,50 @@ def interpolate(data, mask_crfound, dilation=0, interp_method=None, npoints=None
 
     # Fix cosmic rays using the specified interpolation method
     cleaned_data = data.copy()
-    num_cr_cleaned = 0
-    for cr_index in tqdm(range(1, num_features + 1), disable=not debug):
-        if interp_method in ["x", "y"]:
-            if 2 * npoints <= degree:
-                raise ValueError("2*npoints must be greater than degree for polynomial interpolation.")
-            if interp_method == "x":
-                interp_func = interpolation_x
-            else:
-                interp_func = interpolation_y
-            interpolation_performed, _, _ = interp_func(
-                data=cleaned_data,
-                mask_fixed=mask_fixed,
-                cr_labels=cr_labels,
-                cr_index=cr_index,
-                npoints=npoints,
-                degree=degree,
-            )
-            if interpolation_performed:
-                num_cr_cleaned += 1
-        elif interp_method in ["s", "d", "m"]:
-            if interp_method == "s":
-                method = "surface"
-            elif interp_method == "d":
-                method = "median"
-            elif interp_method == "m":
-                method = "mean"
-            interpolation_performed, _, _ = interpolation_a(
-                data=cleaned_data,
-                mask_fixed=mask_fixed,
-                cr_labels=cr_labels,
-                cr_index=cr_index,
-                npoints=npoints,
-                method=method,
-            )
-            if interpolation_performed:
-                num_cr_cleaned += 1
-        else:
-            raise ValueError(f"Unknown interpolation method: {interp_method}")
+    if interp_method == "k":
+        smoothed_output, _ = maskfill(input_image=data, mask=mask_crfound, size=3, operator="median", smooth=True)
+        cleaned_data[mask_crfound] = smoothed_output[mask_crfound]
+        mask_fixed[mask_crfound] = True
+        num_cr_cleaned = num_features
+    elif interp_method in ["x", "y", "s", "d", "m"]:
+        num_cr_cleaned = 0
+        for cr_index in tqdm(range(1, num_features + 1), disable=not debug):
+            if interp_method in ["x", "y"]:
+                if 2 * npoints <= degree:
+                    raise ValueError("2*npoints must be greater than degree for polynomial interpolation.")
+                if interp_method == "x":
+                    interp_func = interpolation_x
+                else:
+                    interp_func = interpolation_y
+                interpolation_performed, _, _ = interp_func(
+                    data=cleaned_data,
+                    mask_fixed=mask_fixed,
+                    cr_labels=cr_labels,
+                    cr_index=cr_index,
+                    npoints=npoints,
+                    degree=degree,
+                )
+                if interpolation_performed:
+                    num_cr_cleaned += 1
+            elif interp_method in ["s", "d", "m"]:
+                if interp_method == "s":
+                    method = "surface"
+                elif interp_method == "d":
+                    method = "median"
+                elif interp_method == "m":
+                    method = "mean"
+                interpolation_performed, _, _ = interpolation_a(
+                    data=cleaned_data,
+                    mask_fixed=mask_fixed,
+                    cr_labels=cr_labels,
+                    cr_index=cr_index,
+                    npoints=npoints,
+                    method=method,
+                )
+                if interpolation_performed:
+                    num_cr_cleaned += 1
+    else:
+        raise ValueError(f"Unknown interpolation method: {interp_method}")
 
     if debug:
         print(f"Number of cosmic rays cleaned............: {num_cr_cleaned:>{len(sdum)}}")

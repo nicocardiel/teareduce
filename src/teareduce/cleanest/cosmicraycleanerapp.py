@@ -17,6 +17,7 @@ from tkinter import simpledialog
 import sys
 
 from astropy.io import fits
+
 try:
     from maskfill import maskfill
 except ModuleNotFoundError as e:
@@ -235,7 +236,7 @@ class CosmicRayCleanerApp(ImageDisplay):
 
     def process_detected_cr(self, dilation):
         """Process the detected cosmic ray mask.
-        
+
         Parameters
         ----------
         dilation : int
@@ -246,21 +247,15 @@ class CosmicRayCleanerApp(ImageDisplay):
             num_cr_pixels_before_dilation = np.sum(self.mask_crfound)
             if dilation > 0:
                 # Dilate the mask by the specified number of pixels
-                self.mask_crfound = dilatemask(
-                    mask=self.mask_crfound, iterations=dilation, connectivity=1
-                )
+                self.mask_crfound = dilatemask(mask=self.mask_crfound, iterations=dilation, connectivity=1)
                 num_cr_pixels_after_dilation = np.sum(self.mask_crfound)
                 sdum = str(num_cr_pixels_after_dilation)
             else:
                 sdum = str(num_cr_pixels_before_dilation)
-            print(
-                "Number of cosmic ray pixels detected..........: "
-                f"{num_cr_pixels_before_dilation:>{len(sdum)}}"
-            )
+            print("Number of cosmic ray pixels detected..........: " f"{num_cr_pixels_before_dilation:>{len(sdum)}}")
             if dilation > 0:
                 print(
-                    f"Number of cosmic ray pixels after dilation....: "
-                    f"{num_cr_pixels_after_dilation:>{len(sdum)}}"
+                    f"Number of cosmic ray pixels after dilation....: " f"{num_cr_pixels_after_dilation:>{len(sdum)}}"
                 )
             # Label connected components in the mask; note that by default,
             # structure is a cross [0,1,0;1,1,1;0,1,0], but we want to consider
@@ -298,9 +293,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 extension = int(extension)
             except ValueError:
                 pass  # Keep as string
-            dilation = simpledialog.askinteger(
-                "Dilation", "Enter Dilation (min=0):", initialvalue=0, minvalue=0
-            )
+            dilation = simpledialog.askinteger("Dilation", "Enter Dilation (min=0):", initialvalue=0, minvalue=0)
             try:
                 with fits.open(crmask_file, mode="readonly") as hdul:
                     if isinstance(extension, int):
@@ -378,7 +371,9 @@ class CosmicRayCleanerApp(ImageDisplay):
                     else:
                         if self.extension_auxfile not in hdul_aux:
                             raise KeyError(f"Extension name '{self.extension_auxfile}' not found.")
-                    print(f"Reading auxiliary file [bold green]{self.auxfile}[/bold green], extension {self.extension_auxfile}")
+                    print(
+                        f"Reading auxiliary file [bold green]{self.auxfile}[/bold green], extension {self.extension_auxfile}"
+                    )
                     self.auxdata = hdul_aux[self.extension_auxfile].data
                     if self.auxdata.shape != self.data.shape:
                         print(f"data shape...: {self.data.shape}")
