@@ -68,3 +68,7 @@ In [2]: print(tea.__version__)
 0.5.9
 ```
 
+Note that in PyPI there is a package called **tea** that provides utilities
+unrelated to **teareduce**. However, throughout the examples described
+in the documentation we are making use of ``import teareduce as tea``
+to define a convenient alias.
