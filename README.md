@@ -31,6 +31,13 @@ $ . venv_teareduce/bin/activate
 (venv_teareduce) $ 
 ```
 
+If you are planning to use **tea-cleanest**, you need to install this package
+with extra dependencies. In this case employ:
+
+```shell
+(venv_teareduce) $ pip install 'teareduce[cleanest]'
+```
+
 ### Installing the package
 
 The latest stable version is available via de [PyPI repository](https://pypi.org/project/teareduce/):
@@ -58,6 +65,6 @@ The latest development version is available through [GitHub](https://github.com/
 (venv_teareduce) $ ipython
 In [1]: import teareduce as tea
 In [2]: print(tea.__version__)
-0.4.3
+0.5.9
 ```
 
