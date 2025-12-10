@@ -371,16 +371,9 @@ class ReviewCosmicRay(ImageDisplay):
 
     def set_buttons_after_cleaning_cr(self):
         """Set the state of buttons after cleaning a cosmic ray."""
+        self.disable_interpolation_buttons()
         self.restore_cr_button.config(state=tk.NORMAL)
         self.remove_crosses_button.config(state=tk.DISABLED)
-        self.interp_x_button.config(state=tk.DISABLED)
-        self.interp_y_button.config(state=tk.DISABLED)
-        self.interp_s_button.config(state=tk.DISABLED)
-        self.interp_d_button.config(state=tk.DISABLED)
-        self.interp_m_button.config(state=tk.DISABLED)
-        self.interp_l_button.config(state=tk.DISABLED)
-        self.interp_maskfill_button.config(state=tk.DISABLED)
-        self.interp_aux_button.config(state=tk.DISABLED)
 
     def interp_x(self):
         """Perform x-direction interpolation to clean a cosmic ray."""
@@ -506,35 +499,21 @@ class ReviewCosmicRay(ImageDisplay):
         for iy, ix in zip(ycr_list, xcr_list):
             self.cr_labels[iy, ix] = 0
         print(f"Removed all pixels of cosmic ray {self.cr_index}")
-        self.remove_crosses_button.config(state=tk.DISABLED)
-        self.interp_x_button.config(state=tk.DISABLED)
-        self.interp_y_button.config(state=tk.DISABLED)
-        self.interp_s_button.config(state=tk.DISABLED)
-        self.interp_d_button.config(state=tk.DISABLED)
-        self.interp_m_button.config(state=tk.DISABLED)
-        self.interp_l_button.config(state=tk.DISABLED)
-        self.interp_aux_button.config(state=tk.DISABLED)
+        self.disable_interpolation_buttons()
         self.update_display()
 
     def restore_cr(self):
         """Restore all pixels of the current cosmic ray to their original values."""
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
+        if len(xcr_list) == 0:
+            print(f"No pixels to restore for cosmic ray {self.cr_index}")
+            return
         for iy, ix in zip(ycr_list, xcr_list):
             self.data[iy, ix] = self.data_original[iy, ix]
             self.mask_fixed[iy, ix] = False
-            self.interp_x_button.config(state=tk.NORMAL)
-            self.interp_y_button.config(state=tk.NORMAL)
-            self.interp_s_button.config(state=tk.NORMAL)
-            self.interp_d_button.config(state=tk.NORMAL)
-            self.interp_m_button.config(state=tk.NORMAL)
-            if self.cleandata_lacosmic is not None:
-                if self.last_dilation is None or self.last_dilation == 0:
-                    self.interp_l_button.config(state=tk.NORMAL)
-            self.interp_maskfill_button.config(state=tk.NORMAL)
-            if self.auxdata is not None:
-                self.interp_aux_button.config(state=tk.NORMAL)
         print(f"Restored all pixels of cosmic ray {self.cr_index}")
         self.num_cr_cleaned -= 1
+        self.enable_interpolation_buttons()
         self.remove_crosses_button.config(state=tk.NORMAL)
         self.restore_cr_button.config(state=tk.DISABLED)
         self.update_display()
@@ -550,16 +529,7 @@ class ReviewCosmicRay(ImageDisplay):
             return  # important: do not remove (to avoid errors)
         self.first_plot = True
         self.restore_cr_button.config(state=tk.DISABLED)
-        self.interp_x_button.config(state=tk.NORMAL)
-        self.interp_y_button.config(state=tk.NORMAL)
-        self.interp_s_button.config(state=tk.NORMAL)
-        self.interp_d_button.config(state=tk.NORMAL)
-        self.interp_m_button.config(state=tk.NORMAL)
-        if self.cleandata_lacosmic is not None:
-            if self.last_dilation is None or self.last_dilation == 0:
-                self.interp_l_button.config(state=tk.NORMAL)
-        if self.auxdata is not None:
-            self.interp_aux_button.config(state=tk.NORMAL)
+        self.enable_interpolation_buttons()
         self.remove_crosses_button.config(state=tk.NORMAL)
         self.update_display()
 
@@ -624,25 +594,35 @@ class ReviewCosmicRay(ImageDisplay):
                 print(f"Pixel ({ix+1}, {iy+1}), with signal {self.data[iy, ix]}, marked as cosmic ray.")
             xcr_list, ycr_list = np.where(self.cr_labels == self.cr_index)
             if len(xcr_list) == 0:
-                self.interp_x_button.config(state=tk.DISABLED)
-                self.interp_y_button.config(state=tk.DISABLED)
-                self.interp_s_button.config(state=tk.DISABLED)
-                self.interp_d_button.config(state=tk.DISABLED)
-                self.interp_m_button.config(state=tk.DISABLED)
-                self.interp_l_button.config(state=tk.DISABLED)
-                self.interp_aux_button.config(state=tk.DISABLED)
+                self.disable_interpolation_buttons()
                 self.remove_crosses_button.config(state=tk.DISABLED)
             else:
-                self.interp_x_button.config(state=tk.NORMAL)
-                self.interp_y_button.config(state=tk.NORMAL)
-                self.interp_s_button.config(state=tk.NORMAL)
-                self.interp_d_button.config(state=tk.NORMAL)
-                self.interp_m_button.config(state=tk.NORMAL)
-                if self.cleandata_lacosmic is not None:
-                    if self.last_dilation is None or self.last_dilation == 0:
-                        self.interp_l_button.config(state=tk.NORMAL)
-                if self.auxdata is not None:
-                    self.interp_aux_button.config(state=tk.NORMAL)
+                self.enable_interpolation_buttons()
                 self.remove_crosses_button.config(state=tk.NORMAL)
             # Update the display to reflect the change
             self.update_display()
+
+    def disable_interpolation_buttons(self):
+        """Disable all interpolation buttons."""
+        self.interp_x_button.config(state=tk.DISABLED)
+        self.interp_y_button.config(state=tk.DISABLED)
+        self.interp_s_button.config(state=tk.DISABLED)
+        self.interp_d_button.config(state=tk.DISABLED)
+        self.interp_m_button.config(state=tk.DISABLED)
+        self.interp_l_button.config(state=tk.DISABLED)
+        self.interp_maskfill_button.config(state=tk.DISABLED)
+        self.interp_aux_button.config(state=tk.DISABLED)
+
+    def enable_interpolation_buttons(self):
+        """Enable all interpolation buttons."""
+        self.interp_x_button.config(state=tk.NORMAL)
+        self.interp_y_button.config(state=tk.NORMAL)
+        self.interp_s_button.config(state=tk.NORMAL)
+        self.interp_d_button.config(state=tk.NORMAL)
+        self.interp_m_button.config(state=tk.NORMAL)
+        if self.cleandata_lacosmic is not None:
+             if self.last_dilation is None or self.last_dilation == 0:
+                 self.interp_l_button.config(state=tk.NORMAL)
+        self.interp_maskfill_button.config(state=tk.NORMAL)
+        if self.auxdata is not None:
+            self.interp_aux_button.config(state=tk.NORMAL)
