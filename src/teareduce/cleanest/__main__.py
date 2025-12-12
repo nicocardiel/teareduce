@@ -132,7 +132,13 @@ def main():
         exit(1)
 
     # Initialize Tkinter root
-    root = tk.Tk()
+    try:
+        root = tk.Tk()
+    except tk.TclError as e:
+        print("Error: Unable to initialize Tkinter. Make sure a display is available.")
+        print("Detailed error message:")
+        print(e)
+        exit(1)
     system = platform.system()
     if system == "Darwin":  # macOS
         # Center the window on the screen

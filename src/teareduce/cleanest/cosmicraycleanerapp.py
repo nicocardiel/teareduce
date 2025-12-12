@@ -647,12 +647,19 @@ class CosmicRayCleanerApp(ImageDisplay):
             cleandata_lacosmic, mask_crfound = lacosmicpad(
                 pad_width=borderpadd,
                 ccd=self.data,
-                gain=self.lacosmic_params["run1_gain"]["value"],
-                readnoise=self.lacosmic_params["run1_readnoise"]["value"],
+                gain_apply=True,  # Always apply gain
                 sigclip=self.lacosmic_params["run1_sigclip"]["value"],
                 sigfrac=self.lacosmic_params["run1_sigfrac"]["value"],
                 objlim=self.lacosmic_params["run1_objlim"]["value"],
+                gain=self.lacosmic_params["run1_gain"]["value"],
+                readnoise=self.lacosmic_params["run1_readnoise"]["value"],
+                satlevel=self.lacosmic_params["run1_satlevel"]["value"],
                 niter=self.lacosmic_params["run1_niter"]["value"],
+                sepmed=self.lacosmic_params["run1_sepmed"]["value"],
+                cleantype=self.lacosmic_params["run1_cleantype"]["value"],
+                fsmode=self.lacosmic_params["run1_fsmode"]["value"],
+                psfmodel=self.lacosmic_params["run1_psfmodel"]["value"],
+                psffwhm=self.lacosmic_params["run1_psffwhm"]["value"],
                 verbose=self.lacosmic_params["run1_verbose"]["value"],
             )
             # Apply usefulmask to consider only selected region
@@ -664,12 +671,19 @@ class CosmicRayCleanerApp(ImageDisplay):
                 cleandata_lacosmic2, mask_crfound2 = lacosmicpad(
                     pad_width=borderpadd,
                     ccd=self.data,
-                    gain=self.lacosmic_params["run2_gain"]["value"],
-                    readnoise=self.lacosmic_params["run2_readnoise"]["value"],
+                    gain_apply=True,  # Always apply gain
                     sigclip=self.lacosmic_params["run2_sigclip"]["value"],
                     sigfrac=self.lacosmic_params["run2_sigfrac"]["value"],
                     objlim=self.lacosmic_params["run2_objlim"]["value"],
+                    gain=self.lacosmic_params["run2_gain"]["value"],
+                    readnoise=self.lacosmic_params["run2_readnoise"]["value"],
+                    satlevel=self.lacosmic_params["run2_satlevel"]["value"],
                     niter=self.lacosmic_params["run2_niter"]["value"],
+                    sepmed=self.lacosmic_params["run2_sepmed"]["value"],
+                    cleantype=self.lacosmic_params["run2_cleantype"]["value"],
+                    fsmode=self.lacosmic_params["run2_fsmode"]["value"],
+                    psfmodel=self.lacosmic_params["run2_psfmodel"]["value"],
+                    psffwhm=self.lacosmic_params["run2_psffwhm"]["value"],
                     verbose=self.lacosmic_params["run2_verbose"]["value"],
                 )
                 # Apply usefulmask to consider only selected region
