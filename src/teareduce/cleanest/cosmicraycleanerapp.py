@@ -660,6 +660,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                 fsmode=self.lacosmic_params["run1_fsmode"]["value"],
                 psfmodel=self.lacosmic_params["run1_psfmodel"]["value"],
                 psffwhm=self.lacosmic_params["run1_psffwhm"]["value"],
+                psfsize=self.lacosmic_params["run1_psfsize"]["value"],
+                psfbeta=self.lacosmic_params["run1_psfbeta"]["value"],
                 verbose=self.lacosmic_params["run1_verbose"]["value"],
             )
             # Apply usefulmask to consider only selected region
@@ -684,6 +686,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                     fsmode=self.lacosmic_params["run2_fsmode"]["value"],
                     psfmodel=self.lacosmic_params["run2_psfmodel"]["value"],
                     psffwhm=self.lacosmic_params["run2_psffwhm"]["value"],
+                    psfsize=self.lacosmic_params["run2_psfsize"]["value"],
+                    psfbeta=self.lacosmic_params["run2_psfbeta"]["value"],
                     verbose=self.lacosmic_params["run2_verbose"]["value"],
                 )
                 # Apply usefulmask to consider only selected region
