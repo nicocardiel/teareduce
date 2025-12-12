@@ -266,16 +266,19 @@ class ParameterEditor:
         button_frame.grid(row=row, column=0, columnspan=9, pady=(5, 0))
 
         # OK button
-        ok_button = tk.Button(button_frame, text="OK", width=5, command=self.on_ok)
+        ok_button = ttk.Button(button_frame, text="OK", takefocus=True, command=self.on_ok)
         ok_button.pack(side="left", padx=5)
 
         # Cancel button
-        cancel_button = tk.Button(button_frame, text="Cancel", width=5, command=self.on_cancel)
+        cancel_button = ttk.Button(button_frame, text="Cancel", command=self.on_cancel)
         cancel_button.pack(side="left", padx=5)
 
         # Reset button
-        reset_button = tk.Button(button_frame, text="Reset", width=5, command=self.on_reset)
+        reset_button = ttk.Button(button_frame, text="Reset", command=self.on_reset)
         reset_button.pack(side="left", padx=5)
+
+        # Set focus to OK button
+        ok_button.focus_set()
 
     def on_ok(self):
         """Validate and save the updated values"""

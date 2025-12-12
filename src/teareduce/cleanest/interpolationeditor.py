@@ -217,12 +217,15 @@ class InterpolationEditor:
         self.button_frame.grid(row=row, column=0, columnspan=3, pady=(15, 0))
 
         # OK button
-        self.ok_button = tk.Button(self.button_frame, text="OK", width=5, command=self.on_ok)
+        self.ok_button = ttk.Button(self.button_frame, text="OK", command=self.on_ok)
         self.ok_button.pack(side="left", padx=5)
 
         # Cancel button
-        self.cancel_button = tk.Button(self.button_frame, text="Cancel", width=5, command=self.on_cancel)
+        self.cancel_button = ttk.Button(self.button_frame, text="Cancel", command=self.on_cancel)
         self.cancel_button.pack(side="left", padx=5)
+
+        # Initial focus on OK button
+        self.ok_button.focus_set()
 
         # Initial action depending on the default method
         self.action_on_method_change()
