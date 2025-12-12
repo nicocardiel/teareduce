@@ -110,7 +110,7 @@ class ParameterEditor:
         print(f"Number of L.A.Cosmic parameters for run1: {nparams_run1}")
         print(f"Number of L.A.Cosmic parameters for run2: {nparams_run2}")
         if nparams_run1 != nparams_run2:
-            raise ValueError("Number of parameters for run1 and run2 do not match.") 
+            raise ValueError("Number of parameters for run1 and run2 do not match.")
         max_num_params_in_columns = nparams_run1 // 2 + nparams_run1 % 2
 
         # Create labels and entry fields for each parameter.
@@ -120,7 +120,7 @@ class ParameterEditor:
             if subtable == 0:
                 coloff = 0
             else:
-                coloff = 5 
+                coloff = 5
             label = tk.Label(main_frame, text="Parameter", font=bold_font_subheader, anchor="w", fg="gray")
             label.grid(row=row, column=0 + coloff, sticky="e", pady=0)
             label = tk.Label(main_frame, text="Run 1", font=bold_font_subheader, anchor="w", fg="gray", width=10)
@@ -172,7 +172,9 @@ class ParameterEditor:
 
         # Vertical separator between splitted table
         separatorv1 = ttk.Separator(main_frame, orient="vertical")
-        separatorv1.grid(row=row-max_num_params_in_columns, column=4, rowspan=max_num_params_in_columns, sticky="ns", padx=10)
+        separatorv1.grid(
+            row=row - max_num_params_in_columns, column=4, rowspan=max_num_params_in_columns, sticky="ns", padx=10
+        )
 
         # Separator
         separator1 = ttk.Separator(main_frame, orient="horizontal")
@@ -210,7 +212,7 @@ class ParameterEditor:
 
         # Vertical separator
         separatorv2 = ttk.Separator(main_frame, orient="vertical")
-        separatorv2.grid(row=row-1, column=4, rowspan=1, sticky="ns", padx=10)
+        separatorv2.grid(row=row - 1, column=4, rowspan=1, sticky="ns", padx=10)
 
         # Separator
         separator2 = ttk.Separator(main_frame, orient="horizontal")
@@ -235,7 +237,7 @@ class ParameterEditor:
                 # Entry field
                 entry = tk.Entry(main_frame, width=10)
                 entry.insert(0, str(info["value"]))
-                entry.grid(row=row, column=coloff+1, padx=10, pady=5)
+                entry.grid(row=row, column=coloff + 1, padx=10, pady=5)
                 self.entries[key] = entry  # dictionary to hold entry widgets
                 # Type label
                 dumtext = f"({info['type'].__name__})"
@@ -244,7 +246,7 @@ class ParameterEditor:
                 else:
                     dumtext += f" --> [1, {self.imgshape[0]}]"
                 type_label = tk.Label(main_frame, text=dumtext, fg="gray", anchor="w", width=15)
-                type_label.grid(row=row, column=coloff+2, sticky="w", pady=5)
+                type_label.grid(row=row, column=coloff + 2, sticky="w", pady=5)
                 if key.lower() == "xmax":
                     row -= 1
                 else:
@@ -252,7 +254,7 @@ class ParameterEditor:
 
         # Vertical separator
         separatorv3 = ttk.Separator(main_frame, orient="vertical")
-        separatorv3.grid(row=row-2, column=4, rowspan=2, sticky="ns", padx=10)
+        separatorv3.grid(row=row - 2, column=4, rowspan=2, sticky="ns", padx=10)
 
         # Separator
         separator3 = ttk.Separator(main_frame, orient="horizontal")
@@ -298,9 +300,7 @@ class ParameterEditor:
                 if value_type == str:
                     converted_value = entry_value
                     if "valid_values" in info and entry_value not in info["valid_values"]:
-                        raise ValueError(
-                            f"Invalid value for {key}. Valid values are: {info['valid_values']}"
-                        )
+                        raise ValueError(f"Invalid value for {key}. Valid values are: {info['valid_values']}")
                 else:
                     converted_value = value_type(entry_value)
                     if "positive" in info and info["positive"] and converted_value < 0:
