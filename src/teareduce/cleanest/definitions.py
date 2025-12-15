@@ -21,7 +21,7 @@ lacosmic_default_dict = {
     "run1_gain": {"value": 1.0, "type": float, "positive": True},
     "run1_readnoise": {"value": 6.5, "type": float, "positive": True},
     "run1_satlevel": {"value": 65535, "type": float, "positive": True},
-    "run1_niter": {"value": 4, "type": int, "positive": True},
+    "run1_niter": {"value": 4, "type": int, "positive": True, "intmode": "any"},
     "run1_sepmed": {"value": True, "type": bool},
     "run1_cleantype": {"value": "meanmask", "type": str, "valid_values": ["median", "medmask", "meanmask", "idw"]},
     "run1_fsmode": {"value": "median", "type": str, "valid_values": ["median", "convolve"]},
@@ -32,7 +32,7 @@ lacosmic_default_dict = {
     },
     "run1_psffwhm_x": {"value": 2.5, "type": float, "positive": True},
     "run1_psffwhm_y": {"value": 2.5, "type": float, "positive": True},
-    "run1_psfsize": {"value": 7, "type": int, "positive": True},
+    "run1_psfsize": {"value": 7, "type": int, "positive": True, "intmode": "odd"},
     "run1_psfbeta": {"value": 4.765, "type": float, "positive": True},
     "run1_verbose": {"value": True, "type": bool},
     # L.A.Cosmic parameters for run 2
@@ -42,7 +42,7 @@ lacosmic_default_dict = {
     "run2_gain": {"value": 1.0, "type": float, "positive": True},
     "run2_readnoise": {"value": 6.5, "type": float, "positive": True},
     "run2_satlevel": {"value": 65535, "type": float, "positive": True},
-    "run2_niter": {"value": 4, "type": int, "positive": True},
+    "run2_niter": {"value": 4, "type": int, "positive": True, "intmode": "any"},
     "run2_sepmed": {"value": True, "type": bool},
     "run2_cleantype": {"value": "meanmask", "type": str, "valid_values": ["median", "medmask", "meanmask", "idw"]},
     "run2_fsmode": {"value": "median", "type": str, "valid_values": ["median", "convolve"]},
@@ -53,7 +53,7 @@ lacosmic_default_dict = {
     },
     "run2_psffwhm_x": {"value": 2.5, "type": float, "positive": True},
     "run2_psffwhm_y": {"value": 2.5, "type": float, "positive": True},
-    "run2_psfsize": {"value": 7, "type": int, "positive": True},
+    "run2_psfsize": {"value": 7, "type": int, "positive": True, "intmode": "odd"},
     "run2_psfbeta": {"value": 4.765, "type": float, "positive": True},
     "run2_verbose": {"value": True, "type": bool},
     # Dilation of the mask
@@ -65,7 +65,7 @@ lacosmic_default_dict = {
     "ymin": {"value": 1, "type": int, "positive": True},
     "ymax": {"value": None, "type": int, "positive": True},
     # Number of runs to execute L.A.Cosmic
-    "nruns": {"value": 1, "type": int, "positive": True},
+    "nruns": {"value": 1, "type": int, "positive": True, "intmode": "any"},
 }
 
 # Valid cleaning methods (as shown to the user and their internal codes)

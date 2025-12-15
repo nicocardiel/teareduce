@@ -92,43 +92,51 @@ def lacosmicpad(pad_width, show_arguments=False, **kwargs):
                 raise ValueError("The 'psfmodel' keyword argument must be provided when fsmode is 'convolve'.")
             psfmodel = kwargs["psfmodel"]
             if psfmodel not in ["gauss", "moffat", "gaussx", "gaussy", "gaussxy"]:
-                raise ValueError("The 'psfmodel' keyword argument must be one of 'gauss', 'moffat', 'gaussx', 'gaussy', or 'gaussxy'.")
+                raise ValueError(
+                    "The 'psfmodel' keyword argument must be one of 'gauss', 'moffat', 'gaussx', 'gaussy', or 'gaussxy'."
+                )
             if "psffwhm" in kwargs:
-                raise ValueError("When 'fsmode' is 'convolve', 'psffwhm' should not be provided; use 'psffwhm_x' and 'psffwhm_y' instead.")
+                raise ValueError(
+                    "When 'fsmode' is 'convolve', 'psffwhm' should not be provided; use 'psffwhm_x' and 'psffwhm_y' instead."
+                )
             if "psffwhm_x" not in kwargs or "psffwhm_y" not in kwargs:
                 raise ValueError("When 'fsmode' is 'convolve', both 'psffwhm_x' and 'psffwhm_y' must be provided.")
             fwhm_x = kwargs["psffwhm_x"]
-            fwhm_y = kwargs["psffwhm_y"]        
+            fwhm_y = kwargs["psffwhm_y"]
             if "psfsize" not in kwargs:
                 raise ValueError("When 'fsmode' is 'convolve', 'psfsize' must be provided.")
             psfsize = kwargs["psfsize"]
             if kwargs["psfmodel"] == "gaussxy":
                 if "psfk" in kwargs:
-                    raise ValueError("When 'fsmode' is 'convolve' and 'psfmodel' is 'gaussxy', 'psfk' should not be provided; it will be generated from 'psffwhm_x' and 'psffwhm_y'.")
-                kwargs['psfk'] = gausskernel2d_elliptical(fwhm_x, fwhm_y, psfsize)
+                    raise ValueError(
+                        "When 'fsmode' is 'convolve' and 'psfmodel' is 'gaussxy', 'psfk' should not be provided; it will be generated from 'psffwhm_x' and 'psffwhm_y'."
+                    )
+                kwargs["psfk"] = gausskernel2d_elliptical(fwhm_x, fwhm_y, psfsize)
                 if show_arguments:
-                    print(f"Generated elliptical Gaussian kernel with fwhm_x={fwhm_x}, fwhm_y={fwhm_y}, size={psfsize}.")
+                    print(
+                        f"Generated elliptical Gaussian kernel with fwhm_x={fwhm_x}, fwhm_y={fwhm_y}, size={psfsize}."
+                    )
             elif kwargs["psfmodel"] in ["gauss", "moffat"]:
-                kwargs['psffwhm'] = (fwhm_x + fwhm_y) / 2.0  # average for circular psf
+                kwargs["psffwhm"] = (fwhm_x + fwhm_y) / 2.0  # average for circular psf
                 if show_arguments:
                     print(f"Set psffwhm to average of fwhm_x and fwhm_y: {kwargs['psffwhm']}.")
             elif kwargs["psfmodel"] == "gaussx":
-                kwargs['psffwhm'] = fwhm_x
+                kwargs["psffwhm"] = fwhm_x
                 if show_arguments:
                     print(f"Set psffwhm to fwhm_x: {fwhm_x}.")
             elif kwargs["psfmodel"] == "gaussy":
-                kwargs['psffwhm'] = fwhm_y
+                kwargs["psffwhm"] = fwhm_y
                 if show_arguments:
                     print(f"Set psffwhm to fwhm_y: {fwhm_y}.")
             else:
                 raise ValueError(f"Unsupported psfmodel: {kwargs['psfmodel']}")
             if show_arguments:
                 print("Deleting 'psffwhm_x' and 'psffwhm_y' from kwargs.")
-            del kwargs['psffwhm_x']
-            del kwargs['psffwhm_y']
+            del kwargs["psffwhm_x"]
+            del kwargs["psffwhm_y"]
         elif fsmode == "median":
             # Remove unnecessary parameters for median fsmode
-            for param in ['psfmodel', 'psfsize', 'psffwhm', 'psffwhm_x', 'psffwhm_y']:
+            for param in ["psfmodel", "psfsize", "psffwhm", "psffwhm_x", "psffwhm_y"]:
                 if param in kwargs:
                     if show_arguments:
                         print(f"Removing '{param}' argument since fsmode is 'median'.")

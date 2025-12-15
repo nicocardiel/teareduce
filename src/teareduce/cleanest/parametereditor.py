@@ -24,8 +24,21 @@ from .definitions import lacosmic_default_dict
 class ParameterEditor:
     """A dialog to edit L.A.Cosmic parameters."""
 
-    def __init__(self, root, param_dict, window_title, xmin, xmax, ymin, ymax, imgshape, 
-                 inbkg=None, extnum_inbkg=None, invar=None, extnum_invar=None):
+    def __init__(
+        self,
+        root,
+        param_dict,
+        window_title,
+        xmin,
+        xmax,
+        ymin,
+        ymax,
+        imgshape,
+        inbkg=None,
+        extnum_inbkg=None,
+        invar=None,
+        extnum_invar=None,
+    ):
         """Initialize the parameter editor dialog.
 
         Parameters
@@ -107,6 +120,11 @@ class ParameterEditor:
 
     def create_widgets(self):
         """Create the widgets for the dialog."""
+        # Define different styles for different conditions
+        style = ttk.Style()
+        style.configure("Normal.TCombobox", foreground="black")
+        style.configure("Changed.TCombobox", foreground="red")
+
         # Main frame
         main_frame = tk.Frame(self.root, padx=10, pady=10)
         main_frame.pack()
@@ -162,20 +180,51 @@ class ParameterEditor:
             # Entry field for run1
             self.entry_vars[key] = tk.StringVar()
             self.entry_vars[key].trace_add("write", lambda *args: self.update_colour_param_run1_run2())
-            entry = tk.Entry(main_frame, textvariable=self.entry_vars[key], width=10)
-            entry.insert(0, str(info["value"]))
+            if key[5:] in ["cleantype", "fsmode", "psfmodel"]:
+                entry = ttk.Combobox(
+                    main_frame,
+                    textvariable=self.entry_vars[key],
+                    width=8,
+                    state="readonly",
+                    values=info["valid_values"],
+                    style="Normal.TCombobox",
+                )
+                self.entry_vars[key].set(str(info["value"]))
+                entry.bind("<<ComboboxSelected>>", lambda e: self.update_colour_param_run1_run2())
+            else:
+                entry = tk.Entry(main_frame, textvariable=self.entry_vars[key], width=10)
+                entry.insert(0, str(info["value"]))
             entry.grid(row=row, column=1 + coloff, padx=10, pady=5)
             self.entries[key] = entry  # dictionary to hold entry widgets
             # Entry field for run2
             key2 = "run2_" + key[5:]
             self.entry_vars[key2] = tk.StringVar()
             self.entry_vars[key2].trace_add("write", lambda *args: self.update_colour_param_run1_run2())
-            entry = tk.Entry(main_frame, textvariable=self.entry_vars[key2], width=10)
-            entry.insert(0, str(self.param_dict[key2]["value"]))
+            if key[5:] in ["cleantype", "fsmode", "psfmodel"]:
+                entry = ttk.Combobox(
+                    main_frame,
+                    textvariable=self.entry_vars[key2],
+                    width=8,
+                    state="readonly",
+                    values=info["valid_values"],
+                    style="Normal.TCombobox",
+                )
+                self.entry_vars[key2].set(str(self.param_dict[key2]["value"]))
+                entry.bind("<<ComboboxSelected>>", lambda e: self.update_colour_param_run1_run2())
+            else:
+                entry = tk.Entry(main_frame, textvariable=self.entry_vars[key2], width=10)
+                entry.insert(0, str(self.param_dict[key2]["value"]))
             entry.grid(row=row, column=2 + coloff, padx=10, pady=5)
             self.entries["run2_" + key[5:]] = entry  # dictionary to hold entry widgets
             # Type label
-            type_label = tk.Label(main_frame, text=f"({info['type'].__name__})", fg="gray", anchor="w", width=10)
+            infotext = info["type"].__name__
+            if infotext == "int":
+                if "intmode" in info:
+                    if info["intmode"] == "odd":
+                        infotext += ", odd"
+                    elif info["intmode"] == "even":
+                        infotext += ", even"
+            type_label = tk.Label(main_frame, text=f"({infotext})", fg="gray", anchor="w", width=10)
             type_label.grid(row=row, column=3 + coloff, sticky="w", pady=5)
             row_subtable += 1
             if row_subtable == max_num_params_in_columns:
@@ -190,7 +239,9 @@ class ParameterEditor:
             self.filename_inbkg = tk.StringVar(value="None")
         else:
             self.filename_inbkg = tk.StringVar(value=str(Path(self.inbkg).name + f"[{self.extnum_inbkg}]"))
-        file_inbkg_label = tk.Label(main_frame, textvariable=self.filename_inbkg, fg="blue", bg="white", cursor="hand2", anchor="w", width=40)
+        file_inbkg_label = tk.Label(
+            main_frame, textvariable=self.filename_inbkg, fg="blue", bg="white", cursor="hand2", anchor="w", width=40
+        )
         file_inbkg_label.grid(row=row, column=coloff + 1, columnspan=4, sticky="w", padx=10, pady=5)
         file_inbkg_label.bind("<Button-1>", lambda e: self.define_inbkg())
         row += 1
@@ -201,7 +252,9 @@ class ParameterEditor:
             self.filename_invar = tk.StringVar(value="None")
         else:
             self.filename_invar = tk.StringVar(value=str(Path(self.invar).name + f"[{self.extnum_invar}]"))
-        file_invar_label = tk.Label(main_frame, textvariable=self.filename_invar, fg="blue", bg="white", cursor="hand2", anchor="w", width=40)
+        file_invar_label = tk.Label(
+            main_frame, textvariable=self.filename_invar, fg="blue", bg="white", cursor="hand2", anchor="w", width=40
+        )
         file_invar_label.grid(row=row, column=coloff + 1, columnspan=4, sticky="w", padx=10, pady=5)
         file_invar_label.bind("<Button-1>", lambda e: self.define_invar())
         row += 1
@@ -306,19 +359,19 @@ class ParameterEditor:
         button_frame.grid(row=row, column=0, columnspan=9, pady=(5, 0))
 
         # OK button
-        ok_button = ttk.Button(button_frame, text="OK", takefocus=True, command=self.on_ok)
-        ok_button.pack(side="left", padx=5)
+        self.ok_button = ttk.Button(button_frame, text="OK", takefocus=True, command=self.on_ok)
+        self.ok_button.pack(side="left", padx=5)
 
         # Cancel button
-        cancel_button = ttk.Button(button_frame, text="Cancel", command=self.on_cancel)
-        cancel_button.pack(side="left", padx=5)
+        self.cancel_button = ttk.Button(button_frame, text="Cancel", command=self.on_cancel)
+        self.cancel_button.pack(side="left", padx=5)
 
         # Reset button
-        reset_button = ttk.Button(button_frame, text="Reset", command=self.on_reset)
-        reset_button.pack(side="left", padx=5)
+        self.reset_button = ttk.Button(button_frame, text="Reset", command=self.on_reset)
+        self.reset_button.pack(side="left", padx=5)
 
         # Set focus to OK button
-        ok_button.focus_set()
+        self.ok_button.focus_set()
 
     def ask_extension_input_image(self, filename):
         """Ask the user for the FITS extension to use for the input image.
@@ -349,8 +402,7 @@ class ParameterEditor:
             ext_str = simpledialog.askstring(
                 "Select Extension",
                 f"\nEnter extension number (0-{len(ext_indices)-1}) for file:\n{Path(filename).name}\n"
-                f"Available extensions:\n" +
-                "\n".join([f"{i}: {name}" for i, name in zip(ext_indices, ext_names)]),
+                f"Available extensions:\n" + "\n".join([f"{i}: {name}" for i, name in zip(ext_indices, ext_names)]),
             )
             if ext_str is None:
                 return None
@@ -362,7 +414,7 @@ class ParameterEditor:
             except ValueError as e:
                 messagebox.showerror("Invalid Input", f"Error: {str(e)}")
                 return None
-        
+
         # check if ext is a valid array
         with fits.open(filename) as hdul:
             if hdul[ext] is None:
@@ -378,7 +430,10 @@ class ParameterEditor:
                 messagebox.showerror("Invalid Input", f"Extension {ext} in file '{filename}' has no data")
                 return None
             elif hdul[ext].data.shape[0] != self.imgshape[0] or hdul[ext].data.shape[1] != self.imgshape[1]:
-                messagebox.showerror("Invalid Input", f"Extension {ext} in file '{filename}' has unexpected shape {hdul[ext].data.shape}, expected {self.imgshape}")
+                messagebox.showerror(
+                    "Invalid Input",
+                    f"Extension {ext} in file '{filename}' has unexpected shape {hdul[ext].data.shape}, expected {self.imgshape}",
+                )
                 return None
         return ext
 
@@ -394,7 +449,7 @@ class ParameterEditor:
                 self.inbkg = None
             else:
                 self.filename_inbkg.set(str(Path(self.inbkg).name + f"[{self.extnum_inbkg}]"))
-        
+
         if self.inbkg in ["", None]:
             self.inbkg = None
             self.filename_inbkg.set("None")
@@ -451,6 +506,11 @@ class ParameterEditor:
                     converted_value = value_type(entry_value)
                     if "positive" in info and info["positive"] and converted_value < 0:
                         raise ValueError(f"Value for {key} must be positive")
+                    if "intmode" in info:
+                        if info["intmode"] == "odd" and converted_value % 2 == 0:
+                            raise ValueError(f"Value for {key} must be an odd integer")
+                        elif info["intmode"] == "even" and converted_value % 2 != 0:
+                            raise ValueError(f"Value for {key} must be an even integer")
 
                 updated_dict[key] = {"value": converted_value, "type": value_type}
 
@@ -503,8 +563,12 @@ class ParameterEditor:
         for key, info in self.param_dict.items():
             if key in ["nruns", "inbkg", "extnum_inbkg", "invar", "extnum_invar"]:
                 continue
-            self.entries[key].delete(0, tk.END)
-            self.entries[key].insert(0, str(info["value"]))
+            parname = key[5:]
+            if parname in ["cleantype", "fsmode", "psfmodel"]:
+                self.entries[key].set(str(info["value"]))
+            else:
+                self.entries[key].delete(0, tk.END)
+                self.entries[key].insert(0, str(info["value"]))
 
     def get_result(self):
         """Return the updated dictionary"""
@@ -518,6 +582,17 @@ class ParameterEditor:
                 parname = key[5:]
                 if key in self.entries and "run2_" + parname in self.entries:
                     if self.entries[key].get() != self.entries["run2_" + parname].get():
-                        self.entries["run2_" + parname].config(fg="red")
+                        if parname in ["cleantype", "fsmode", "psfmodel"]:
+                            self.entries["run2_" + parname].configure(style="Changed.TCombobox")
+                        else:
+                            self.entries["run2_" + parname].config(fg="red")
                     else:
-                        self.entries["run2_" + parname].config(fg="black")
+                        if parname in ["cleantype", "fsmode", "psfmodel"]:
+                            self.entries["run2_" + parname].configure(style="Normal.TCombobox")
+                        else:
+                            self.entries["run2_" + parname].config(fg="black")
+                # Remove the highlight after choosing an option from the dropdown
+                # (to see the color change immediately)
+                if parname in ["cleantype", "fsmode", "psfmodel"]:
+                    self.entries["run1_" + parname].selection_clear()
+                    self.entries["run2_" + parname].selection_clear()
