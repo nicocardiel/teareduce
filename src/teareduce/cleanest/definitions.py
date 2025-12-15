@@ -66,17 +66,17 @@ lacosmic_default_dict = {
     "nruns": {"value": 1, "type": int, "positive": True},
 }
 
-# Default parameters for cleaning methods
-VALID_CLEANING_METHODS = [
-    "x interp.",
-    "y interp.",
-    "surface interp.",
-    "median",
-    "mean",
-    "lacosmic",
-    "maskfill",
-    "auxdata",
-]
+# Valid cleaning methods (as shown to the user and their internal codes)
+VALID_CLEANING_METHODS = {
+    "x interp.": "x",
+    "y interp.": "y",
+    "median": "a-median",
+    "mean": "a-mean",
+    "surface interp.": "a-plane",
+    "maskfill": "maskfill",
+    "lacosmic": "lacosmic",
+    "auxdata": "auxdata",
+}
 
 # Maximum pixel distance to consider when finding closest CR pixel
 MAX_PIXEL_DISTANCE_TO_CR = 15
@@ -86,6 +86,12 @@ DEFAULT_NPOINTS_INTERP = 2
 
 # Default degree for interpolation
 DEFAULT_DEGREE_INTERP = 1
+
+# Default maskfill parameters
+DEFAULT_MASKFILL_SIZE = 3
+DEFAULT_MASKFILL_OPERATOR = "median"
+DEFAULT_MASKFILL_SMOOTH = True
+DEFAULT_MASKFILL_VERBOSE = False
 
 # Default Tk window size
 DEFAULT_TK_WINDOW_SIZE_X = 800

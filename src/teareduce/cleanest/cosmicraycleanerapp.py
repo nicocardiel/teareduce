@@ -39,6 +39,10 @@ from .centerchildparent import center_on_parent
 from .definitions import lacosmic_default_dict
 from .definitions import DEFAULT_NPOINTS_INTERP
 from .definitions import DEFAULT_DEGREE_INTERP
+from .definitions import DEFAULT_MASKFILL_SIZE
+from .definitions import DEFAULT_MASKFILL_OPERATOR
+from .definitions import DEFAULT_MASKFILL_SMOOTH
+from .definitions import DEFAULT_MASKFILL_VERBOSE
 from .definitions import MAX_PIXEL_DISTANCE_TO_CR
 from .definitions import DEFAULT_TK_WINDOW_SIZE_X
 from .definitions import DEFAULT_TK_WINDOW_SIZE_Y
@@ -187,6 +191,14 @@ class CosmicRayCleanerApp(ImageDisplay):
             Last used number of points for interpolation.
         last_degree : int
             Last used degree for interpolation.
+        last_maskfill_size : int
+            Last used size parameter for maskfill.
+        last_maskfill_operator : str
+            Last used operator parameter for maskfill.
+        last_maskfill_smooth : bool
+            Last used smooth parameter for maskfill.
+        last_maskfill_verbose : bool
+            Last used verbose parameter for maskfill.
         cleandata_lacosmic : np.ndarray
             The cleaned data returned from L.A.Cosmic.
         cr_labels : np.ndarray
@@ -228,6 +240,10 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.last_ymax = self.data.shape[0]
         self.last_npoints = DEFAULT_NPOINTS_INTERP
         self.last_degree = DEFAULT_DEGREE_INTERP
+        self.last_maskfill_size = DEFAULT_MASKFILL_SIZE
+        self.last_maskfill_operator = DEFAULT_MASKFILL_OPERATOR
+        self.last_maskfill_smooth = DEFAULT_MASKFILL_SMOOTH
+        self.last_maskfill_verbose = DEFAULT_MASKFILL_VERBOSE
         self.create_widgets()
         self.cleandata_lacosmic = None
         self.cr_labels = None
@@ -756,6 +772,10 @@ class CosmicRayCleanerApp(ImageDisplay):
                 last_dilation=self.lacosmic_params["dilation"]["value"],
                 last_npoints=self.last_npoints,
                 last_degree=self.last_degree,
+                last_maskfill_size=self.last_maskfill_size,
+                last_maskfill_operator=self.last_maskfill_operator,
+                last_maskfill_smooth=self.last_maskfill_smooth,
+                last_maskfill_verbose=self.last_maskfill_verbose,
                 auxdata=self.auxdata,
                 xmin=self.last_xmin,
                 xmax=self.last_xmax,
@@ -773,8 +793,13 @@ class CosmicRayCleanerApp(ImageDisplay):
             if cleaning_method is None:
                 print("Interpolation method selection cancelled. No cleaning applied!")
                 return
+            # Update last employed parameters
             self.last_npoints = editor.npoints
             self.last_degree = editor.degree
+            self.last_maskfill_size = editor.maskfill_size
+            self.last_maskfill_operator = editor.maskfill_operator
+            self.last_maskfill_smooth = editor.maskfill_smooth
+            self.last_maskfill_verbose = editor.maskfill_verbose
             cleaning_region = SliceRegion2D(
                 f"[{editor.xmin}:{editor.xmax},{editor.ymin}:{editor.ymax}]", mode="fits"
             ).python
@@ -799,9 +824,10 @@ class CosmicRayCleanerApp(ImageDisplay):
                     smoothed_output, _ = maskfill(
                         input_image=self.data,
                         mask=mask_crfound_region,
-                        size=3,
-                        operator="median",
-                        smooth=True,
+                        size=self.last_maskfill_size,
+                        operator=self.last_maskfill_operator,
+                        smooth=self.last_maskfill_smooth,
+                        verbose=self.last_maskfill_verbose,
                     )
                     self.data[mask_crfound_region] = smoothed_output[mask_crfound_region]
                     # update mask_fixed to include the newly fixed pixels

@@ -59,6 +59,10 @@ class ReviewCosmicRay(ImageDisplay):
         last_dilation=None,
         last_npoints=None,
         last_degree=None,
+        last_maskfill_size=None,
+        last_maskfill_operator=None,
+        last_maskfill_smooth=None,
+        last_maskfill_verbose=None,
     ):
         """Initialize the review window.
 
@@ -90,6 +94,14 @@ class ReviewCosmicRay(ImageDisplay):
             The last used number of points parameter for interpolation.
         last_degree : int or None, optional
             The last used degree parameter for interpolation.
+        last_maskfill_size : int or None, optional
+            The last used maskfill size parameter.
+        last_maskfill_operator : str or None, optional
+            The last used maskfill operator parameter.
+        last_maskfill_smooth : bool or None, optional
+            The last used maskfill smooth parameter.
+        last_maskfill_verbose : bool or None, optional
+            The last used maskfill verbose parameter.
 
         Methods
         -------
@@ -146,6 +158,14 @@ class ReviewCosmicRay(ImageDisplay):
             Degree parameter for interpolation.
         npoints : int
             Number of points parameter for interpolation.
+        maskfill_size : int
+            The last used maskfill size parameter.
+        maskfill_operator : str
+            The last used maskfill operator parameter.
+        maskfill_smooth : bool
+            The last used maskfill smooth parameter.
+        maskfill_verbose : bool
+            The last used maskfill verbose parameter.
         last_dilation : int or None
             The last used dilation parameter employed after L.A.Cosmic
             detection.
@@ -171,6 +191,10 @@ class ReviewCosmicRay(ImageDisplay):
         self.first_plot = True
         self.degree = last_degree if last_degree is not None else 1
         self.npoints = last_npoints if last_npoints is not None else 2
+        self.maskfill_size = last_maskfill_size if last_maskfill_size is not None else 3
+        self.maskfill_operator = last_maskfill_operator if last_maskfill_operator is not None else "median"
+        self.maskfill_smooth = last_maskfill_smooth if last_maskfill_smooth is not None else True
+        self.maskfill_verbose = last_maskfill_verbose if last_maskfill_verbose is not None else False
         self.last_dilation = last_dilation
         # Make a copy of the original labels to allow pixel re-marking
         self.cr_labels_original = self.cr_labels.copy()
@@ -194,6 +218,8 @@ class ReviewCosmicRay(ImageDisplay):
             self.button_frame1, text=f"Npoints={self.npoints}, Degree={self.degree}", command=self.set_ndeg
         )
         self.ndeg_label.pack(side=tk.LEFT, padx=5)
+        self.maskfill_button = tk.Button(self.button_frame1, text="Maskfill params.", command=self.set_maskfill_params)
+        self.maskfill_button.pack(side=tk.LEFT, padx=5)
         self.remove_crosses_button = tk.Button(self.button_frame1, text="remove all x's", command=self.remove_crosses)
         self.remove_crosses_button.pack(side=tk.LEFT, padx=5)
         self.restore_cr_button = tk.Button(self.button_frame1, text="[r]estore CR data", command=self.restore_cr)
@@ -376,6 +402,61 @@ class ReviewCosmicRay(ImageDisplay):
         self.npoints = new_npoints
         self.ndeg_label.config(text=f"Npoints={self.npoints}, Degree={self.degree}")
 
+    def set_maskfill_params(self):
+        """Set the maskfill parameters."""
+        new_size = simpledialog.askinteger(
+            "Set Maskfill Size", "Enter Maskfill Size (odd integer >=1):", initialvalue=self.maskfill_size, minvalue=1
+        )
+        if new_size is None:
+            return
+        if new_size % 2 == 0:
+            messagebox.showerror("Input Error", "Maskfill size must be an odd integer.")
+            return
+        new_operator = simpledialog.askstring(
+            "Set Maskfill Operator",
+            "Enter Maskfill Operator ('median' or 'mean'):",
+            initialvalue=self.maskfill_operator,
+        )
+        if new_operator is None:
+            return
+        if new_operator not in ["median", "mean"]:
+            messagebox.showerror("Input Error", "Maskfill operator must be 'median' or 'mean'.")
+            return
+        smooth_str = simpledialog.askstring(
+            "Set Maskfill Smooth",
+            "Enter Maskfill Smooth ('True' or 'False'):",
+            initialvalue=str(self.maskfill_smooth),
+        )
+        if smooth_str is None:
+            return
+        smooth_str = smooth_str.strip().lower()
+        if smooth_str == "true":
+            new_smooth = True
+        elif smooth_str == "false":
+            new_smooth = False
+        else:
+            messagebox.showerror("Input Error", "Maskfill Smooth must be 'True' or 'False'.")
+            return
+        verbose_str = simpledialog.askstring(
+            "Set Maskfill Verbose",
+            "Enter Maskfill Verbose ('True' or 'False'):",
+            initialvalue=str(self.maskfill_verbose),
+        )
+        if verbose_str is None:
+            return
+        verbose_str = verbose_str.strip().lower()
+        if verbose_str == "true":
+            new_verbose = True
+        elif verbose_str == "false":
+            new_verbose = False
+        else:
+            messagebox.showerror("Input Error", "Maskfill Verbose must be 'True' or 'False'.")
+            return
+        self.maskfill_size = new_size
+        self.maskfill_operator = new_operator
+        self.maskfill_smooth = new_smooth
+        self.maskfill_verbose = new_verbose
+
     def set_buttons_after_cleaning_cr(self):
         """Set the state of buttons after cleaning a cosmic ray."""
         self.disable_interpolation_buttons()
@@ -388,6 +469,7 @@ class ReviewCosmicRay(ImageDisplay):
             messagebox.showerror("Input Error", "2*Npoints must be greater than Degree for x interpolation.")
             return
         print(f"X-interpolation of cosmic ray {self.cr_index}")
+        print(f"Interpolation parameters: Npoints={self.npoints}, Degree={self.degree}")
         interpolation_performed, xfit_all, yfit_all = interpolation_x(
             data=self.data,
             mask_fixed=self.mask_fixed,
@@ -410,6 +492,7 @@ class ReviewCosmicRay(ImageDisplay):
             messagebox.showerror("Input Error", "2*Npoints must be greater than Degree for y interpolation.")
             return
         print(f"Y-interpolation of cosmic ray {self.cr_index}")
+        print(f"Interpolation parameters: Npoints={self.npoints}, Degree={self.degree}")
         interpolation_performed, xfit_all, yfit_all = interpolation_y(
             data=self.data,
             mask_fixed=self.mask_fixed,
@@ -435,6 +518,7 @@ class ReviewCosmicRay(ImageDisplay):
             The interpolation method to use ('surface', 'median' or 'mean').
         """
         print(f"{method} interpolation of cosmic ray {self.cr_index}")
+        print(f'Interpolation parameters: Npoints={self.npoints}, method="{method}"')
         interpolation_performed, xfit_all, yfit_all = interpolation_a(
             data=self.data,
             mask_fixed=self.mask_fixed,
@@ -468,6 +552,12 @@ class ReviewCosmicRay(ImageDisplay):
     def use_maskfill(self):
         """Use maskfill cleaned data to clean a cosmic ray."""
         print(f"Maskfill interpolation of cosmic ray {self.cr_index}")
+        print(
+            f"Maskfill parameters: size={self.maskfill_size}, "
+            f"operator={self.maskfill_operator}, "
+            f"smooth={self.maskfill_smooth}, "
+            f"verbose={self.maskfill_verbose}"
+        )
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         mask = np.zeros(self.data.shape, dtype=bool)
         for iy, ix in zip(ycr_list, xcr_list):
@@ -475,9 +565,10 @@ class ReviewCosmicRay(ImageDisplay):
         smoothed_output, _ = maskfill(
             input_image=self.data,
             mask=mask,
-            size=3,
-            operator="median",
-            smooth=True,
+            size=self.maskfill_size,
+            operator=self.maskfill_operator,
+            smooth=self.maskfill_smooth,
+            verbose=self.maskfill_verbose,
         )
         for iy, ix in zip(ycr_list, xcr_list):
             self.data[iy, ix] = smoothed_output[iy, ix]
