@@ -179,7 +179,6 @@ class ParameterEditor:
             label.grid(row=row, column=coloff, sticky="w", pady=5)
             # Entry field for run1
             self.entry_vars[key] = tk.StringVar()
-            self.entry_vars[key].trace_add("write", lambda *args: self.update_colour_param_run1_run2())
             if key[5:] in ["cleantype", "fsmode", "psfmodel"]:
                 entry = ttk.Combobox(
                     main_frame,
@@ -192,6 +191,7 @@ class ParameterEditor:
                 self.entry_vars[key].set(str(info["value"]))
                 entry.bind("<<ComboboxSelected>>", lambda e: self.update_colour_param_run1_run2())
             else:
+                self.entry_vars[key].trace_add("write", lambda *args: self.update_colour_param_run1_run2())
                 entry = tk.Entry(main_frame, textvariable=self.entry_vars[key], width=10)
                 entry.insert(0, str(info["value"]))
             entry.grid(row=row, column=1 + coloff, padx=10, pady=5)
@@ -199,7 +199,6 @@ class ParameterEditor:
             # Entry field for run2
             key2 = "run2_" + key[5:]
             self.entry_vars[key2] = tk.StringVar()
-            self.entry_vars[key2].trace_add("write", lambda *args: self.update_colour_param_run1_run2())
             if key[5:] in ["cleantype", "fsmode", "psfmodel"]:
                 entry = ttk.Combobox(
                     main_frame,
@@ -212,6 +211,7 @@ class ParameterEditor:
                 self.entry_vars[key2].set(str(self.param_dict[key2]["value"]))
                 entry.bind("<<ComboboxSelected>>", lambda e: self.update_colour_param_run1_run2())
             else:
+                self.entry_vars[key2].trace_add("write", lambda *args: self.update_colour_param_run1_run2())
                 entry = tk.Entry(main_frame, textvariable=self.entry_vars[key2], width=10)
                 entry.insert(0, str(self.param_dict[key2]["value"]))
             entry.grid(row=row, column=2 + coloff, padx=10, pady=5)
@@ -512,7 +512,10 @@ class ParameterEditor:
                         elif info["intmode"] == "even" and converted_value % 2 != 0:
                             raise ValueError(f"Value for {key} must be an even integer")
 
-                updated_dict[key] = {"value": converted_value, "type": value_type}
+                # Duplicate the parameter info and update only the value
+                # (preserving other metadata)
+                updated_dict[key] = self.param_dict[key].copy()
+                updated_dict[key]["value"] = converted_value
 
             # Check whether any run1 and run2 parameters differ
             nruns = 1
@@ -594,5 +597,7 @@ class ParameterEditor:
                 # Remove the highlight after choosing an option from the dropdown
                 # (to see the color change immediately)
                 if parname in ["cleantype", "fsmode", "psfmodel"]:
-                    self.entries["run1_" + parname].selection_clear()
-                    self.entries["run2_" + parname].selection_clear()
+                    if "run_1_" + parname in self.entries:
+                        self.entries["run1_" + parname].selection_clear()
+                    if "run2_" + parname in self.entries:
+                        self.entries["run2_" + parname].selection_clear()

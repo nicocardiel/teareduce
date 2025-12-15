@@ -865,6 +865,12 @@ class CosmicRayCleanerApp(ImageDisplay):
                     data_has_been_modified = True
                 elif cleaning_method == "maskfill":
                     # Replace detected CR pixels with local median values
+                    print(
+                        f"Maskfill parameters: size={self.last_maskfill_size}, "
+                        f"operator={self.last_maskfill_operator}, "
+                        f"smooth={self.last_maskfill_smooth}, "
+                        f"verbose={self.last_maskfill_verbose}"
+                    )
                     smoothed_output, _ = maskfill(
                         input_image=self.data,
                         mask=mask_crfound_region,

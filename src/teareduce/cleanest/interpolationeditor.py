@@ -15,6 +15,7 @@ from tkinter import ttk
 
 from .centerchildparent import center_on_parent
 from .definitions import VALID_CLEANING_METHODS
+from .definitions import MASKFILL_OPERATOR_VALUES
 
 
 class InterpolationEditor:
@@ -211,8 +212,12 @@ class InterpolationEditor:
         self.entry_maskfill_size.grid(row=row, column=4, sticky="w")
         label = tk.Label(main_frame, text="Operator:")
         label.grid(row=row, column=5, sticky="e", padx=(0, 10))
-        self.entry_maskfill_operator = tk.Entry(main_frame, width=10)
-        self.entry_maskfill_operator.insert(0, self.maskfill_operator)
+        self.entry_maskfill_operator = ttk.Combobox(
+            main_frame, width=10, values=MASKFILL_OPERATOR_VALUES, state="readonly"
+        )
+        self.entry_maskfill_operator.set(self.maskfill_operator)
+        # self.entry_maskfill_operator = tk.Entry(main_frame, width=10)
+        # self.entry_maskfill_operator.insert(0, self.maskfill_operator)
         self.entry_maskfill_operator.grid(row=row, column=6, sticky="w")
         row += 1
         label = tk.Label(main_frame, text="Smooth:")
