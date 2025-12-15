@@ -9,6 +9,10 @@
 
 """Definitions for the cleanest module."""
 
+VALID_LACOSMIC_CLEANTYPE_VALUES = ["median", "medmask", "meanmask", "idw"]
+VALID_LACOSMIC_FSMODE_VALUES = ["median", "convolve"]
+VALID_LACOSMIC_PSFMODEL_VALUES = ["gauss", "moffat", "gaussx", "gaussy", "gaussxy"]
+
 # Default parameters for L.A.Cosmic algorithm
 # Note that 'type' is set to the expected data type for each parameter
 # using the intrinsic Python types, so that they can be easily cast
@@ -23,12 +27,12 @@ lacosmic_default_dict = {
     "run1_satlevel": {"value": 65535, "type": float, "positive": True},
     "run1_niter": {"value": 4, "type": int, "positive": True, "intmode": "any"},
     "run1_sepmed": {"value": True, "type": bool},
-    "run1_cleantype": {"value": "meanmask", "type": str, "valid_values": ["median", "medmask", "meanmask", "idw"]},
-    "run1_fsmode": {"value": "median", "type": str, "valid_values": ["median", "convolve"]},
+    "run1_cleantype": {"value": "meanmask", "type": str, "valid_values": VALID_LACOSMIC_CLEANTYPE_VALUES},
+    "run1_fsmode": {"value": "median", "type": str, "valid_values": VALID_LACOSMIC_FSMODE_VALUES},
     "run1_psfmodel": {
         "value": "gaussxy",
         "type": str,
-        "valid_values": ["gauss", "moffat", "gaussx", "gaussy", "gaussxy"],
+        "valid_values": VALID_LACOSMIC_PSFMODEL_VALUES,
     },
     "run1_psffwhm_x": {"value": 2.5, "type": float, "positive": True},
     "run1_psffwhm_y": {"value": 2.5, "type": float, "positive": True},
@@ -44,12 +48,12 @@ lacosmic_default_dict = {
     "run2_satlevel": {"value": 65535, "type": float, "positive": True},
     "run2_niter": {"value": 4, "type": int, "positive": True, "intmode": "any"},
     "run2_sepmed": {"value": True, "type": bool},
-    "run2_cleantype": {"value": "meanmask", "type": str, "valid_values": ["median", "medmask", "meanmask", "idw"]},
-    "run2_fsmode": {"value": "median", "type": str, "valid_values": ["median", "convolve"]},
+    "run2_cleantype": {"value": "meanmask", "type": str, "valid_values": VALID_LACOSMIC_CLEANTYPE_VALUES},
+    "run2_fsmode": {"value": "median", "type": str, "valid_values": VALID_LACOSMIC_FSMODE_VALUES},
     "run2_psfmodel": {
         "value": "gaussxy",
         "type": str,
-        "valid_values": ["gauss", "moffat", "gaussx", "gaussy", "gaussxy"],
+        "valid_values": VALID_LACOSMIC_PSFMODEL_VALUES,
     },
     "run2_psffwhm_x": {"value": 2.5, "type": float, "positive": True},
     "run2_psffwhm_y": {"value": 2.5, "type": float, "positive": True},

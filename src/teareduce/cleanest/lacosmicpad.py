@@ -19,6 +19,7 @@ except ModuleNotFoundError as e:
     ) from e
 import numpy as np
 
+from .definitions import VALID_LACOSMIC_PSFMODEL_VALUES
 from .gausskernel2d_elliptical import gausskernel2d_elliptical
 
 
@@ -91,10 +92,8 @@ def lacosmicpad(pad_width, show_arguments=False, **kwargs):
             if "psfmodel" not in kwargs:
                 raise ValueError("The 'psfmodel' keyword argument must be provided when fsmode is 'convolve'.")
             psfmodel = kwargs["psfmodel"]
-            if psfmodel not in ["gauss", "moffat", "gaussx", "gaussy", "gaussxy"]:
-                raise ValueError(
-                    "The 'psfmodel' keyword argument must be one of 'gauss', 'moffat', 'gaussx', 'gaussy', or 'gaussxy'."
-                )
+            if psfmodel not in VALID_LACOSMIC_PSFMODEL_VALUES:
+                raise ValueError(f"The 'psfmodel' keyword argument must be one of {VALID_LACOSMIC_PSFMODEL_VALUES}.")
             if "psffwhm" in kwargs:
                 raise ValueError(
                     "When 'fsmode' is 'convolve', 'psffwhm' should not be provided; use 'psffwhm_x' and 'psffwhm_y' instead."
