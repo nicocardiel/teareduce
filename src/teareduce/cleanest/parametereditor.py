@@ -9,9 +9,13 @@
 
 """Parameter editor dialog for L.A.Cosmic parameters."""
 
+from astropy.io import fits
+from pathlib import Path
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
 from tkinter import messagebox
+from tkinter import simpledialog
 
 from .centerchildparent import center_on_parent
 from .definitions import lacosmic_default_dict
@@ -20,7 +24,8 @@ from .definitions import lacosmic_default_dict
 class ParameterEditor:
     """A dialog to edit L.A.Cosmic parameters."""
 
-    def __init__(self, root, param_dict, window_title, xmin, xmax, ymin, ymax, imgshape):
+    def __init__(self, root, param_dict, window_title, xmin, xmax, ymin, ymax, imgshape, 
+                 inbkg=None, extnum_inbkg=None, invar=None, extnum_invar=None):
         """Initialize the parameter editor dialog.
 
         Parameters
@@ -45,6 +50,14 @@ class ParameterEditor:
             From 1 to NAXIS2.
         imgshape : tuple
             Shape of the image (height, width).
+        inbkg : str or None
+            Path to the input background image FITS file.
+        extnum_inbkg : int or None
+            FITS extension number for the input background image.
+        invar : str or None
+            Path to the input variance image FITS file.
+        extnum_invar : int or None
+            FITS extension number for the input variance image.
 
         Methods
         -------
@@ -82,7 +95,11 @@ class ParameterEditor:
         self.param_dict["ymax"]["value"] = ymax
         self.imgshape = imgshape
         self.entries = {"run1": {}, "run2": {}}  # dictionary to hold entry widgets
-        self.result_dict = None
+        self.inbkg = inbkg
+        self.extnum_inbkg = extnum_inbkg
+        self.invar = invar
+        self.extnum_invar = extnum_invar
+        self.result_dict = {}
 
         # Create the form
         self.create_widgets()
@@ -107,11 +124,11 @@ class ParameterEditor:
         # Count number of parameters for run1 and run2
         nparams_run1 = sum(1 for key in self.param_dict.keys() if key.startswith("run1_"))
         nparams_run2 = sum(1 for key in self.param_dict.keys() if key.startswith("run2_"))
-        print(f"Number of L.A.Cosmic parameters for run1: {nparams_run1}")
-        print(f"Number of L.A.Cosmic parameters for run2: {nparams_run2}")
         if nparams_run1 != nparams_run2:
             raise ValueError("Number of parameters for run1 and run2 do not match.")
-        max_num_params_in_columns = nparams_run1 // 2 + nparams_run1 % 2
+        nparams_input_images = len(["inbkg", "invar"])
+        nparams_total = nparams_input_images + nparams_run1
+        max_num_params_in_columns = nparams_total // 2 + nparams_total % 2
 
         # Create labels and entry fields for each parameter.
         bold_font_subheader = default_font.copy()
@@ -166,9 +183,32 @@ class ParameterEditor:
                 row -= max_num_params_in_columns
             row += 1
 
+        # Auxiliary images
+        label = tk.Label(main_frame, text="inbkg:", anchor="e", width=15)
+        label.grid(row=row, column=coloff, sticky="w", pady=5)
+        if self.inbkg is None:
+            self.filename_inbkg = tk.StringVar(value="None")
+        else:
+            self.filename_inbkg = tk.StringVar(value=str(Path(self.inbkg).name + f"[{self.extnum_inbkg}]"))
+        file_inbkg_label = tk.Label(main_frame, textvariable=self.filename_inbkg, fg="blue", bg="white", cursor="hand2", anchor="w", width=40)
+        file_inbkg_label.grid(row=row, column=coloff + 1, columnspan=4, sticky="w", padx=10, pady=5)
+        file_inbkg_label.bind("<Button-1>", lambda e: self.define_inbkg())
+        row += 1
+
+        label = tk.Label(main_frame, text="invar:", anchor="e", width=15)
+        label.grid(row=row, column=coloff, sticky="w", pady=5)
+        if self.invar is None:
+            self.filename_invar = tk.StringVar(value="None")
+        else:
+            self.filename_invar = tk.StringVar(value=str(Path(self.invar).name + f"[{self.extnum_invar}]"))
+        file_invar_label = tk.Label(main_frame, textvariable=self.filename_invar, fg="blue", bg="white", cursor="hand2", anchor="w", width=40)
+        file_invar_label.grid(row=row, column=coloff + 1, columnspan=4, sticky="w", padx=10, pady=5)
+        file_invar_label.bind("<Button-1>", lambda e: self.define_invar())
+        row += 1
+
         # Adjust row if odd number of parameters
-        if nparams_run1 % 2 != 0:
-            row += nparams_run1 % 2
+        if nparams_total % 2 != 0:
+            row += nparams_total % 2
 
         # Vertical separator between splitted table
         separatorv1 = ttk.Separator(main_frame, orient="vertical")
@@ -280,13 +320,116 @@ class ParameterEditor:
         # Set focus to OK button
         ok_button.focus_set()
 
+    def ask_extension_input_image(self, filename):
+        """Ask the user for the FITS extension to use for the input image.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the FITS file.
+
+        Returns
+        -------
+        ext : int or str
+            The selected FITS extension (0-based index or name).
+        """
+        # Open the FITS file to get the list of extensions
+        try:
+            with fits.open(filename) as hdul:
+                ext_names = [hdu.name for hdu in hdul]
+                ext_indices = list(range(len(hdul)))
+        except Exception as e:
+            messagebox.showerror("Error", f"Unable to open FITS file '{filename}':\n{str(e)}")
+            return None
+
+        if len(ext_indices) == 1:
+            ext = 0
+        else:
+            # ask for the extension number in a dialog
+            ext_str = simpledialog.askstring(
+                "Select Extension",
+                f"\nEnter extension number (0-{len(ext_indices)-1}) for file:\n{Path(filename).name}\n"
+                f"Available extensions:\n" +
+                "\n".join([f"{i}: {name}" for i, name in zip(ext_indices, ext_names)]),
+            )
+            if ext_str is None:
+                return None
+            # Validate the input
+            try:
+                ext = int(ext_str)
+                if ext < 0 or ext >= len(ext_indices):
+                    raise ValueError("Extension number out of range")
+            except ValueError as e:
+                messagebox.showerror("Invalid Input", f"Error: {str(e)}")
+                return None
+        
+        # check if ext is a valid array
+        with fits.open(filename) as hdul:
+            if hdul[ext] is None:
+                messagebox.showerror("Invalid Input", f"Extension {ext} does not exist in file '{filename}'")
+                return None
+            elif hdul[ext].data is None:
+                messagebox.showerror("Invalid Input", f"Extension {ext} in file '{filename}' has no data")
+                return None
+            elif hdul[ext].data.ndim != 2:
+                messagebox.showerror("Invalid Input", f"Extension {ext} in file '{filename}' is not 2D")
+                return None
+            elif hdul[ext].data.size == 0:
+                messagebox.showerror("Invalid Input", f"Extension {ext} in file '{filename}' has no data")
+                return None
+            elif hdul[ext].data.shape[0] != self.imgshape[0] or hdul[ext].data.shape[1] != self.imgshape[1]:
+                messagebox.showerror("Invalid Input", f"Extension {ext} in file '{filename}' has unexpected shape {hdul[ext].data.shape}, expected {self.imgshape}")
+                return None
+        return ext
+
+    def define_inbkg(self):
+        """Define the input background image."""
+        self.inbkg = filedialog.askopenfilename(
+            title="Select FITS file to be used as input background image",
+            filetypes=[("FITS files", "*.fits *.fit *.fts"), ("All files", "*.*")],
+        )
+        if self.inbkg != "":
+            self.extnum_inbkg = self.ask_extension_input_image(self.inbkg)
+            if self.extnum_inbkg is None:
+                self.inbkg = None
+            else:
+                self.filename_inbkg.set(str(Path(self.inbkg).name + f"[{self.extnum_inbkg}]"))
+        
+        if self.inbkg in ["", None]:
+            self.inbkg = None
+            self.filename_inbkg.set("None")
+            self.extnum_inbkg = None
+
+    def define_invar(self):
+        """Define the input variance image."""
+        self.invar = filedialog.askopenfilename(
+            title="Select FITS file to be used as input variance image",
+            filetypes=[("FITS files", "*.fits *.fit *.fts"), ("All files", "*.*")],
+        )
+        if self.invar != "":
+            self.extnum_invar = self.ask_extension_input_image(self.invar)
+            if self.extnum_invar is None:
+                self.invar = None
+            else:
+                self.filename_invar.set(str(Path(self.invar).name + f"[{self.extnum_invar}]"))
+
+        if self.invar in ["", None]:
+            self.invar = None
+            self.filename_invar.set("None")
+            self.extnum_invar = None
+
     def on_ok(self):
         """Validate and save the updated values"""
         try:
-            updated_dict = {}
+            updated_dict = {
+                "inbkg": {"value": self.inbkg, "type": str},
+                "extnum_inbkg": {"value": self.extnum_inbkg, "type": int},
+                "invar": {"value": self.invar, "type": str},
+                "extnum_invar": {"value": self.extnum_invar, "type": int},
+            }
 
             for key, info in self.param_dict.items():
-                if key == "nruns":
+                if key in ["nruns", "inbkg", "extnum_inbkg", "invar", "extnum_invar"]:
                     continue
                 entry_value = self.entries[key].get()
                 value_type = info["type"]
@@ -300,7 +443,7 @@ class ParameterEditor:
                         converted_value = False
                     else:
                         raise ValueError(f"Invalid boolean value for {key}")
-                if value_type == str:
+                elif value_type == str:
                     converted_value = entry_value
                     if "valid_values" in info and entry_value not in info["valid_values"]:
                         raise ValueError(f"Invalid value for {key}. Valid values are: {info['valid_values']}")
@@ -358,7 +501,7 @@ class ParameterEditor:
         self.param_dict["ymin"]["value"] = 1
         self.param_dict["ymax"]["value"] = self.imgshape[0]
         for key, info in self.param_dict.items():
-            if key == "nruns":
+            if key in ["nruns", "inbkg", "extnum_inbkg", "invar", "extnum_invar"]:
                 continue
             self.entries[key].delete(0, tk.END)
             self.entries[key].insert(0, str(info["value"]))

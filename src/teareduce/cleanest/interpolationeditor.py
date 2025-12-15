@@ -248,7 +248,7 @@ class InterpolationEditor:
             if key in ["xmin", "xmax"]:
                 coloff = 0
             else:
-                coloff = 3
+                coloff = 4
             label.grid(row=row, column=coloff, sticky="e", pady=5)
             # Entry field
             entry = tk.Entry(main_frame, width=10)
@@ -268,6 +268,10 @@ class InterpolationEditor:
             else:
                 row += 1
 
+        # Vertical separator
+        separatorv2 = ttk.Separator(main_frame, orient="vertical")
+        separatorv2.grid(row=row - 2, column=3, rowspan=2, sticky="ns", padx=5)
+
         # Separator
         separator3 = ttk.Separator(main_frame, orient="horizontal")
         separator3.grid(row=row, column=0, columnspan=7, sticky="ew", pady=(10, 10))
@@ -275,7 +279,7 @@ class InterpolationEditor:
 
         # Button frame
         self.button_frame = tk.Frame(main_frame)
-        self.button_frame.grid(row=row, column=0, columnspan=7, pady=(15, 0))
+        self.button_frame.grid(row=row, column=0, columnspan=7, pady=(5, 0))
 
         # OK button
         self.ok_button = ttk.Button(self.button_frame, text="OK", command=self.on_ok)

@@ -187,6 +187,14 @@ class CosmicRayCleanerApp(ImageDisplay):
         last_ymax : int
             Last used maximum y-coordinate for region selection.
             From 1 to NAXIS2.
+        last_inbkg : str or None
+            Last used input background image FITS file.
+        last_extnum_inbkg : int or None
+            Last used FITS extension number for the input background image.
+        last_invar : str or None
+            Last used input variance image FITS file.
+        last_extnum_invar : int or None
+            Last used FITS extension number for the input variance image.
         last_npoints : int
             Last used number of points for interpolation.
         last_degree : int
@@ -238,6 +246,12 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.last_xmax = self.data.shape[1]
         self.last_ymin = 1
         self.last_ymax = self.data.shape[0]
+        self.last_inbkg = None
+        self.last_extnum_inbkg = None
+        self.inbkg_data = None
+        self.last_invar = None
+        self.last_extnum_invar = None
+        self.invar_data = None
         self.last_npoints = DEFAULT_NPOINTS_INTERP
         self.last_degree = DEFAULT_DEGREE_INTERP
         self.last_maskfill_size = DEFAULT_MASKFILL_SIZE
@@ -630,6 +644,10 @@ class CosmicRayCleanerApp(ImageDisplay):
             ymin=self.last_ymin,
             ymax=self.last_ymax,
             imgshape=self.data.shape,
+            inbkg=self.last_inbkg,
+            extnum_inbkg=self.last_extnum_inbkg,
+            invar=self.last_invar,
+            extnum_invar=self.last_extnum_invar,
         )
         # Make it modal (blocks interaction with main window)
         editor_window.transient(self.root)
@@ -644,6 +662,24 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.last_xmax = updated_params["xmax"]["value"]
             self.last_ymin = updated_params["ymin"]["value"]
             self.last_ymax = updated_params["ymax"]["value"]
+            self.last_inbkg = updated_params["inbkg"]["value"]
+            self.last_extnum_inbkg = updated_params["extnum_inbkg"]["value"]
+            self.last_invar = updated_params["invar"]["value"]
+            self.last_extnum_invar = updated_params["extnum_invar"]["value"]
+            if self.last_inbkg is not None:
+                with fits.open(self.last_inbkg, mode="readonly") as hdul_inbkg:
+                    if self.last_extnum_inbkg < 0 or self.last_extnum_inbkg >= len(hdul_inbkg):
+                        raise IndexError(f"Extension index {self.last_extnum_inbkg} out of range.")
+                    self.inbkg_data = hdul_inbkg[self.last_extnum_inbkg].data.astype(np.float32)
+            else:
+                self.inbkg_data = None
+            if self.last_invar is not None:
+                with fits.open(self.last_invar, mode="readonly") as hdul_invar:
+                    if self.last_extnum_invar < 0 or self.last_extnum_invar >= len(hdul_invar):
+                        raise IndexError(f"Extension index {self.last_extnum_invar} out of range.")
+                    self.invar_data = hdul_invar[self.last_extnum_invar].data.astype(np.float32)
+            else:
+                self.invar_data = None
             usefulregion = SliceRegion2D(
                 f"[{self.last_xmin}:{self.last_xmax},{self.last_ymin}:{self.last_ymax}]", mode="fits"
             ).python
@@ -662,6 +698,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             borderpadd = updated_params["borderpadd"]["value"]
             cleandata_lacosmic, mask_crfound = lacosmicpad(
                 pad_width=borderpadd,
+                show_arguments=self.verbose,
                 ccd=self.data,
                 gain_apply=True,  # Always apply gain
                 sigclip=self.lacosmic_params["run1_sigclip"]["value"],
@@ -679,6 +716,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                 psfsize=self.lacosmic_params["run1_psfsize"]["value"],
                 psfbeta=self.lacosmic_params["run1_psfbeta"]["value"],
                 verbose=self.lacosmic_params["run1_verbose"]["value"],
+                inbkg=self.inbkg_data,
+                invar=self.invar_data,
             )
             # Apply usefulmask to consider only selected region
             cleandata_lacosmic *= usefulmask
@@ -688,6 +727,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 print("[bold green]Executing L.A.Cosmic (run 2)...[/bold green]")
                 cleandata_lacosmic2, mask_crfound2 = lacosmicpad(
                     pad_width=borderpadd,
+                    show_arguments=self.verbose,
                     ccd=self.data,
                     gain_apply=True,  # Always apply gain
                     sigclip=self.lacosmic_params["run2_sigclip"]["value"],
@@ -705,6 +745,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                     psfsize=self.lacosmic_params["run2_psfsize"]["value"],
                     psfbeta=self.lacosmic_params["run2_psfbeta"]["value"],
                     verbose=self.lacosmic_params["run2_verbose"]["value"],
+                    inbkg=self.inbkg_data,
+                    invar=self.invar_data,
                 )
                 # Apply usefulmask to consider only selected region
                 cleandata_lacosmic2 *= usefulmask

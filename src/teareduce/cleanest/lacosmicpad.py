@@ -20,7 +20,7 @@ except ModuleNotFoundError as e:
 import numpy as np
 
 
-def lacosmicpad(pad_width, **kwargs):
+def lacosmicpad(pad_width, show_arguments=False, **kwargs):
     """Execute LACosmic algorithm on a padded array.
 
     This function pads the input image array before applying the LACosmic
@@ -39,6 +39,8 @@ def lacosmicpad(pad_width, **kwargs):
     pad_width : int
         Width of the padding to be applied to the image before executing
         the LACosmic algorithm.
+    show_arguments : bool
+        If True, display LACosmic arguments being employed.
     **kwargs : dict
         Keyword arguments to be passed to the `cosmicray_lacosmic` function.
 
@@ -56,6 +58,20 @@ def lacosmicpad(pad_width, **kwargs):
         raise TypeError("The 'ccd' keyword argument must be a numpy ndarray.")
     # Pad the array
     padded_array = np.pad(array, pad_width, mode="reflect")
+    # Pad inbkg and invar if provided
+    if "inbkg" in kwargs and kwargs["inbkg"] is not None:
+        inbkg = kwargs["inbkg"]
+        if not isinstance(inbkg, np.ndarray):
+            raise TypeError("The 'inbkg' keyword argument must be a numpy ndarray.")
+        kwargs["inbkg"] = np.pad(inbkg, pad_width, mode="reflect")
+    if "invar" in kwargs and kwargs["invar"] is not None:
+        invar = kwargs["invar"]
+        if not isinstance(invar, np.ndarray):
+            raise TypeError("The 'invar' keyword argument must be a numpy ndarray.")
+        kwargs["invar"] = np.pad(invar, pad_width, mode="reflect")
+    if show_arguments:
+        for key, value in kwargs.items():
+            print(f"LACosmic parameter: {key} = {value}")
     # Apply LACosmic algorithm to the padded array
     cleaned_padded_array, mask_padded_array = cosmicray_lacosmic(ccd=padded_array, **kwargs)
     # Remove padding

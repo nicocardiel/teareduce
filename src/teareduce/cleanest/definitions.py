@@ -70,11 +70,11 @@ lacosmic_default_dict = {
 VALID_CLEANING_METHODS = {
     "x interp.": "x",
     "y interp.": "y",
+    "surface interp.": "a-plane",
     "median": "a-median",
     "mean": "a-mean",
-    "surface interp.": "a-plane",
-    "maskfill": "maskfill",
     "lacosmic": "lacosmic",
+    "maskfill": "maskfill",
     "auxdata": "auxdata",
 }
 
