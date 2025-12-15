@@ -132,7 +132,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             Update the overlay of cosmic ray pixels on the image.
         apply_lacosmic()
             Apply the L.A.Cosmic algorithm to the data.
-        examine_detected_cr()
+        review_detected_cr()
             Examine detected cosmic rays.
         stop_app()
             Stop the application.
@@ -294,7 +294,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
             print(f"Number of cosmic ray features (grouped pixels): {self.num_features:>{len(sdum)}}")
             self.replace_detected_cr_button.config(state=tk.NORMAL)
-            self.examine_detected_cr_button.config(state=tk.NORMAL)
+            self.review_detected_cr_button.config(state=tk.NORMAL)
             self.update_cr_overlay()
             self.use_cursor = True
             self.use_cursor_button.config(text="[c]ursor: ON ")
@@ -303,7 +303,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.cr_labels = None
             self.num_features = 0
             self.replace_detected_cr_button.config(state=tk.DISABLED)
-            self.examine_detected_cr_button.config(state=tk.DISABLED)
+            self.review_detected_cr_button.config(state=tk.DISABLED)
 
     def load_detected_cr_from_file(self):
         """Load detected cosmic ray mask from a FITS file."""
@@ -412,6 +412,45 @@ class CosmicRayCleanerApp(ImageDisplay):
             except Exception as e:
                 sys.exit(f"Error loading auxiliary FITS file: {e}")
 
+    def load_auxdata_from_file(self):
+        """Load auxiliary data from a FITS file."""
+        auxfile = filedialog.askopenfilename(
+            initialdir=os.getcwd(),
+            title="Select auxiliary FITS file",
+            filetypes=[("FITS files", "*.fits"), ("All files", "*.*")],
+        )
+        if auxfile:
+            print(f"Selected auxiliary FITS file: {auxfile}")
+            extension = simpledialog.askstring(
+                "Select Extension",
+                f"\nEnter extension number or name for file:\n{Path(auxfile).name}",
+                initialvalue=None,
+            )
+            try:
+                extension = int(extension)
+            except ValueError:
+                pass  # Keep as string
+            try:
+                with fits.open(auxfile, mode="readonly") as hdul:
+                    if isinstance(extension, int):
+                        if extension < 0 or extension >= len(hdul):
+                            raise IndexError(f"Extension index {extension} out of range.")
+                    else:
+                        if extension not in hdul:
+                            raise KeyError(f"Extension name '{extension}' not found.")
+                    auxdata_loaded = hdul[extension].data
+                    if auxdata_loaded.shape != self.data.shape:
+                        print(f"data shape...: {self.data.shape}")
+                        print(f"auxdata shape: {auxdata_loaded.shape}")
+                        raise ValueError("Auxiliary file has different shape.")
+                    self.auxfile = auxfile
+                    self.auxdata = auxdata_loaded
+                    self.extension_auxfile = extension
+                    print(f"Loaded auxiliary data from {auxfile}")
+                    self.toggle_auxdata_button.config(state=tk.NORMAL)
+            except Exception as e:
+                print(f"Error loading auxiliary FITS file: {e}")
+
     def save_fits_file(self):
         """Save the cleaned FITS file.
 
@@ -480,8 +519,12 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.button_frame1.pack(pady=5)
         self.run_lacosmic_button = tk.Button(self.button_frame1, text="Run L.A.Cosmic", command=self.run_lacosmic)
         self.run_lacosmic_button.pack(side=tk.LEFT, padx=5)
+        self.load_auxdata_button = tk.Button(
+            self.button_frame1, text="Load auxdata", command=self.load_auxdata_from_file
+        )
+        self.load_auxdata_button.pack(side=tk.LEFT, padx=5)
         self.load_detected_cr_button = tk.Button(
-            self.button_frame1, text="Load detected CRs", command=self.load_detected_cr_from_file
+            self.button_frame1, text="Load CR mask", command=self.load_detected_cr_from_file
         )
         self.load_detected_cr_button.pack(side=tk.LEFT, padx=5)
         self.replace_detected_cr_button = tk.Button(
@@ -489,11 +532,11 @@ class CosmicRayCleanerApp(ImageDisplay):
         )
         self.replace_detected_cr_button.pack(side=tk.LEFT, padx=5)
         self.replace_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
-        self.examine_detected_cr_button = tk.Button(
-            self.button_frame1, text="Examine detected CRs", command=lambda: self.examine_detected_cr(1)
+        self.review_detected_cr_button = tk.Button(
+            self.button_frame1, text="Review detected CRs", command=lambda: self.review_detected_cr(1)
         )
-        self.examine_detected_cr_button.pack(side=tk.LEFT, padx=5)
-        self.examine_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
+        self.review_detected_cr_button.pack(side=tk.LEFT, padx=5)
+        self.review_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
 
         # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.root)
@@ -980,11 +1023,11 @@ class CosmicRayCleanerApp(ImageDisplay):
             if data_has_been_modified:
                 self.save_button.config(state=tk.NORMAL)
             if self.num_features == 0:
-                self.examine_detected_cr_button.config(state=tk.DISABLED)
+                self.review_detected_cr_button.config(state=tk.DISABLED)
                 self.replace_detected_cr_button.config(state=tk.DISABLED)
             self.update_cr_overlay()
 
-    def examine_detected_cr(self, first_cr_index=1, single_cr=False, ixpix=None, iypix=None):
+    def review_detected_cr(self, first_cr_index=1, single_cr=False, ixpix=None, iypix=None):
         """Open a window to examine and possibly clean detected cosmic rays."""
         self.working_in_review_window = True
         review_window = tk.Toplevel(self.root)
@@ -1050,7 +1093,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         if review.num_cr_cleaned > 0:
             self.save_button.config(state=tk.NORMAL)
         if self.num_features == 0:
-            self.examine_detected_cr_button.config(state=tk.DISABLED)
+            self.review_detected_cr_button.config(state=tk.DISABLED)
             self.replace_detected_cr_button.config(state=tk.DISABLED)
         self.update_cr_overlay()
 
@@ -1158,4 +1201,4 @@ class CosmicRayCleanerApp(ImageDisplay):
             else:
                 ixpix = None
                 iypix = None
-            self.examine_detected_cr(label_at_click, single_cr=True, ixpix=ixpix, iypix=iypix)
+            self.review_detected_cr(label_at_click, single_cr=True, ixpix=ixpix, iypix=iypix)
