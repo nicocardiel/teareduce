@@ -414,6 +414,14 @@ class CosmicRayCleanerApp(ImageDisplay):
 
     def load_auxdata_from_file(self):
         """Load auxiliary data from a FITS file."""
+        if self.auxfile is not None:
+            overwrite = messagebox.askyesno(
+                "Overwrite Auxiliary Data",
+                f"An auxiliary file is already loaded:\n\n{self.auxfile}\n\n"
+                "Do you want to overwrite it?",
+            )
+            if not overwrite:
+                return
         auxfile = filedialog.askopenfilename(
             initialdir=os.getcwd(),
             title="Select auxiliary FITS file",
