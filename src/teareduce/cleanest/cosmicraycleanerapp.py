@@ -58,9 +58,10 @@ from .interpolationeditor import InterpolationEditor
 from .imagedisplay import ImageDisplay
 from .lacosmicpad import lacosmicpad
 from .mergemasks import merge_peak_tail_masks
+from .modalprogressbar import ModalProgressBar
 from .parametereditor import ParameterEditor
 from .reviewcosmicray import ReviewCosmicRay
-from .modalprogressbar import ModalProgressBar
+from .trackedbutton import TrackedTkButton
 
 from ..imshow import imshow
 from ..sliceregion import SliceRegion2D
@@ -519,26 +520,47 @@ class CosmicRayCleanerApp(ImageDisplay):
         and canvas for image display, along with the toolbar for navigation.
         The relevant attributes are stored in the instance for later use.
         """
+        # Define instance of TrackedTkButton, that facilitates to show help information
+        # for each button displayed in the current application window.
+        tkbutton = TrackedTkButton(self.root)
+
         # Row 1 of buttons
         self.button_frame1 = tk.Frame(self.root)
         self.button_frame1.pack(pady=5)
-        self.run_lacosmic_button = tk.Button(self.button_frame1, text="Run L.A.Cosmic", command=self.run_lacosmic)
+        self.run_lacosmic_button = tkbutton.new(
+            self.button_frame1,
+            text="Run L.A.Cosmic",
+            command=self.run_lacosmic,
+            help_text="Run the L.A.Cosmic algorithm to detect cosmic rays in the image.",
+        )
         self.run_lacosmic_button.pack(side=tk.LEFT, padx=5)
-        self.load_auxdata_button = tk.Button(
-            self.button_frame1, text="Load auxdata", command=self.load_auxdata_from_file
+        self.load_auxdata_button = tkbutton.new(
+            self.button_frame1,
+            text="Load auxdata",
+            command=self.load_auxdata_from_file,
+            help_text="Load an auxiliary FITS file for display.",
         )
         self.load_auxdata_button.pack(side=tk.LEFT, padx=5)
-        self.load_detected_cr_button = tk.Button(
-            self.button_frame1, text="Load CR mask", command=self.load_detected_cr_from_file
+        self.load_detected_cr_button = tkbutton.new(
+            self.button_frame1,
+            text="Load CR mask",
+            command=self.load_detected_cr_from_file,
+            help_text="Load a previously saved cosmic ray mask from a FITS file.",
         )
         self.load_detected_cr_button.pack(side=tk.LEFT, padx=5)
-        self.replace_detected_cr_button = tk.Button(
-            self.button_frame1, text="Replace detected CRs", command=self.apply_lacosmic
+        self.replace_detected_cr_button = tkbutton.new(
+            self.button_frame1,
+            text="Replace detected CRs",
+            command=self.apply_lacosmic,
+            help_text="Apply the cleaning to the detected cosmic rays.",
         )
         self.replace_detected_cr_button.pack(side=tk.LEFT, padx=5)
         self.replace_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
-        self.review_detected_cr_button = tk.Button(
-            self.button_frame1, text="Review detected CRs", command=lambda: self.review_detected_cr(1)
+        self.review_detected_cr_button = tkbutton.new(
+            self.button_frame1,
+            text="Review detected CRs",
+            command=lambda: self.review_detected_cr(1),
+            help_text="Review the detected cosmic rays.",
         )
         self.review_detected_cr_button.pack(side=tk.LEFT, padx=5)
         self.review_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
@@ -546,51 +568,106 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.root)
         self.button_frame2.pack(pady=5)
-        self.toggle_auxdata_button = tk.Button(self.button_frame2, text="[t]oggle data", command=self.toggle_auxdata)
+        self.use_cursor = False
+        self.use_cursor_button = tkbutton.new(
+            self.button_frame2,
+            text="[c]ursor: OFF",
+            command=self.set_cursor_onoff,
+            help_text="Toggle the cursor ON or OFF (to select CR with mouse).",
+            alttext="[c]ursor: ??",
+        )
+        self.use_cursor_button.pack(side=tk.LEFT, padx=5)
+        self.toggle_auxdata_button = tkbutton.new(
+            self.button_frame2,
+            text="[t]oggle data",
+            command=self.toggle_auxdata,
+            help_text="Toggle the display of auxiliary data.",
+        )
         self.toggle_auxdata_button.pack(side=tk.LEFT, padx=5)
         if self.auxdata is None:
             self.toggle_auxdata_button.config(state=tk.DISABLED)
         else:
             self.toggle_auxdata_button.config(state=tk.NORMAL)
         self.image_aspect = "equal"
-        self.toggle_aspect_button = tk.Button(
-            self.button_frame2, text=f"[a]spect: {self.image_aspect}", command=self.toggle_aspect
+        self.toggle_aspect_button = tkbutton.new(
+            self.button_frame2,
+            text=f"[a]spect: {self.image_aspect}",
+            command=self.toggle_aspect,
+            help_text="Toggle the image aspect ratio.",
         )
         self.toggle_aspect_button.pack(side=tk.LEFT, padx=5)
-        self.save_button = tk.Button(self.button_frame2, text="Save cleaned FITS", command=self.save_fits_file)
+        self.save_button = tkbutton.new(
+            self.button_frame2,
+            text="Save cleaned FITS",
+            command=self.save_fits_file,
+            help_text="Save the cleaned FITS file.",
+        )
         self.save_button.pack(side=tk.LEFT, padx=5)
         self.save_button.config(state=tk.DISABLED)  # Initially disabled
-        self.stop_button = tk.Button(self.button_frame2, text="Stop program", command=self.stop_app)
+        self.stop_button = tkbutton.new(
+            self.button_frame2, text="Stop program", command=self.stop_app, help_text="Stop the application."
+        )
         self.stop_button.pack(side=tk.LEFT, padx=5)
 
         # Row 3 of buttons
         self.button_frame3 = tk.Frame(self.root)
         self.button_frame3.pack(pady=5)
-        self.use_cursor = False
-        self.use_cursor_button = tk.Button(self.button_frame3, text="[c]ursor: OFF", command=self.set_cursor_onoff)
-        self.use_cursor_button.pack(side=tk.LEFT, padx=5)
         vmin, vmax = zscale(self.data)
-        self.vmin_button = tk.Button(self.button_frame3, text=f"vmin: {vmin:.2f}", command=self.set_vmin)
+        self.vmin_button = tkbutton.new(
+            self.button_frame3,
+            text=f"vmin: {vmin:.2f}",
+            command=self.set_vmin,
+            help_text="Set the minimum value for the display scale.",
+            alttext="vmin: ??",
+        )
         self.vmin_button.pack(side=tk.LEFT, padx=5)
-        self.vmax_button = tk.Button(self.button_frame3, text=f"vmax: {vmax:.2f}", command=self.set_vmax)
+        self.vmax_button = tkbutton.new(
+            self.button_frame3,
+            text=f"vmax: {vmax:.2f}",
+            command=self.set_vmax,
+            help_text="Set the maximum value for the display scale.",
+            alttext="vmax: ??",
+        )
         self.vmax_button.pack(side=tk.LEFT, padx=5)
-        self.set_minmax_button = tk.Button(self.button_frame3, text="minmax [,]", command=self.set_minmax)
+        self.set_minmax_button = tkbutton.new(
+            self.button_frame3,
+            text="minmax [,]",
+            command=self.set_minmax,
+            help_text="Set the minimum and maximum values for the display scale.",
+        )
         self.set_minmax_button.pack(side=tk.LEFT, padx=5)
-        self.set_zscale_button = tk.Button(self.button_frame3, text="zscale [/]", command=self.set_zscale)
+        self.set_zscale_button = tkbutton.new(
+            self.button_frame3,
+            text="zscale [/]",
+            command=self.set_zscale,
+            help_text="Set the display scale using zscale.",
+        )
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
         if self.overplot_cr_pixels:
-            self.overplot_cr_button = tk.Button(
+            self.overplot_cr_button = tkbutton.new(
                 self.button_frame3,
                 text="CR overlay: ON ",
                 command=self.toggle_cr_overlay,
+                help_text="Toggle the cosmic ray overlay ON or OFF.",
+                alttext="CR overlay: ??",
             )
         else:
-            self.overplot_cr_button = tk.Button(
+            self.overplot_cr_button = tkbutton.new(
                 self.button_frame3,
                 text="CR overlay: OFF",
                 command=self.toggle_cr_overlay,
+                help_text="Toggle the cosmic ray overlay ON or OFF.",
+                alttext="CR overlay: ??",
             )
         self.overplot_cr_button.pack(side=tk.LEFT, padx=5)
+        self.help_button = tkbutton.new(
+            self.button_frame3,
+            text="Help",
+            bg="lightblue",
+            command=tkbutton.show_help,
+            help_text="Show help information for all buttons.",
+        )
+        self.help_button.pack(side=tk.LEFT, padx=5)
 
         # Figure
         self.plot_frame = tk.Frame(self.root)

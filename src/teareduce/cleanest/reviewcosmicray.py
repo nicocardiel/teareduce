@@ -35,6 +35,7 @@ from .imagedisplay import ImageDisplay
 from .interpolation_a import interpolation_a
 from .interpolation_x import interpolation_x
 from .interpolation_y import interpolation_y
+from .trackedbutton import TrackedTkButton
 
 from ..imshow import imshow
 from ..sliceregion import SliceRegion2D
@@ -230,31 +231,74 @@ class ReviewCosmicRay(ImageDisplay):
 
     def create_widgets(self):
         """Create the GUI widgets for the review window."""
+        # Define instance of TrackedTkButton, that facilitates to show help information
+        # for each button displayed in the current application window.
+        tkbutton = TrackedTkButton(self.root)
+
         # Row 1 of buttons
         self.button_frame1 = tk.Frame(self.root)
         self.button_frame1.pack(pady=5)
-        self.ndeg_label = tk.Button(
-            self.button_frame1, text=f"Npoints={self.npoints}, Degree={self.degree}", command=self.set_ndeg
+        self.ndeg_label = tkbutton.new(
+            self.button_frame1,
+            text=f"Npoints={self.npoints}, Degree={self.degree}",
+            command=self.set_ndeg,
+            help_text="Set the Npoints and Degree parameters for interpolation.",
+            alttext="Npoints=?, Degree=?",
         )
         self.ndeg_label.pack(side=tk.LEFT, padx=5)
-        self.maskfill_button = tk.Button(self.button_frame1, text="Maskfill params.", command=self.set_maskfill_params)
+        self.maskfill_button = tkbutton.new(
+            self.button_frame1,
+            text="Maskfill params.",
+            command=self.set_maskfill_params,
+            help_text="Set the parameters for the maskfill method.",
+        )
         self.maskfill_button.pack(side=tk.LEFT, padx=5)
-        self.remove_crosses_button = tk.Button(self.button_frame1, text="remove all x's", command=self.remove_crosses)
+        self.remove_crosses_button = tkbutton.new(
+            self.button_frame1,
+            text="remove all x's",
+            command=self.remove_crosses,
+            help_text="Remove all cross marks from the image.",
+        )
         self.remove_crosses_button.pack(side=tk.LEFT, padx=5)
-        self.restore_cr_button = tk.Button(self.button_frame1, text="[r]estore CR data", command=self.restore_cr)
+        self.restore_cr_button = tkbutton.new(
+            self.button_frame1,
+            text="restore CR",
+            command=self.restore_cr,
+            help_text="Restore current cosmic ray pixels to their original values.",
+        )
         self.restore_cr_button.pack(side=tk.LEFT, padx=5)
         self.restore_cr_button.config(state=tk.DISABLED)
-        self.next_button = tk.Button(self.button_frame1, text="[c]ontinue", command=self.continue_cr)
+        self.next_button = tkbutton.new(
+            self.button_frame1,
+            text="[c]ontinue",
+            command=self.continue_cr,
+            help_text="Continue to the next cosmic ray.",
+        )
         self.next_button.pack(side=tk.LEFT, padx=5)
-        self.exit_button = tk.Button(self.button_frame1, text="[e]xit review", command=self.exit_review)
+        self.exit_button = tkbutton.new(
+            self.button_frame1,
+            text="[e]xit review",
+            command=self.exit_review,
+            help_text="Exit the cosmic ray review process.",
+        )
         self.exit_button.pack(side=tk.LEFT, padx=5)
 
         # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.root)
         self.button_frame2.pack(pady=5)
-        self.interp_x_button = tk.Button(self.button_frame2, text="[x] interp.", command=self.interp_x)
+        self.interp_x_button = tkbutton.new(
+            self.button_frame2,
+            text="[x] interp.",
+            command=self.interp_x,
+            help_text="Perform X-interpolation for the current cosmic ray.",
+        )
         self.interp_x_button.pack(side=tk.LEFT, padx=5)
-        self.interp_y_button = tk.Button(self.button_frame2, text="[y] interp.", command=self.interp_y)
+        self.interp_y_button = tkbutton.new(
+            self.button_frame2,
+            text="[y] interp.",
+            command=self.interp_y,
+            help_text="Perform Y-interpolation for the current cosmic ray.",
+        )
         self.interp_y_button.pack(side=tk.LEFT, padx=5)
         # it is important to use lambda here to pass the method argument correctly
         # (avoiding the execution of the function at button creation time, which would happen
@@ -263,23 +307,51 @@ class ReviewCosmicRay(ImageDisplay):
         # the function is trying to deactivate the buttons before they are created, which
         # would lead to an error; in addition, since I have two buttons calling the same function
         # with different arguments, using lambda allows to differentiate them)
-        self.interp_s_button = tk.Button(
-            self.button_frame2, text="[s]urface interp.", command=lambda: self.interp_a("surface")
+        self.interp_s_button = tkbutton.new(
+            self.button_frame2,
+            text="[s]urface interp.",
+            command=lambda: self.interp_a("surface"),
+            help_text="Perform surface interpolation for the current cosmic ray.",
         )
         self.interp_s_button.pack(side=tk.LEFT, padx=5)
-        self.interp_d_button = tk.Button(self.button_frame2, text="me[d]ian", command=lambda: self.interp_a("median"))
+        self.interp_d_button = tkbutton.new(
+            self.button_frame2,
+            text="me[d]ian",
+            command=lambda: self.interp_a("median"),
+            help_text="Perform median interpolation for the current cosmic ray.",
+        )
         self.interp_d_button.pack(side=tk.LEFT, padx=5)
-        self.interp_m_button = tk.Button(self.button_frame2, text="[m]ean", command=lambda: self.interp_a("mean"))
+        self.interp_m_button = tkbutton.new(
+            self.button_frame2,
+            text="[m]ean",
+            command=lambda: self.interp_a("mean"),
+            help_text="Perform mean interpolation for the current cosmic ray.",
+        )
         self.interp_m_button.pack(side=tk.LEFT, padx=5)
-        self.interp_l_button = tk.Button(self.button_frame2, text="[l]acosmic", command=self.use_lacosmic)
+        self.interp_l_button = tkbutton.new(
+            self.button_frame2,
+            text="[l]acosmic",
+            command=self.use_lacosmic,
+            help_text="Use L.A.Cosmic interpolation for the current cosmic ray.",
+        )
         self.interp_l_button.pack(side=tk.LEFT, padx=5)
         if self.last_dilation is not None and self.last_dilation > 0:
             self.interp_l_button.config(state=tk.DISABLED)
         if self.cleandata_lacosmic is None:
             self.interp_l_button.config(state=tk.DISABLED)
-        self.interp_maskfill_button = tk.Button(self.button_frame2, text="mas[k]fill", command=self.use_maskfill)
+        self.interp_maskfill_button = tkbutton.new(
+            self.button_frame2,
+            text="mask[f]ill",
+            command=self.use_maskfill,
+            help_text="Perform maskfill interpolation for the current cosmic ray.",
+        )
         self.interp_maskfill_button.pack(side=tk.LEFT, padx=5)
-        self.interp_aux_button = tk.Button(self.button_frame2, text="[a]ux. data", command=self.use_auxdata)
+        self.interp_aux_button = tkbutton.new(
+            self.button_frame2,
+            text="[a]ux. data",
+            command=self.use_auxdata,
+            help_text="Use auxiliary data for interpolation of the current cosmic ray.",
+        )
         self.interp_aux_button.pack(side=tk.LEFT, padx=5)
         if self.auxdata is None:
             self.interp_aux_button.config(state=tk.DISABLED)
@@ -288,18 +360,47 @@ class ReviewCosmicRay(ImageDisplay):
         self.button_frame3 = tk.Frame(self.root)
         self.button_frame3.pack(pady=5)
         vmin, vmax = zscale(self.data)
-        self.vmin_button = tk.Button(self.button_frame3, text=f"vmin: {vmin:.2f}", command=self.set_vmin)
+        self.vmin_button = tkbutton.new(
+            self.button_frame3,
+            text=f"vmin: {vmin:.2f}",
+            command=self.set_vmin,
+            help_text="Set the minimum value for the display scale.",
+            alttext="vmin: ??",
+        )
         self.vmin_button.pack(side=tk.LEFT, padx=5)
-        self.vmax_button = tk.Button(self.button_frame3, text=f"vmax: {vmax:.2f}", command=self.set_vmax)
+        self.vmax_button = tkbutton.new(
+            self.button_frame3,
+            text=f"vmax: {vmax:.2f}",
+            command=self.set_vmax,
+            help_text="Set the maximum value for the display scale.",
+            alttext="vmax: ??",
+        )
         self.vmax_button.pack(side=tk.LEFT, padx=5)
-        self.set_minmax_button = tk.Button(self.button_frame3, text="minmax [,]", command=self.set_minmax)
+        self.set_minmax_button = tkbutton.new(
+            self.button_frame3,
+            text="minmax [,]",
+            command=self.set_minmax,
+            help_text="Set the display scale to the minimum and maximum data values.",
+        )
         self.set_minmax_button.pack(side=tk.LEFT, padx=5)
-        self.set_zscale_button = tk.Button(self.button_frame3, text="zscale [/]", command=self.set_zscale)
+        self.set_zscale_button = tkbutton.new(
+            self.button_frame3,
+            text="zscale [/]",
+            command=self.set_zscale,
+            help_text="Set the display scale using zscale.",
+        )
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
+        self.help_button = tkbutton.new(
+            self.button_frame3,
+            text="Help",
+            command=tkbutton.show_help,
+            help_text="Show help information for all buttons.",
+        )
+        self.help_button.pack(side=tk.LEFT, padx=5)
 
         # Figure
         if self.auxdata is not None:
-            self.fig, (self.ax_aux, self.ax) = plt.subplots(
+            self.fig, (self.ax, self.ax_aux) = plt.subplots(
                 ncols=2, figsize=(11 * self.factor_width, 5.5 * self.factor_height), constrained_layout=True
             )
         else:
