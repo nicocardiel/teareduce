@@ -444,7 +444,14 @@ class ParameterEditor:
             title="Select FITS file to be used as input background image",
             filetypes=[("FITS files", "*.fits *.fit *.fts"), ("All files", "*.*")],
         )
-        if self.inbkg in ["", None] or self.inbkg.strip() == "":
+        if isinstance(self.inbkg, tuple):
+            self.inbkg = self.inbkg[0]
+        if not self.inbkg:
+            self.inbkg = None
+        if isinstance(self.inbkg, str):
+            self.inbkg = self.inbkg.strip()
+        
+        if self.inbkg in ["", None]:
             self.inbkg = None
             self.filename_inbkg.set("None")
             self.extnum_inbkg = None
@@ -463,7 +470,14 @@ class ParameterEditor:
             title="Select FITS file to be used as input variance image",
             filetypes=[("FITS files", "*.fits *.fit *.fts"), ("All files", "*.*")],
         )
-        if self.invar in ["", None] or self.invar.strip() == "":
+        if isinstance(self.invar, tuple):
+            self.invar = self.invar[0]
+        if not self.invar:
+            self.invar = None
+        if isinstance(self.invar, str):
+            self.invar = self.invar.strip()
+
+        if self.invar in ["", None]:
             self.invar = None
             self.filename_invar.set("None")
             self.extnum_invar = None
