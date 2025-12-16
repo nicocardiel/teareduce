@@ -663,7 +663,6 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.help_button = tkbutton.new(
             self.button_frame3,
             text="Help",
-            bg="lightblue",
             command=tkbutton.show_help,
             help_text="Show help information for all buttons.",
         )
