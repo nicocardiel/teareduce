@@ -35,6 +35,7 @@ import os
 from pathlib import Path
 from rich import print
 
+from .askextension import ask_extension_input_image
 from .centerchildparent import center_on_parent
 from .definitions import lacosmic_default_dict
 from .definitions import DEFAULT_NPOINTS_INTERP
@@ -307,6 +308,13 @@ class CosmicRayCleanerApp(ImageDisplay):
 
     def load_detected_cr_from_file(self):
         """Load detected cosmic ray mask from a FITS file."""
+        if np.any(self.mask_crfound):
+            overwrite = messagebox.askyesno(
+                "Overwrite Cosmic Ray Mask",
+                "A cosmic ray mask is already defined.\n\nDo you want to overwrite it?",
+            )
+            if not overwrite:
+                return
         crmask_file = filedialog.askopenfilename(
             initialdir=os.getcwd(),
             title="Select FITS file with cosmic ray mask",
@@ -314,15 +322,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         )
         if crmask_file:
             print(f"Selected input FITS file: {crmask_file}")
-            extension = simpledialog.askstring(
-                "Select Extension",
-                f"\nEnter extension number or name for file:\n{Path(crmask_file).name}",
-                initialvalue=None,
-            )
-            try:
-                extension = int(extension)
-            except ValueError:
-                pass  # Keep as string
+            extension = ask_extension_input_image(crmask_file, self.data.shape)
             dilation = simpledialog.askinteger("Dilation", "Enter Dilation (min=0):", initialvalue=0, minvalue=0)
             try:
                 with fits.open(crmask_file, mode="readonly") as hdul:
@@ -340,6 +340,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                     self.mask_crfound = mask_crfound_loaded
                     print(f"Loaded cosmic ray mask from {crmask_file}")
                     self.process_detected_cr(dilation=dilation)
+                    # self.lacosmic_params["dilation"]["value"] = dilation
+                    self.cleandata_lacosmic = None  # Invalidate previous L.A.Cosmic cleaned data
             except Exception as e:
                 print(f"Error loading cosmic ray mask: {e}")
 
@@ -417,8 +419,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         if self.auxfile is not None:
             overwrite = messagebox.askyesno(
                 "Overwrite Auxiliary Data",
-                f"An auxiliary file is already loaded:\n\n{self.auxfile}\n\n"
-                "Do you want to overwrite it?",
+                f"An auxiliary file is already loaded:\n\n{self.auxfile}\n\n" "Do you want to overwrite it?",
             )
             if not overwrite:
                 return
@@ -428,16 +429,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             filetypes=[("FITS files", "*.fits"), ("All files", "*.*")],
         )
         if auxfile:
-            print(f"Selected auxiliary FITS file: {auxfile}")
-            extension = simpledialog.askstring(
-                "Select Extension",
-                f"\nEnter extension number or name for file:\n{Path(auxfile).name}",
-                initialvalue=None,
-            )
-            try:
-                extension = int(extension)
-            except ValueError:
-                pass  # Keep as string
+            extension = ask_extension_input_image(auxfile, self.data.shape)
             try:
                 with fits.open(auxfile, mode="readonly") as hdul:
                     if isinstance(extension, int):
@@ -682,6 +674,13 @@ class CosmicRayCleanerApp(ImageDisplay):
 
     def run_lacosmic(self):
         """Run L.A.Cosmic to detect cosmic rays."""
+        if np.any(self.mask_crfound):
+            overwrite = messagebox.askyesno(
+                "Overwrite Cosmic Ray Mask",
+                "A cosmic ray mask is already defined.\n\nDo you want to overwrite it?",
+            )
+            if not overwrite:
+                return
         self.run_lacosmic_button.config(state=tk.DISABLED)
         # Define parameters for L.A.Cosmic from default dictionary
         editor_window = tk.Toplevel(self.root)
@@ -872,6 +871,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 last_maskfill_smooth=self.last_maskfill_smooth,
                 last_maskfill_verbose=self.last_maskfill_verbose,
                 auxdata=self.auxdata,
+                cleandata_lacosmic=self.cleandata_lacosmic,
                 xmin=self.last_xmin,
                 xmax=self.last_xmax,
                 ymin=self.last_ymin,

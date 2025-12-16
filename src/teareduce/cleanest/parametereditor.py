@@ -15,8 +15,8 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
-from tkinter import simpledialog
 
+from .askextension import ask_extension_input_image
 from .centerchildparent import center_on_parent
 from .definitions import lacosmic_default_dict
 
@@ -122,8 +122,8 @@ class ParameterEditor:
         """Create the widgets for the dialog."""
         # Define different styles for different conditions
         style = ttk.Style()
-        style.configure("Normal.TCombobox", foreground="black")
-        style.configure("Changed.TCombobox", foreground="red")
+        style.configure("Normal.TCombobox", foreground="black", background="white")
+        style.configure("Changed.TCombobox", foreground="red", background="white")
 
         # Main frame
         main_frame = tk.Frame(self.root, padx=10, pady=10)
@@ -373,70 +373,6 @@ class ParameterEditor:
         # Set focus to OK button
         self.ok_button.focus_set()
 
-    def ask_extension_input_image(self, filename):
-        """Ask the user for the FITS extension to use for the input image.
-
-        Parameters
-        ----------
-        filename : str
-            The name of the FITS file.
-
-        Returns
-        -------
-        ext : int or str
-            The selected FITS extension (0-based index or name).
-        """
-        # Open the FITS file to get the list of extensions
-        try:
-            with fits.open(filename) as hdul:
-                ext_names = [hdu.name for hdu in hdul]
-                ext_indices = list(range(len(hdul)))
-        except Exception as e:
-            messagebox.showerror("Error", f"Unable to open FITS file '{filename}':\n{str(e)}")
-            return None
-
-        if len(ext_indices) == 1:
-            ext = 0
-        else:
-            # ask for the extension number in a dialog
-            ext_str = simpledialog.askstring(
-                "Select Extension",
-                f"\nEnter extension number (0-{len(ext_indices)-1}) for file:\n{Path(filename).name}\n"
-                f"Available extensions:\n" + "\n".join([f"{i}: {name}" for i, name in zip(ext_indices, ext_names)]),
-            )
-            if ext_str is None:
-                return None
-            # Validate the input
-            try:
-                ext = int(ext_str)
-                if ext < 0 or ext >= len(ext_indices):
-                    raise ValueError("Extension number out of range")
-            except ValueError as e:
-                messagebox.showerror("Invalid Input", f"Error: {str(e)}")
-                return None
-
-        # check if ext is a valid array
-        with fits.open(filename) as hdul:
-            if hdul[ext] is None:
-                messagebox.showerror("Invalid Input", f"Extension {ext} does not exist in file '{filename}'")
-                return None
-            elif hdul[ext].data is None:
-                messagebox.showerror("Invalid Input", f"Extension {ext} in file '{filename}' has no data")
-                return None
-            elif hdul[ext].data.ndim != 2:
-                messagebox.showerror("Invalid Input", f"Extension {ext} in file '{filename}' is not 2D")
-                return None
-            elif hdul[ext].data.size == 0:
-                messagebox.showerror("Invalid Input", f"Extension {ext} in file '{filename}' has no data")
-                return None
-            elif hdul[ext].data.shape[0] != self.imgshape[0] or hdul[ext].data.shape[1] != self.imgshape[1]:
-                messagebox.showerror(
-                    "Invalid Input",
-                    f"Extension {ext} in file '{filename}' has unexpected shape {hdul[ext].data.shape}, expected {self.imgshape}",
-                )
-                return None
-        return ext
-
     def define_inbkg(self):
         """Define the input background image."""
         self.inbkg = filedialog.askopenfilename(
@@ -448,14 +384,14 @@ class ParameterEditor:
             self.inbkg = None
         if isinstance(self.inbkg, str):
             self.inbkg = self.inbkg.strip()
-        
+
         if self.inbkg in ["", None]:
             self.inbkg = None
             self.filename_inbkg.set("None")
             self.extnum_inbkg = None
             return
         else:
-            self.extnum_inbkg = self.ask_extension_input_image(self.inbkg)
+            self.extnum_inbkg = ask_extension_input_image(self.inbkg, self.imgshape)
             if self.extnum_inbkg is None:
                 self.inbkg = None
             else:
@@ -479,7 +415,7 @@ class ParameterEditor:
             self.extnum_invar = None
             return
         else:
-            self.extnum_invar = self.ask_extension_input_image(self.invar)
+            self.extnum_invar = ask_extension_input_image(self.invar, self.imgshape)
             if self.extnum_invar is None:
                 self.invar = None
             else:
@@ -575,6 +511,12 @@ class ParameterEditor:
         self.param_dict["xmax"]["value"] = self.imgshape[1]
         self.param_dict["ymin"]["value"] = 1
         self.param_dict["ymax"]["value"] = self.imgshape[0]
+        self.inbkg = None
+        self.extnum_inbkg = None
+        self.filename_inbkg.set("None")
+        self.invar = None
+        self.extnum_invar = None
+        self.filename_invar.set("None")
         for key, info in self.param_dict.items():
             if key in ["nruns", "inbkg", "extnum_inbkg", "invar", "extnum_invar"]:
                 continue

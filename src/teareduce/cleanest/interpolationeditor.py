@@ -32,6 +32,7 @@ class InterpolationEditor:
         last_maskfill_smooth,
         last_maskfill_verbose,
         auxdata,
+        cleandata_lacosmic,
         xmin,
         xmax,
         ymin,
@@ -60,6 +61,8 @@ class InterpolationEditor:
             The last used maskfill verbose parameter.
         auxdata : array-like or None
             Auxiliary data for cleaning, if available.
+        cleandata_lacosmic : array-like or None
+            Cleaned data from L.A.Cosmic, if available.
         xmin : float
             Minimum x value of the data. From 1 to NAXIS1.
         xmax : float
@@ -90,6 +93,8 @@ class InterpolationEditor:
             The last used dilation parameter.
         auxdata : array-like or None
             Auxiliary data for cleaning, if available.
+        cleandata_lacosmic : array-like or None
+            Cleaned data from L.A.Cosmic, if available.
         dict_interp_methods : dict
             Mapping of interpolation method names to their codes.
         cleaning_method : str or None
@@ -119,6 +124,7 @@ class InterpolationEditor:
         self.root.title("Cleaning Parameters")
         self.last_dilation = last_dilation
         self.auxdata = auxdata
+        self.cleandata_lacosmic = cleandata_lacosmic
         # Initialize parameters
         self.cleaning_method = None
         self.npoints = last_npoints
@@ -161,8 +167,11 @@ class InterpolationEditor:
         for interp_method in VALID_CLEANING_METHODS.keys():
             state = "normal"
             # Skip replace by L.A.Cosmic values if last dilation is not zero
-            if interp_method == "lacosmic" and self.last_dilation != 0:
-                state = "disabled"
+            if interp_method == "lacosmic":
+                if self.last_dilation != 0:
+                    state = "disabled"
+                if self.cleandata_lacosmic is None:
+                    state = "disabled"
             # Skip auxdata method if auxdata is not available
             if interp_method == "auxdata" and self.auxdata is None:
                 state = "disabled"
