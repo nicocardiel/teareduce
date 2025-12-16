@@ -444,7 +444,7 @@ class ParameterEditor:
             title="Select FITS file to be used as input background image",
             filetypes=[("FITS files", "*.fits *.fit *.fts"), ("All files", "*.*")],
         )
-        if self.inbkg in ["", None]:
+        if self.inbkg in ["", None] or self.inbkg.strip() == "":
             self.inbkg = None
             self.filename_inbkg.set("None")
             self.extnum_inbkg = None
@@ -463,17 +463,17 @@ class ParameterEditor:
             title="Select FITS file to be used as input variance image",
             filetypes=[("FITS files", "*.fits *.fit *.fts"), ("All files", "*.*")],
         )
-        if self.invar != "":
+        if self.invar in ["", None] or self.invar.strip() == "":
+            self.invar = None
+            self.filename_invar.set("None")
+            self.extnum_invar = None
+            return
+        else:
             self.extnum_invar = self.ask_extension_input_image(self.invar)
             if self.extnum_invar is None:
                 self.invar = None
             else:
                 self.filename_invar.set(str(Path(self.invar).name + f"[{self.extnum_invar}]"))
-
-        if self.invar in ["", None]:
-            self.invar = None
-            self.filename_invar.set("None")
-            self.extnum_invar = None
 
     def on_ok(self):
         """Validate and save the updated values"""
