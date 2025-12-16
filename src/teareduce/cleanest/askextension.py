@@ -32,6 +32,7 @@ def ask_extension_input_image(filename, imgshape=None):
         with fits.open(filename) as hdul:
             ext_names = [hdu.name for hdu in hdul]
             ext_indices = list(range(len(hdul)))
+            ext_bitpix = [hdu.header["BITPIX"] for hdu in hdul]
     except Exception as e:
         messagebox.showerror("Error", f"Unable to open FITS file '{filename}':\n{str(e)}")
         return None
@@ -43,7 +44,10 @@ def ask_extension_input_image(filename, imgshape=None):
         ext_str = simpledialog.askstring(
             "Select Extension",
             f"\nEnter extension number (0-{len(ext_indices)-1}) for file:\n{Path(filename).name}\n"
-            f"Available extensions:\n" + "\n".join([f"{i}: {name}" for i, name in zip(ext_indices, ext_names)]),
+            f"Available extensions:\n"
+            + "\n".join(
+                [f"{i}: {name} (BITPIX={bitpix})" for i, name, bitpix in zip(ext_indices, ext_names, ext_bitpix)]
+            ),
         )
         if ext_str is None:
             return None

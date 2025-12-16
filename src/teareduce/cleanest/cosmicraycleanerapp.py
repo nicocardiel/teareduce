@@ -324,7 +324,6 @@ class CosmicRayCleanerApp(ImageDisplay):
         if crmask_file:
             print(f"Selected input FITS file: {crmask_file}")
             extension = ask_extension_input_image(crmask_file, self.data.shape)
-            dilation = simpledialog.askinteger("Dilation", "Enter Dilation (min=0):", initialvalue=0, minvalue=0)
             try:
                 with fits.open(crmask_file, mode="readonly") as hdul:
                     if isinstance(extension, int):
@@ -333,6 +332,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                     else:
                         if extension not in hdul:
                             raise KeyError(f"Extension name '{extension}' not found.")
+                    if hdul[extension].header["BITPIX"] not in [8, 16]:
+                        raise ValueError("Cosmic ray mask must be of integer type (BITPIX=8 or 16).")
                     mask_crfound_loaded = hdul[extension].data.astype(bool)
                     if mask_crfound_loaded.shape != self.data.shape:
                         print(f"data shape...: {self.data.shape}")
@@ -340,11 +341,14 @@ class CosmicRayCleanerApp(ImageDisplay):
                         raise ValueError("Cosmic ray mask has different shape.")
                     self.mask_crfound = mask_crfound_loaded
                     print(f"Loaded cosmic ray mask from {crmask_file}")
+                    dilation = simpledialog.askinteger(
+                        "Dilation", "Enter Dilation (min=0):", initialvalue=0, minvalue=0
+                    )
                     self.process_detected_cr(dilation=dilation)
                     # self.lacosmic_params["dilation"]["value"] = dilation
                     self.cleandata_lacosmic = None  # Invalidate previous L.A.Cosmic cleaned data
             except Exception as e:
-                print(f"Error loading cosmic ray mask: {e}")
+                messagebox.showerror("Error", f"Error loading cosmic ray mask: {e}")
 
     def load_fits_file(self):
         """Load the FITS file and auxiliary file (if provided).
