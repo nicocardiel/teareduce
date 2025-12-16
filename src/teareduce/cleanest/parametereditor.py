@@ -440,24 +440,26 @@ class ParameterEditor:
     def define_inbkg(self):
         """Define the input background image."""
         self.inbkg = filedialog.askopenfilename(
+            parent=self.root,
             title="Select FITS file to be used as input background image",
             filetypes=[("FITS files", "*.fits *.fit *.fts"), ("All files", "*.*")],
         )
-        if self.inbkg != "":
+        if self.inbkg in ["", None]:
+            self.inbkg = None
+            self.filename_inbkg.set("None")
+            self.extnum_inbkg = None
+            return
+        else:
             self.extnum_inbkg = self.ask_extension_input_image(self.inbkg)
             if self.extnum_inbkg is None:
                 self.inbkg = None
             else:
                 self.filename_inbkg.set(str(Path(self.inbkg).name + f"[{self.extnum_inbkg}]"))
 
-        if self.inbkg in ["", None]:
-            self.inbkg = None
-            self.filename_inbkg.set("None")
-            self.extnum_inbkg = None
-
     def define_invar(self):
         """Define the input variance image."""
         self.invar = filedialog.askopenfilename(
+            parent=self.root,
             title="Select FITS file to be used as input variance image",
             filetypes=[("FITS files", "*.fits *.fit *.fts"), ("All files", "*.*")],
         )
