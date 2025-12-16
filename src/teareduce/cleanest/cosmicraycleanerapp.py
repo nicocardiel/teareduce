@@ -64,6 +64,7 @@ from .modalprogressbar import ModalProgressBar
 
 from ..imshow import imshow
 from ..sliceregion import SliceRegion2D
+from ..version import VERSION
 from ..zscale import zscale
 
 import matplotlib
@@ -224,7 +225,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.verbose = verbose
         self.root.minsize(self.width, self.height)
         self.root.update_idletasks()
-        self.root.title("Cosmic Ray Cleaner")
+        self.root.title(f"Cosmic Ray Cleaner (TEA version {VERSION})")
         self.fontfamily = fontfamily
         self.fontsize = fontsize
         self.default_font = tkfont.nametofont("TkDefaultFont")
