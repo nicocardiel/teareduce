@@ -219,7 +219,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             Flag to indicate if the review window is active.
         """
         self.root = root
-        # self.root.geometry("800x800+50+0")  # This does not work in Fedora
+        # self.root.geometry("800x700+50+0")  # This does not work in Fedora
         self.width = width
         self.height = height
         self.verbose = verbose
@@ -1047,6 +1047,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             tmp_cr_labels[iypix - 1, ixpix - 1] = 1
             review = ReviewCosmicRay(
                 root=review_window,
+                root_width=self.width,
+                root_height=self.height,
                 data=self.data,
                 auxdata=self.auxdata,
                 cleandata_lacosmic=self.cleandata_lacosmic,
@@ -1061,6 +1063,8 @@ class CosmicRayCleanerApp(ImageDisplay):
         else:
             review = ReviewCosmicRay(
                 root=review_window,
+                root_width=self.width,
+                root_height=self.height,
                 data=self.data,
                 auxdata=self.auxdata,
                 cleandata_lacosmic=self.cleandata_lacosmic,

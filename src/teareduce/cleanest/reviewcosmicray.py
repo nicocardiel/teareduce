@@ -28,6 +28,8 @@ import numpy as np
 from rich import print
 
 from .centerchildparent import center_on_parent
+from .definitions import DEFAULT_TK_WINDOW_SIZE_X
+from .definitions import DEFAULT_TK_WINDOW_SIZE_Y
 from .definitions import MAX_PIXEL_DISTANCE_TO_CR
 from .imagedisplay import ImageDisplay
 from .interpolation_a import interpolation_a
@@ -37,6 +39,7 @@ from .interpolation_y import interpolation_y
 from ..imshow import imshow
 from ..sliceregion import SliceRegion2D
 from ..zscale import zscale
+from ..version import VERSION
 
 import matplotlib
 
@@ -49,6 +52,8 @@ class ReviewCosmicRay(ImageDisplay):
     def __init__(
         self,
         root,
+        root_width,
+        root_height,
         data,
         auxdata,
         cleandata_lacosmic,
@@ -70,6 +75,10 @@ class ReviewCosmicRay(ImageDisplay):
         ----------
         root : tk.Toplevel
             The parent Tkinter root window.
+        root_width : int
+            The width of the root window. The review window is scaled accordingly.
+        root_height : int
+            The height of the root window. The review window is scaled accordingly.
         data : 2D numpy array
             The original image data.
         auxdata : 2D numpy array or None
@@ -138,6 +147,10 @@ class ReviewCosmicRay(ImageDisplay):
         ----------
         root : tk.Toplevel
             The parent Tkinter root window.
+        factor_width : float
+            The scaling factor for the width of the review window.
+        factor_height : float
+            The scaling factor for the height of the review window.
         data : 2D numpy array
             The original image data.
         auxdata : 2D numpy array or None
@@ -171,14 +184,20 @@ class ReviewCosmicRay(ImageDisplay):
             detection.
         """
         self.root = root
-        self.root.title("Review Cosmic Rays")
+        self.root.title(f"Review Cosmic Rays (TEA version {VERSION})")
+        self.factor_width = root_width / DEFAULT_TK_WINDOW_SIZE_X
+        self.factor_height = root_height / DEFAULT_TK_WINDOW_SIZE_Y
         self.auxdata = auxdata
         if self.auxdata is not None:
             # self.root.geometry("1000x700+100+100")  # This does not work in Fedora
-            self.root.minsize(1000, 700)
+            window_width = int(1000 * self.factor_width + 0.5)
+            window_height = int(700 * self.factor_height + 0.5)
+            self.root.minsize(window_width, window_height)
         else:
-            # self.root.geometry("800x700+100+100")  # This does not work in Fedora
-            self.root.minsize(900, 700)
+            # self.root.geometry("900x700+100+100")  # This does not work in Fedora
+            window_width = int(900 * self.factor_width + 0.5)
+            window_height = int(700 * self.factor_height + 0.5)
+            self.root.minsize(window_width, window_height)
         self.root.update_idletasks()
         self.root.geometry("+100+100")
         self.data = data
@@ -280,9 +299,13 @@ class ReviewCosmicRay(ImageDisplay):
 
         # Figure
         if self.auxdata is not None:
-            self.fig, (self.ax_aux, self.ax) = plt.subplots(ncols=2, figsize=(11, 5.5), constrained_layout=True)
+            self.fig, (self.ax_aux, self.ax) = plt.subplots(
+                ncols=2, figsize=(11 * self.factor_width, 5.5 * self.factor_height), constrained_layout=True
+            )
         else:
-            self.fig, self.ax = plt.subplots(figsize=(9, 5.5), constrained_layout=True)
+            self.fig, self.ax = plt.subplots(
+                figsize=(9 * self.factor_width, 5.5 * self.factor_height), constrained_layout=True
+            )
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().pack(padx=5, pady=5)
         # The next two instructions prevent a segmentation fault when pressing "q"
