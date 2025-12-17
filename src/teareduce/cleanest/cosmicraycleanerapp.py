@@ -285,17 +285,21 @@ class CosmicRayCleanerApp(ImageDisplay):
                 sdum = str(num_cr_pixels_after_dilation)
             else:
                 sdum = str(num_cr_pixels_before_dilation)
-            print("Number of cosmic ray pixels detected..........: " f"{num_cr_pixels_before_dilation:>{len(sdum)}}")
             if dilation > 0:
                 print(
-                    f"Number of cosmic ray pixels after dilation....: " f"{num_cr_pixels_after_dilation:>{len(sdum)}}"
+                    "Number of cosmic ray pixels before dilation.......: "
+                    f"{num_cr_pixels_before_dilation:>{len(sdum)}}"
+                )
+                print(
+                    f"Number of cosmic ray pixels after dilation........: "
+                    f"{num_cr_pixels_after_dilation:>{len(sdum)}}"
                 )
             # Label connected components in the mask; note that by default,
             # structure is a cross [0,1,0;1,1,1;0,1,0], but we want to consider
             # diagonal connections too, so we define a 3x3 square.
             structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
             self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
-            print(f"Number of cosmic ray features (grouped pixels): {self.num_features:>{len(sdum)}}")
+            print(f"Number of cosmic ray features (grouped pixels)....: {self.num_features:>{len(sdum)}}")
             self.replace_detected_cr_button.config(state=tk.NORMAL)
             self.review_detected_cr_button.config(state=tk.NORMAL)
             self.update_cr_overlay()
@@ -886,10 +890,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 mask_crfound2 = mask_crfound2 & (usefulmask.astype(bool))
                 # Combine results from both runs
                 if np.any(mask_crfound):
-                    print(f"Number of cosmic ray pixels (run1).......: {np.sum(mask_crfound)}")
-                    print(f"Number of cosmic ray pixels (run2).......: {np.sum(mask_crfound2)}")
-                    mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound2)
-                    print(f"Number of cosmic ray pixels (run1 & run2): {np.sum(mask_crfound)}")
+                    mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound2, verbose=True)
                 # Use the cleandata from the second run
                 cleandata_lacosmic = cleandata_lacosmic2
             # Select the image region to process
@@ -936,9 +937,6 @@ class CosmicRayCleanerApp(ImageDisplay):
             # recalculate labels and number of features
             structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
             self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
-            sdum = str(np.sum(self.mask_crfound))
-            print(f"Number of cosmic ray pixels detected by L.A.Cosmic...........: {sdum}")
-            print(f"Number of cosmic rays (grouped pixels) detected by L.A.Cosmic: {self.num_features:>{len(sdum)}}")
             # Define parameters for L.A.Cosmic from default dictionary
             editor_window = tk.Toplevel(self.root)
             center_on_parent(child=editor_window, parent=self.root)

@@ -10,6 +10,7 @@
 """Surface interpolation (plane fit) or median interpolation"""
 
 import numpy as np
+from rich import print
 
 from .dilatemask import dilatemask
 

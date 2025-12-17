@@ -18,6 +18,7 @@ except ModuleNotFoundError as e:
         "`pip install teareduce[cleanest]`."
     ) from e
 import numpy as np
+from rich import print
 
 from .definitions import VALID_LACOSMIC_PSFMODEL_VALUES
 from .gausskernel2d_elliptical import gausskernel2d_elliptical
@@ -28,7 +29,8 @@ def lacosmicpad(pad_width, show_arguments=False, **kwargs):
 
     This function pads the input image array before applying the LACosmic
     cosmic ray cleaning algorithm. After processing, the padding is removed
-    to return an array of the original size.
+    to return an array of the original size. If `inbkg` or `invar` arrays
+    are provided, they are also padded accordingly.
 
     The padding helps to mitigate edge effects that can occur during the
     cosmic ray detection and cleaning process.

@@ -18,6 +18,7 @@ except ModuleNotFoundError as e:
         "`pip install teareduce[cleanest]`."
     ) from e
 import numpy as np
+from rich import print
 from scipy import ndimage
 from tqdm import tqdm
 
@@ -32,6 +33,19 @@ def interpolate(data, mask_crfound, dilation=0, interp_method=None, npoints=None
 
     The original data and mask are not modified. A copy of both
     arrays are created and returned with the interpolated pixels.
+
+    Cosmic-ray pixels are initially dilated by the specified number
+    of pixels. The resulting flagged pixels are grouped into cosmic-ray
+    features. Each cosmic-ray feature is then interpolated using the
+    specified interpolation method.
+
+    Note that the interpolation methods `lacosmic` and `auxfile`,
+    available in the interactive use of **tea-cleanest** are not
+    implemented in this function because both cases are simply
+    an inmediate replacement of the cosmic ray pixels in the data
+    array by the corresponding pixels in another array using the
+    mask array. Therefore, these two methods do not require any
+    interpolation algorithm.
 
     Parameters
     ----------

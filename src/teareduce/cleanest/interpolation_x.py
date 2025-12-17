@@ -10,6 +10,7 @@
 """Polynomial nterpolation in the X direction"""
 
 import numpy as np
+from rich import print
 
 
 def interpolation_x(data, mask_fixed, cr_labels, cr_index, npoints, degree):

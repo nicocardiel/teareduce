@@ -11,6 +11,7 @@
 
 from tkinter import simpledialog
 import numpy as np
+from rich import print
 
 from ..sliceregion import SliceRegion2D
 from ..zscale import zscale

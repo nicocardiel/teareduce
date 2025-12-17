@@ -11,9 +11,10 @@
 
 import numpy as np
 from scipy import ndimage
+from rich import print
 
 
-def merge_peak_tail_masks(mask_peaks, mask_tails):
+def merge_peak_tail_masks(mask_peaks, mask_tails, verbose=False):
     """Merge peak and tail masks for cosmic ray cleaning.
 
     Tail pixels are preserved only if they correspond to CR features
@@ -25,6 +26,8 @@ def merge_peak_tail_masks(mask_peaks, mask_tails):
         Boolean array indicating the pixels identified as cosmic ray peaks.
     mask_tails : ndarray
         Boolean array indicating the pixels identified as cosmic ray tails.
+    verbose: bool
+        If True, print additional information during processing.
 
     Returns
     -------
@@ -41,6 +44,10 @@ def merge_peak_tail_masks(mask_peaks, mask_tails):
     if mask_peaks.dtype != bool or mask_tails.dtype != bool:
         raise TypeError("Input masks must be boolean arrays.")
 
+    if verbose:
+        ndigits = np.max([len(str(np.sum(mask_peaks))), len(str(np.sum(mask_tails)))])
+        print(f"Number of cosmic ray pixels (peaks)...............: {np.sum(mask_peaks):{ndigits}d}")
+        print(f"Number of cosmic ray pixels (tails)...............: {np.sum(mask_tails):{ndigits}d}")
     # find structures in tail mask
     structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
     cr_labels_tails, num_crs_tails = ndimage.label(mask_tails, structure=structure)
@@ -54,5 +61,8 @@ def merge_peak_tail_masks(mask_peaks, mask_tails):
     for icr in np.unique(cr_labels_tails_preserved):
         if icr > 0:
             merged_mask[cr_labels_tails == icr] = True
+
+    if verbose:
+        print(f"Number of cosmic ray pixels (merged peaks & tails): {np.sum(merged_mask):{ndigits}d}")
 
     return merged_mask

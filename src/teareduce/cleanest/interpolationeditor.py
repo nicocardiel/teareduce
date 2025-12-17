@@ -13,6 +13,8 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
 
+from rich import print
+
 from .centerchildparent import center_on_parent
 from .definitions import VALID_CLEANING_METHODS
 from .definitions import MASKFILL_OPERATOR_VALUES
@@ -423,7 +425,7 @@ class InterpolationEditor:
     def action_on_method_change(self):
         """Handle changes in the selected cleaning method."""
         selected_method = self.cleaning_method_var.get()
-        print(f"Selected cleaning method: {selected_method}")
+        print(f"Selected cleaning method: [red bold]{selected_method}[/red bold]")
         if selected_method in ["x interp.", "y interp."]:
             self.entry_npoints.config(state="normal")
             self.entry_degree.config(state="normal")
