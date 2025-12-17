@@ -9,7 +9,7 @@
 #
 """Module to define the version of the teareduce package."""
 
-VERSION = '0.6.3'
+VERSION = '0.6.4'
 
 
 def main():
