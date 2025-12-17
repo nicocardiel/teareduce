@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.polynomial import Polynomial
 from scipy import ndimage
-from tqdm.auto import tqdm
+from tqdm.notebook import tqdm
 
 from .imshow import imshow
 from .polfit import polfit_residuals_with_sigma_rejection
