@@ -14,7 +14,7 @@ practical for use in Master’s level classes.
 ## Documentation
 
 The documentation for this package is available at [this
-link](https://guaix.fis.ucm.es/~tea/teareduce-cookbook/_build/html/intro.html).
+link](https://nicocardiel.github.io/teareduce-cookbook/intro.html).
 It includes Juypter notebooks that can be easily downloaded and demonstrate the
 practical use of the defined functionality.
 
