@@ -20,7 +20,7 @@ except ModuleNotFoundError as e:
 import numpy as np
 from rich import print
 from scipy import ndimage
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 
 from .dilatemask import dilatemask
 from .interpolation_x import interpolation_x
@@ -125,7 +125,7 @@ def interpolate(data, mask_crfound, dilation=0, interp_method=None, npoints=None
         num_cr_cleaned = num_features
     elif interp_method in ["x", "y", "s", "d", "m"]:
         num_cr_cleaned = 0
-        for cr_index in tqdm(range(1, num_features + 1), disable=not debug):
+        for cr_index in tqdm(range(1, num_features + 1), disable=not debug, leave=True):
             if interp_method in ["x", "y"]:
                 if 2 * npoints <= degree:
                     raise ValueError("2*npoints must be greater than degree for polynomial interpolation.")
