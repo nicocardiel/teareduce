@@ -20,7 +20,7 @@ except ModuleNotFoundError as e:
 import numpy as np
 from rich import print
 from scipy import ndimage
-from tqdm.notebook import tqdm
+from tqdm.auto import tqdm
 
 from .dilatemask import dilatemask
 from .interpolation_x import interpolation_x

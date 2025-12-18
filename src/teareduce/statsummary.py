@@ -10,7 +10,7 @@
 from astropy.io import fits
 import numpy as np
 from pathlib import Path
-from tqdm.notebook import tqdm
+from tqdm.auto import tqdm
 
 from .robust_std import robust_std
 from .sliceregion import SliceRegion2D
