@@ -338,7 +338,14 @@ class CosmicRayCleanerApp(ImageDisplay):
                         if extension not in hdul:
                             raise KeyError(f"Extension name '{extension}' not found.")
                     if hdul[extension].header["BITPIX"] not in [8, 16]:
-                        raise ValueError("Cosmic ray mask must be of integer type (BITPIX=8 or 16).")
+                        answer = messagebox.askyesno(
+                            f"Invalid Mask Data Type",
+                            f"Invalid Mask Data Type: {hdul[extension].header['BITPIX']}\n"
+                            "Cosmic ray mask is not of integer type (BITPIX=8 or 16).\n\n"
+                            "Do you want to continue loading it anyway?",
+                        )
+                        if not answer:
+                            return
                     mask_crfound_loaded = hdul[extension].data.astype(bool)
                     if mask_crfound_loaded.shape != self.data.shape:
                         print(f"data shape...: {self.data.shape}")
