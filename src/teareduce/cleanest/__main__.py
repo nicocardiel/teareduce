@@ -19,6 +19,7 @@ import platform
 from rich import print
 from rich_argparse import RichHelpFormatter
 
+from .askextension import ask_extension_input_image
 from .definitions import DEFAULT_FONT_FAMILY
 from .definitions import DEFAULT_FONT_SIZE
 from .definitions import DEFAULT_TK_WINDOW_SIZE_X
@@ -85,17 +86,14 @@ def main():
         root.withdraw()  # Hide the root window
         args.input_fits = filedialog.askopenfilename(
             title="Select FITS file to be cleaned",
+            initialdir=os.getcwd(),
             filetypes=[("FITS files", "*.fits *.fit *.fts"), ("All files", "*.*")],
         )
         if not args.input_fits:
             print("No input FITS file selected. Exiting.")
             exit(1)
         print(f"Selected input FITS file: {args.input_fits}")
-        args.extension = simpledialog.askstring(
-            "Select Extension",
-            f"\nEnter extension number or name for file:\n{Path(args.input_fits).name}",
-            initialvalue=args.extension,
-        )
+        args.extension = ask_extension_input_image(args.input_fits, imgshape=None)
         # Ask for auxiliary file if not provided
         if args.auxfile is None:
             use_auxfile = tk.messagebox.askyesno(
@@ -116,11 +114,7 @@ def main():
             use_auxfile = True
         if use_auxfile:
             print(f"Selected auxiliary FITS file: {args.auxfile}")
-            args.extension_auxfile = simpledialog.askstring(
-                "Select Extension for Auxiliary File",
-                f"\nEnter extension number or name for auxiliary file:\n{Path(args.auxfile).name}",
-                initialvalue=args.extension_auxfile,
-            )
+            args.extension_auxfile = ask_extension_input_image(args.auxfile, imgshape=None)
         root.destroy()
 
     # Check that input files, and the corresponding extensions, exist

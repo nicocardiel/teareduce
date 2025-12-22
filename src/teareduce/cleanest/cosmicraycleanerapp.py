@@ -19,6 +19,15 @@ import sys
 from astropy.io import fits
 
 try:
+    import PyCosmic
+except ModuleNotFoundError as e:
+    raise ModuleNotFoundError(
+        "The 'teareduce.cleanest' module requires the 'PyCosmic' package. "
+        "Please install teareduce with the 'cleanest' extra dependencies: "
+        "`pip install teareduce[cleanest]`."
+    ) from e
+
+try:
     import deepCR
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(
@@ -45,6 +54,7 @@ except ModuleNotFoundError as e:
         "`pip install teareduce[cleanest]`."
     ) from e
 
+from importlib.metadata import version, PackageNotFoundError
 import matplotlib.pyplot as plt
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -59,6 +69,7 @@ from .centerchildparent import center_on_parent
 from .definitions import cosmicconn_default_dict
 from .definitions import deepcr_default_dict
 from .definitions import lacosmic_default_dict
+from .definitions import pycosmic_default_dict
 from .definitions import DEFAULT_NPOINTS_INTERP
 from .definitions import DEFAULT_DEGREE_INTERP
 from .definitions import DEFAULT_MASKFILL_SIZE
@@ -81,6 +92,7 @@ from .lacosmicpad import lacosmicpad
 from .mergemasks import merge_peak_tail_masks
 from .modalprogressbar import ModalProgressBar
 from .parametereditor import ParameterEditorLACosmic
+from .parametereditor import ParameterEditorPyCosmic
 from .reviewcosmicray import ReviewCosmicRay
 from .trackedbutton import TrackedTkButton
 
@@ -148,8 +160,20 @@ class CosmicRayCleanerApp(ImageDisplay):
             Save the cleaned data to a FITS file.
         create_widgets()
             Create the GUI widgets.
+        set_cursor_onoff()
+            Toggle the cursor mode on or off.
+        toggle_auxdata()
+            Toggle the use of auxiliary data.
+        toggle_aspect()
+            Toggle the aspect ratio of the displayed image.
         run_lacosmic()
             Run the L.A.Cosmic algorithm.
+        run_pycosmic()
+            Run the PyCosmic algorithm.
+        run_deepcr()
+            Run the DeepCR algorithm.
+        run_cosmicconn()
+            Run the Cosmic-CoNN algorithm.
         toggle_cr_overlay()
             Toggle the overlay of cosmic ray pixels on the image.
         update_cr_overlay()
@@ -187,6 +211,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             Dictionary of DeepCR parameters.
         lacosmic_params : dict
             Dictionary of L.A.Cosmic parameters.
+        pycosmic_params : dict
+            Dictionary of PyCosmic parameters.
         input_fits : str
             Path to the FITS file to be cleaned.
         extension : int
@@ -237,6 +263,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             Last used verbose parameter for maskfill.
         cleandata_lacosmic : np.ndarray
             The cleaned data returned from L.A.Cosmic.
+        cleandata_pycosmic : np.ndarray
+            The cleaned data returned from PyCosmic.
         cleandata_deepcr : np.ndarray
             The cleaned data returned from DeepCR.
         cr_labels : np.ndarray
@@ -265,6 +293,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.lacosmic_params = lacosmic_default_dict.copy()
         self.lacosmic_params["run1_verbose"]["value"] = self.verbose
         self.lacosmic_params["run2_verbose"]["value"] = self.verbose
+        self.pycosmic_params = pycosmic_default_dict.copy()
         self.input_fits = input_fits
         self.extension = extension
         self.data = None
@@ -292,6 +321,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.last_maskfill_verbose = DEFAULT_MASKFILL_VERBOSE
         self.create_widgets()
         self.cleandata_lacosmic = None
+        self.cleandata_pycosmic = None
         self.cleandata_deepcr = None
         self.cr_labels = None
         self.num_features = 0
@@ -313,17 +343,12 @@ class CosmicRayCleanerApp(ImageDisplay):
                 self.mask_crfound = dilatemask(mask=self.mask_crfound, iterations=dilation, connectivity=1)
                 num_cr_pixels_after_dilation = np.sum(self.mask_crfound)
                 sdum = str(num_cr_pixels_after_dilation)
-            else:
-                sdum = str(num_cr_pixels_before_dilation)
-            if dilation > 0:
-                print(
-                    "Number of cosmic ray pixels before dilation.......: "
-                    f"{num_cr_pixels_before_dilation:>{len(sdum)}}"
-                )
                 print(
                     f"Number of cosmic ray pixels after dilation........: "
                     f"{num_cr_pixels_after_dilation:>{len(sdum)}}"
                 )
+            else:
+                sdum = str(num_cr_pixels_before_dilation)
             # Label connected components in the mask; note that by default,
             # structure is a cross [0,1,0;1,1,1;0,1,0], but we want to consider
             # diagonal connections too, so we define a 3x3 square.
@@ -576,6 +601,14 @@ class CosmicRayCleanerApp(ImageDisplay):
             help_text="Run the L.A.Cosmic algorithm to detect cosmic rays in the image.",
         )
         self.run_lacosmic_button.pack(side=tk.LEFT, padx=5)
+        # --- PyCosmic button
+        self.run_pycosmic_button = tkbutton.new(
+            self.button_frame1,
+            text="Run PyCosmic",
+            command=self.run_pycosmic,
+            help_text="Run the PyCosmic algorithm to detect cosmic rays in the image.",
+        )
+        self.run_pycosmic_button.pack(side=tk.LEFT, padx=5)
         # --- DeepCR button
         self.run_deepcr_button = tkbutton.new(
             self.button_frame1,
@@ -907,6 +940,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             cleandata_lacosmic, mask_crfound = lacosmicpad(
                 pad_width=borderpadd,
                 show_arguments=self.verbose,
+                display_ccdproc_version=True,
                 ccd=self.data,
                 gain_apply=True,  # Always apply gain
                 sigclip=self.lacosmic_params["run1_sigclip"]["value"],
@@ -937,6 +971,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 cleandata_lacosmic2, mask_crfound2 = lacosmicpad(
                     pad_width=borderpadd,
                     show_arguments=self.verbose,
+                    display_ccdproc_version=False,
                     ccd=self.data,
                     gain_apply=True,  # Always apply gain
                     sigclip=self.lacosmic_params["run2_sigclip"]["value"],
@@ -977,6 +1012,105 @@ class CosmicRayCleanerApp(ImageDisplay):
             print("Parameter editing cancelled. L.A.Cosmic detection skipped!")
         self.run_lacosmic_button.config(state=tk.NORMAL)
 
+    def run_pycosmic(self):
+        """Run PyCosmic to detect cosmic rays."""
+        if np.any(self.mask_crfound):
+            overwrite = messagebox.askyesno(
+                "Overwrite Cosmic Ray Mask",
+                "A cosmic ray mask is already defined.\n\nDo you want to overwrite it?",
+            )
+            if not overwrite:
+                return
+        self.run_pycosmic_button.config(state=tk.DISABLED)
+        print("[bold green]Executing PyCosmic...[/bold green]")
+        # Define parameters for PyCosmic from default dictionary
+        editor_window = tk.Toplevel(self.root)
+        center_on_parent(child=editor_window, parent=self.root)
+        editor = ParameterEditorPyCosmic(
+            root=editor_window,
+            param_dict=self.pycosmic_params,
+            window_title="Mask Generation Parameters (PyCosmic)",
+            xmin=self.last_xmin,
+            xmax=self.last_xmax,
+            ymin=self.last_ymin,
+            ymax=self.last_ymax,
+            imgshape=self.data.shape,
+        )
+        # Make it modal (blocks interaction with main window)
+        editor_window.transient(self.root)
+        editor_window.grab_set()
+        # Wait for the editor window to close
+        self.root.wait_window(editor_window)
+        # Get the result after window closes
+        updated_params = editor.get_result()
+        if updated_params is not None:
+            # Update last used region values
+            self.last_xmin = updated_params["xmin"]["value"]
+            self.last_xmax = updated_params["xmax"]["value"]
+            self.last_ymin = updated_params["ymin"]["value"]
+            self.last_ymax = updated_params["ymax"]["value"]
+            usefulregion = SliceRegion2D(
+                f"[{self.last_xmin}:{self.last_xmax},{self.last_ymin}:{self.last_ymax}]", mode="fits"
+            ).python
+            usefulmask = np.zeros_like(self.data)
+            usefulmask[usefulregion] = 1.0
+            # Update parameter dictionary with new values
+            self.pycosmic_params = updated_params
+            if self.verbose:
+                print("Parameters updated:")
+                for key, info in self.pycosmic_params.items():
+                    print(f"  {key}: {info['value']}")
+            # Execute PyCosmic with updated parameters
+            print("[bold green]Executing PyCosmic...[/bold green]")
+            try:
+                pycosmic_version = version("PyCosmic")
+            except Exception:
+                pycosmic_version = "unknown"
+            if self.pycosmic_params["verbose"]["value"]:
+                end = "\n"
+                for key, info in self.pycosmic_params.items():
+                    print(f"PyCosmic parameter: {key} = {info['value']}")
+            else:
+                end = ""
+            print(f"Running PyCosmic version: {pycosmic_version}  (please wait...) ", end=end)
+            out = PyCosmic.det_cosmics(
+                data=self.data,
+                sigma_det=self.pycosmic_params["sigma_det"]["value"],
+                rlim=self.pycosmic_params["rlim"]["value"],
+                iterations=self.pycosmic_params["iterations"]["value"],
+                fwhm_gauss=[
+                    self.pycosmic_params["fwhm_gauss_x"]["value"],
+                    self.pycosmic_params["fwhm_gauss_y"]["value"],
+                ],
+                replace_box=[
+                    self.pycosmic_params["replace_box_x"]["value"],
+                    self.pycosmic_params["replace_box_y"]["value"],
+                ],
+                replace_error=self.pycosmic_params["replace_error"]["value"],
+                increase_radius=self.pycosmic_params["increase_radius"]["value"],
+                gain=self.pycosmic_params["gain"]["value"],
+                rdnoise=self.pycosmic_params["rdnoise"]["value"],
+                bias=self.pycosmic_params["bias"]["value"],
+                verbose=self.pycosmic_params["verbose"]["value"],
+            )
+            print(f"Done!")
+            cleandata_pycosmic = out.data
+            mask_crfound = out.mask.astype(bool)
+            # Apply usefulmask to consider only selected region
+            cleandata_pycosmic *= usefulmask
+            mask_crfound = mask_crfound & (usefulmask.astype(bool))
+            # Select the image region to process
+            self.cleandata_pycosmic = self.data.copy()
+            self.cleandata_pycosmic[usefulregion] = cleandata_pycosmic[usefulregion]
+            self.mask_crfound = np.zeros_like(self.data, dtype=bool)
+            self.mask_crfound[usefulregion] = mask_crfound[usefulregion]
+            # Process the mask: dilation and labeling
+            print(f"Number of cosmic ray pixels (merged peaks & tails): {np.sum(self.mask_crfound)}")
+            self.process_detected_cr(dilation=0)
+        else:
+            print("Parameter editing cancelled. PyCosmic detection skipped!")
+        self.run_pycosmic_button.config(state=tk.NORMAL)
+
     def run_deepcr(self):
         """Run DeepCR to detect cosmic rays."""
         if np.any(self.mask_crfound):
@@ -1012,9 +1146,10 @@ class CosmicRayCleanerApp(ImageDisplay):
         print(" Done!")
         # Process the mask: dilation and labeling
         dilation = simpledialog.askinteger(
-            "Dilation", 
-            "Note: Applying dilation will prevent the use of the DeepCR cleaned data.\n\n"
-            "Enter Dilation (min=0):", initialvalue=self.deepcr_params["dilation"]["value"], minvalue=0
+            "Dilation",
+            "Note: Applying dilation will prevent the use of the DeepCR cleaned data.\n\n" "Enter Dilation (min=0):",
+            initialvalue=self.deepcr_params["dilation"]["value"],
+            minvalue=0,
         )
         if dilation is None:
             print("Dilation input cancelled. DeepCR detection skipped!")

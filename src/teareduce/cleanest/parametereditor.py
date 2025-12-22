@@ -18,6 +18,7 @@ from tkinter import messagebox
 from .askextension import ask_extension_input_image
 from .centerchildparent import center_on_parent
 from .definitions import lacosmic_default_dict
+from .definitions import pycosmic_default_dict
 
 
 class ParameterEditorLACosmic:
@@ -75,6 +76,10 @@ class ParameterEditorLACosmic:
         -------
         create_widgets()
             Create the widgets for the dialog.
+        define_inbkg()
+            Define the input background image.
+        define_invar()
+            Define the input variance image.
         on_ok()
             Validate and save the updated values.
         on_cancel()
@@ -83,6 +88,8 @@ class ParameterEditorLACosmic:
             Reset all fields to original values.
         get_result()
             Return the updated dictionary.
+        update_colour_param_run1_run2()
+            Update the color of run2 entries if they differ from run1.
 
         Attributes
         ----------
@@ -265,7 +272,11 @@ class ParameterEditorLACosmic:
         # Vertical separator between splitted table
         separatorv1 = ttk.Separator(main_frame, orient="vertical")
         separatorv1.grid(
-            row=row - max_num_params_in_columns, column=4, rowspan=max_num_params_in_columns, sticky="ns", padx=10
+            row=row - max_num_params_in_columns - 1,
+            column=4,
+            rowspan=max_num_params_in_columns + 1,
+            sticky="ns",
+            padx=10,
         )
 
         # Separator
@@ -479,6 +490,14 @@ class ParameterEditorLACosmic:
 
             # Additional validation for region limits
             try:
+                if updated_dict["xmin"]["value"] < 1 or updated_dict["xmin"]["value"] > self.imgshape[1]:
+                    raise ValueError(f"xmin must be in the range [1, {self.imgshape[1]}]")
+                if updated_dict["xmax"]["value"] < 1 or updated_dict["xmax"]["value"] > self.imgshape[1]:
+                    raise ValueError(f"xmax must be in the range [1, {self.imgshape[1]}]")
+                if updated_dict["ymin"]["value"] < 1 or updated_dict["ymin"]["value"] > self.imgshape[0]:
+                    raise ValueError(f"ymin must be in the range [1, {self.imgshape[0]}]")
+                if updated_dict["ymax"]["value"] < 1 or updated_dict["ymax"]["value"] > self.imgshape[0]:
+                    raise ValueError(f"ymax must be in the range [1, {self.imgshape[0]}]")
                 if updated_dict["xmax"]["value"] <= updated_dict["xmin"]["value"]:
                     raise ValueError("xmax must be greater than xmin")
                 if updated_dict["ymax"]["value"] <= updated_dict["ymin"]["value"]:
@@ -554,3 +573,316 @@ class ParameterEditorLACosmic:
                         self.entries["run1_" + parname].selection_clear()
                     if "run2_" + parname in self.entries:
                         self.entries["run2_" + parname].selection_clear()
+
+
+class ParameterEditorPyCosmic:
+    """A dialog to edit PyCosmic parameters."""
+
+    def __init__(
+        self,
+        root,
+        param_dict,
+        window_title,
+        xmin,
+        xmax,
+        ymin,
+        ymax,
+        imgshape,
+    ):
+        """Initialize the parameter editor dialog.
+
+        Parameters
+        ----------
+        root : tk.Tk
+            The root Tkinter window.
+        param_dict : dict
+            Dictionary with L.A.Cosmic parameters.
+        window_title : str
+            Title of the dialog window.
+        xmin : int
+            Minimum x-coordinate of the region to be examined.
+            From 1 to NAXIS1.
+        xmax : int
+            Maximum x-coordinate of the region to be examined.
+            From 1 to NAXIS1.
+        ymin : int
+            Minimum y-coordinate of the region to be examined.
+            From 1 to NAXIS2.
+        ymax : int
+            Maximum y-coordinate of the region to be examined.
+            From 1 to NAXIS2.
+        imgshape : tuple
+            Shape of the image (height, width).
+
+        Methods
+        -------
+        create_widgets()
+            Create the widgets for the dialog.
+        on_ok()
+            Validate and save the updated values.
+        on_cancel()
+            Close the dialog without saving.
+        get_result()
+            Return the updated dictionary.
+
+        Attributes
+        ----------
+        root : tk.Tk
+            The root Tkinter window.
+        param_dict : dict
+            Dictionary with L.A.Cosmic parameters.
+        imgshape : tuple
+            Shape of the image (height, width).
+        entries : dict
+            Dictionary to hold entry widgets.
+        result_dict : dict or None
+            The updated dictionary of parameters or None if cancelled.
+        """
+        self.root = root
+        self.root.title(window_title)
+        self.param_dict = param_dict
+        # Set default region values
+        self.param_dict["xmin"]["value"] = xmin
+        self.param_dict["xmax"]["value"] = xmax
+        self.param_dict["ymin"]["value"] = ymin
+        self.param_dict["ymax"]["value"] = ymax
+        self.imgshape = imgshape
+        self.entries = {"run1": {}, "run2": {}}  # dictionary to hold entry widgets
+        self.result_dict = {}
+
+        # Create the form
+        self.create_widgets()
+        center_on_parent(child=self.root, parent=self.root.master)
+
+    def create_widgets(self):
+        """Create the widgets for the dialog."""
+        # Main frame
+        main_frame = tk.Frame(self.root, padx=10, pady=10)
+        main_frame.pack()
+
+        row = 0
+
+        # Subtitle for PyCosmic parameters
+        default_font = tk.font.nametofont("TkDefaultFont")
+        bold_font = default_font.copy()
+        bold_font.configure(weight="bold", size=default_font.cget("size") + 2)
+        subtitle_label = tk.Label(main_frame, text="PyCosmic Parameters", font=bold_font)
+        subtitle_label.grid(row=row, column=0, columnspan=9, pady=(0, 10))
+        row += 1
+
+        # Count number of parameters
+        nparams = 0
+        for key in self.param_dict.keys():
+            if key not in ["xmin", "xmax", "ymin", "ymax"]:
+                nparams += 1
+        max_num_params_in_columns = nparams // 2 + nparams % 2
+
+        # Create labels and entry fields for each parameter.
+        bold_font_subheader = default_font.copy()
+        bold_font_subheader.configure(weight="bold", size=default_font.cget("size") + 1)
+        for subtable in range(2):
+            if subtable == 0:
+                coloff = 0
+            else:
+                coloff = 5
+            label = tk.Label(main_frame, text="Parameter", font=bold_font_subheader, anchor="w", fg="gray")
+            label.grid(row=row, column=0 + coloff, sticky="e", pady=0)
+            label = tk.Label(main_frame, text="Value", font=bold_font_subheader, anchor="w", fg="gray", width=10)
+            label.grid(row=row, column=1 + coloff, sticky="w", padx=10, pady=0)
+            label = tk.Label(main_frame, text="Type", font=bold_font_subheader, anchor="w", fg="gray", width=10)
+            label.grid(row=row, column=2 + coloff, sticky="w", pady=0)
+        row += 1
+
+        self.entry_vars = {}
+        row_subtable = 0
+        coloff = 0
+        for key, info in self.param_dict.items():
+            if key in ["xmin", "xmax", "ymin", "ymax"]:
+                continue
+            # Parameter name label
+            label = tk.Label(main_frame, text=f"{key}:", anchor="e", width=15)
+            label.grid(row=row, column=coloff, sticky="w", pady=5)
+            # Entry field for run1
+            self.entry_vars[key] = tk.StringVar()
+            entry = tk.Entry(main_frame, textvariable=self.entry_vars[key], width=10)
+            entry.insert(0, str(info["value"]))
+            entry.grid(row=row, column=1 + coloff, padx=10, pady=5)
+            self.entries[key] = entry  # dictionary to hold entry widgets
+            # Type label
+            infotext = info["type"].__name__
+            if infotext == "int":
+                if "intmode" in info:
+                    if info["intmode"] == "odd":
+                        infotext += ", odd"
+                    elif info["intmode"] == "even":
+                        infotext += ", even"
+            type_label = tk.Label(main_frame, text=f"({infotext})", fg="gray", anchor="w", width=10)
+            type_label.grid(row=row, column=2 + coloff, sticky="w", pady=5)
+            row_subtable += 1
+            if row_subtable == max_num_params_in_columns:
+                coloff = 5
+                row -= max_num_params_in_columns
+            row += 1
+
+        # Adjust row if odd number of parameters
+        if nparams % 2 != 0:
+            row += nparams % 2
+
+        # Vertical separator
+        separatorv1 = ttk.Separator(main_frame, orient="vertical")
+        separatorv1.grid(
+            row=row - max_num_params_in_columns - 1,
+            column=4,
+            rowspan=max_num_params_in_columns + 1,
+            sticky="ns",
+            padx=10,
+        )
+
+        # Separator
+        separator1 = ttk.Separator(main_frame, orient="horizontal")
+        separator1.grid(row=row, column=0, columnspan=9, sticky="ew", pady=(10, 10))
+        row += 1
+
+        # Subtitle for region to be examined
+        subtitle_label = tk.Label(main_frame, text="Region to be Examined", font=bold_font)
+        subtitle_label.grid(row=row, column=0, columnspan=9, pady=(0, 10))
+        row += 1
+
+        # Region to be examined label and entries
+        for key, info in self.param_dict.items():
+            if key.lower() in ["xmin", "xmax", "ymin", "ymax"]:
+                # Parameter name label
+                label = tk.Label(main_frame, text=f"{key}:", anchor="e", width=15)
+                if key.lower() in ["xmin", "xmax"]:
+                    coloff = 0
+                else:
+                    coloff = 5
+                label.grid(row=row, column=coloff, sticky="w", pady=5)
+                # Entry field
+                entry = tk.Entry(main_frame, width=10)
+                entry.insert(0, str(info["value"]))
+                entry.grid(row=row, column=coloff + 1, padx=10, pady=5)
+                self.entries[key] = entry  # dictionary to hold entry widgets
+                # Type label
+                dumtext = f"({info['type'].__name__})"
+                if key.lower() in ["xmin", "xmax"]:
+                    dumtext += f" --> [1, {self.imgshape[1]}]"
+                else:
+                    dumtext += f" --> [1, {self.imgshape[0]}]"
+                type_label = tk.Label(main_frame, text=dumtext, fg="gray", anchor="w", width=15)
+                type_label.grid(row=row, column=coloff + 2, sticky="w", pady=5)
+                if key.lower() == "xmax":
+                    row -= 1
+                else:
+                    row += 1
+
+        # Vertical separator
+        separatorv2 = ttk.Separator(main_frame, orient="vertical")
+        separatorv2.grid(row=row - 2, column=4, rowspan=2, sticky="ns", padx=10)
+
+        # Separator
+        separator2 = ttk.Separator(main_frame, orient="horizontal")
+        separator2.grid(row=row, column=0, columnspan=9, sticky="ew", pady=(10, 10))
+        row += 1
+
+        # Button frame
+        button_frame = tk.Frame(main_frame)
+        button_frame.grid(row=row, column=0, columnspan=9, pady=(5, 0))
+
+        # OK button
+        self.ok_button = ttk.Button(button_frame, text="OK", takefocus=True, command=self.on_ok)
+        self.ok_button.pack(side="left", padx=5)
+
+        # Cancel button
+        self.cancel_button = ttk.Button(button_frame, text="Cancel", command=self.on_cancel)
+        self.cancel_button.pack(side="left", padx=5)
+
+        # Reset button
+        self.reset_button = ttk.Button(button_frame, text="Reset", command=self.on_reset)
+        self.reset_button.pack(side="left", padx=5)
+
+        # Set focus to OK button
+        self.ok_button.focus_set()
+
+    def on_ok(self):
+        """Validate and save the updated values"""
+        try:
+            updated_dict = {}
+            for key, info in self.param_dict.items():
+                entry_value = self.entries[key].get()
+                value_type = info["type"]
+
+                # Convert string to appropriate type
+                if value_type == bool:
+                    # Handle boolean conversion
+                    if entry_value.lower() in ["true", "1", "yes"]:
+                        converted_value = True
+                    elif entry_value.lower() in ["false", "0", "no"]:
+                        converted_value = False
+                    else:
+                        raise ValueError(f"Invalid boolean value for {key}")
+                elif value_type == str:
+                    converted_value = entry_value
+                    if "valid_values" in info and entry_value not in info["valid_values"]:
+                        raise ValueError(f"Invalid value for {key}. Valid values are: {info['valid_values']}")
+                else:
+                    converted_value = value_type(entry_value)
+                    if "positive" in info and info["positive"] and converted_value < 0:
+                        raise ValueError(f"Value for {key} must be positive")
+                    if "intmode" in info:
+                        if info["intmode"] == "odd" and converted_value % 2 == 0:
+                            raise ValueError(f"Value for {key} must be an odd integer")
+                        elif info["intmode"] == "even" and converted_value % 2 != 0:
+                            raise ValueError(f"Value for {key} must be an even integer")
+
+                # Duplicate the parameter info and update only the value
+                # (preserving other metadata)
+                updated_dict[key] = self.param_dict[key].copy()
+                updated_dict[key]["value"] = converted_value
+
+            # Additional validation for region limits
+            try:
+                if updated_dict["xmin"]["value"] < 1 or updated_dict["xmin"]["value"] > self.imgshape[1]:
+                    raise ValueError(f"xmin must be in the range [1, {self.imgshape[1]}]")
+                if updated_dict["xmax"]["value"] < 1 or updated_dict["xmax"]["value"] > self.imgshape[1]:
+                    raise ValueError(f"xmax must be in the range [1, {self.imgshape[1]}]")
+                if updated_dict["ymin"]["value"] < 1 or updated_dict["ymin"]["value"] > self.imgshape[0]:
+                    raise ValueError(f"ymin must be in the range [1, {self.imgshape[0]}]")
+                if updated_dict["ymax"]["value"] < 1 or updated_dict["ymax"]["value"] > self.imgshape[0]:
+                    raise ValueError(f"ymax must be in the range [1, {self.imgshape[0]}]")
+                if updated_dict["xmax"]["value"] <= updated_dict["xmin"]["value"]:
+                    raise ValueError("xmax must be greater than xmin")
+                if updated_dict["ymax"]["value"] <= updated_dict["ymin"]["value"]:
+                    raise ValueError("ymax must be greater than ymin")
+                self.result_dict = updated_dict
+                self.root.destroy()
+            except ValueError as e:
+                messagebox.showerror(
+                    "Invalid Inputs", "Error in region limits:\n" f"{str(e)}\n\nPlease check your inputs."
+                )
+
+        except ValueError as e:
+            messagebox.showerror(
+                "Invalid Inputs", f"Error converting value for {key}:\n{str(e)}\n\n" "Please check your inputs."
+            )
+
+    def on_cancel(self):
+        """Close without saving"""
+        self.result_dict = None
+        self.root.destroy()
+
+    def on_reset(self):
+        """Reset all fields to original values"""
+        self.param_dict = pycosmic_default_dict.copy()
+        self.param_dict["xmin"]["value"] = 1
+        self.param_dict["xmax"]["value"] = self.imgshape[1]
+        self.param_dict["ymin"]["value"] = 1
+        self.param_dict["ymax"]["value"] = self.imgshape[0]
+        for key, info in self.param_dict.items():
+            parname = key[5:]
+            self.entries[key].delete(0, tk.END)
+            self.entries[key].insert(0, str(info["value"]))
+
+    def get_result(self):
+        """Return the updated dictionary"""
+        return self.result_dict

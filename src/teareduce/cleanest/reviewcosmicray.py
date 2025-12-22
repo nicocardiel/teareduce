@@ -319,8 +319,8 @@ class ReviewCosmicRay(ImageDisplay):
         # (avoiding the execution of the function at button creation time, which would happen
         # if we didn't use lambda; in that case, the function would be called immediately and
         # its return value (None) would be assigned to the command parameter; furthermore,
-        # the function is trying to deactivate the buttons before they are created, 
-        # which would lead to an error; in addition, since I have two buttons calling 
+        # the function is trying to deactivate the buttons before they are created,
+        # which would lead to an error; in addition, since I have two buttons calling
         # the same function with different arguments, using lambda allows to differentiate them)
         # would lead to an error; in addition, since I have two buttons calling the same function
         # with different arguments, using lambda allows to differentiate them)
@@ -347,7 +347,6 @@ class ReviewCosmicRay(ImageDisplay):
             help_text="Perform mean interpolation for the current cosmic ray.",
         )
         self.interp_m_button.pack(side=tk.LEFT, padx=5)
-
 
         # Row 3 of buttons
         self.button_frame3 = tk.Frame(self.root)

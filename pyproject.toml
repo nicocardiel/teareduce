@@ -48,6 +48,7 @@ cleanest = [
     "cosmic-conn",
     "deepCR",
     "maskfill",
+    "PyCosmic @ git+https://github.com/nicocardiel/PyCosmic.git@test"
 ]
 
 test = [

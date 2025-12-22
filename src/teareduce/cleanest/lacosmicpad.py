@@ -17,6 +17,7 @@ except ModuleNotFoundError as e:
         "Please install teareduce with the 'cleanest' extra dependencies: "
         "`pip install teareduce[cleanest]`."
     ) from e
+from importlib.metadata import version
 import numpy as np
 from rich import print
 
@@ -24,7 +25,7 @@ from .definitions import VALID_LACOSMIC_PSFMODEL_VALUES
 from .gausskernel2d_elliptical import gausskernel2d_elliptical
 
 
-def lacosmicpad(pad_width, show_arguments=False, **kwargs):
+def lacosmicpad(pad_width, show_arguments=False, display_ccdproc_version=True, **kwargs):
     """Execute LACosmic algorithm on a padded array.
 
     This function pads the input image array before applying the LACosmic
@@ -46,6 +47,8 @@ def lacosmicpad(pad_width, show_arguments=False, **kwargs):
         the LACosmic algorithm.
     show_arguments : bool
         If True, display LACosmic arguments being employed.
+    display_ccdproc_version : bool
+        If True, display the version of the ccdproc package being used.
     **kwargs : dict
         Keyword arguments to be passed to the `cosmicray_lacosmic` function.
 
@@ -145,12 +148,24 @@ def lacosmicpad(pad_width, show_arguments=False, **kwargs):
         else:
             raise ValueError("The 'fsmode' keyword argument must be either 'convolve' or 'median'.")
 
+    # Apply LACosmic algorithm to the padded array
+    try:
+        version_ccdproc = version("ccdproc")
+    except Exception:
+        version_ccdproc = "unknown"
+    if display_ccdproc_version:
+        print(f"Running L.A.Cosmic implementation from ccdproc version {version_ccdproc}")
+    if kwargs["verbose"] or show_arguments:
+        end = "\n"
+    else:
+        end = ""
+    print("(please wait...) ", end=end)
     # Show LACosmic arguments if requested
     if show_arguments:
         for key, value in kwargs.items():
             print(f"LACosmic parameter: {key} = {value}")
-    # Apply LACosmic algorithm to the padded array
     cleaned_padded_array, mask_padded_array = cosmicray_lacosmic(ccd=padded_array, **kwargs)
+    print(f"Done!")
     # Remove padding
     cleaned_array = cleaned_padded_array[pad_width:-pad_width, pad_width:-pad_width]
     mask_array = mask_padded_array[pad_width:-pad_width, pad_width:-pad_width]
