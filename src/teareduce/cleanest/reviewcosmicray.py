@@ -278,7 +278,7 @@ class ReviewCosmicRay(ImageDisplay):
         # --- Restore CR button
         self.restore_cr_button = tkbutton.new(
             self.button_frame1,
-            text="restore CR",
+            text="[r]estore CR",
             command=self.restore_cr,
             help_text="Restore current cosmic ray pixels to their original values.",
         )
@@ -392,7 +392,7 @@ class ReviewCosmicRay(ImageDisplay):
         # --- Interpolation using maskfill button
         self.interp_maskfill_button = tkbutton.new(
             self.button_frame3,
-            text="mask[f]ill",
+            text="mas[k]fill",
             command=self.use_maskfill,
             help_text="Perform maskfill interpolation for the current cosmic ray.",
         )
