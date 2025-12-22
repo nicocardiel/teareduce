@@ -382,6 +382,12 @@ class CosmicRayCleanerApp(ImageDisplay):
             help_text="Run the Cosmic-CoNN algorithm to detect cosmic rays in the image.",
         )
         self.run_cosmiccnn_button.pack(side=tk.LEFT, padx=5)
+        # --- Stop program button
+        self.stop_button = tkbutton.new(
+            self.button_frame1, text="Stop program", command=self.stop_app, help_text="Stop the application."
+        )
+        self.stop_button.pack(side=tk.LEFT, padx=5)
+
 
         # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.root)
@@ -473,11 +479,6 @@ class CosmicRayCleanerApp(ImageDisplay):
         )
         self.save_crmask_button.pack(side=tk.LEFT, padx=5)
         self.save_crmask_button.config(state=tk.DISABLED)  # Initially disabled
-        # --- Stop program button
-        self.stop_button = tkbutton.new(
-            self.button_frame3, text="Stop program", command=self.stop_app, help_text="Stop the application."
-        )
-        self.stop_button.pack(side=tk.LEFT, padx=5)
 
         # Row 4 of buttons
         self.button_frame4 = tk.Frame(self.root)
