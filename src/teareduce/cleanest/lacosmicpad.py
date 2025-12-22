@@ -167,6 +167,10 @@ def lacosmicpad(pad_width, show_arguments=False, display_ccdproc_version=True, *
     cleaned_padded_array, mask_padded_array = cosmicray_lacosmic(ccd=padded_array, **kwargs)
     print(f"Done!")
     # Remove padding
-    cleaned_array = cleaned_padded_array[pad_width:-pad_width, pad_width:-pad_width]
-    mask_array = mask_padded_array[pad_width:-pad_width, pad_width:-pad_width]
+    if pad_width == 0:
+        cleaned_array = cleaned_padded_array
+        mask_array = mask_padded_array
+    else:
+        cleaned_array = cleaned_padded_array[pad_width:-pad_width, pad_width:-pad_width]
+        mask_array = mask_padded_array[pad_width:-pad_width, pad_width:-pad_width]
     return cleaned_array, mask_array
