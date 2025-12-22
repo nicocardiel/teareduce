@@ -414,6 +414,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                     self.process_detected_cr(dilation=dilation)
                     self.cleandata_deepcr = None  # Invalidate previous DeepCR cleaned data
                     self.cleandata_lacosmic = None  # Invalidate previous L.A.Cosmic cleaned data
+                    self.cleandata_pycosmic = None  # Invalidate previous PyCosmic cleaned data
             except Exception as e:
                 messagebox.showerror("Error", f"Error loading cosmic ray mask: {e}")
 
@@ -1252,6 +1253,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 last_maskfill_verbose=self.last_maskfill_verbose,
                 auxdata=self.auxdata,
                 cleandata_lacosmic=self.cleandata_lacosmic,
+                cleandata_pycosmic=self.cleandata_pycosmic,
                 cleandata_deepcr=self.cleandata_deepcr,
                 xmin=self.last_xmin,
                 xmax=self.last_xmax,
@@ -1290,6 +1292,14 @@ class CosmicRayCleanerApp(ImageDisplay):
                 if cleaning_method == "lacosmic":
                     # Replace detected CR pixels with L.A.Cosmic values
                     self.data[mask_crfound_region] = self.cleandata_lacosmic[mask_crfound_region]
+                    # update mask_fixed to include the newly fixed pixels
+                    self.mask_fixed[mask_crfound_region] = True
+                    # upate mask_crfound by eliminating the cleaned pixels
+                    self.mask_crfound[mask_crfound_region] = False
+                    data_has_been_modified = True
+                elif cleaning_method == "pycosmic":
+                    # Replace detected CR pixels with PyCosmic values
+                    self.data[mask_crfound_region] = self.cleandata_pycosmic[mask_crfound_region]
                     # update mask_fixed to include the newly fixed pixels
                     self.mask_fixed[mask_crfound_region] = True
                     # upate mask_crfound by eliminating the cleaned pixels

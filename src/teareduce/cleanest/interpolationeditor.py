@@ -35,6 +35,7 @@ class InterpolationEditor:
         last_maskfill_verbose,
         auxdata,
         cleandata_lacosmic,
+        cleandata_pycosmic,
         cleandata_deepcr,
         xmin,
         xmax,
@@ -66,6 +67,8 @@ class InterpolationEditor:
             Auxiliary data for cleaning, if available.
         cleandata_lacosmic : array-like or None
             Cleaned data from L.A.Cosmic, if available.
+        cleandata_pycosmic : array-like or None
+            Cleaned data from PyCosmic, if available.
         cleandata_deepcr : array-like or None
             Cleaned data from DeepCR, if available.
         xmin : float
@@ -100,6 +103,8 @@ class InterpolationEditor:
             Auxiliary data for cleaning, if available.
         cleandata_lacosmic : array-like or None
             Cleaned data from L.A.Cosmic, if available.
+        cleandata_pycosmic : array-like or None
+            Cleaned data from PyCosmic, if available.
         cleandata_deepcr : array-like or None
             Cleaned data from DeepCR, if available.
         dict_interp_methods : dict
@@ -132,6 +137,7 @@ class InterpolationEditor:
         self.last_dilation = last_dilation
         self.auxdata = auxdata
         self.cleandata_lacosmic = cleandata_lacosmic
+        self.cleandata_pycosmic = cleandata_pycosmic
         self.cleandata_deepcr = cleandata_deepcr
         # Initialize parameters
         self.cleaning_method = None
@@ -180,6 +186,10 @@ class InterpolationEditor:
                 if self.last_dilation != 0:
                     state = "disabled"
                 if self.cleandata_lacosmic is None:
+                    state = "disabled"
+            # Skip replace by PyCosmic values if cleandata_pycosmic is not available
+            elif interp_method == "pycosmic":
+                if self.cleandata_pycosmic is None:
                     state = "disabled"
             # Skip replace by DeepCR values if cleandata_deepcr is not available
             elif interp_method == "deepcr":
@@ -465,21 +475,7 @@ class InterpolationEditor:
             self.entry_maskfill_operator.config(state="disabled")
             self.entry_maskfill_smooth.config(state="disabled")
             self.entry_maskfill_verbose.config(state="disabled")
-        elif selected_method == "lacosmic":
-            self.entry_npoints.config(state="disabled")
-            self.entry_degree.config(state="disabled")
-            self.entry_maskfill_size.config(state="disabled")
-            self.entry_maskfill_operator.config(state="disabled")
-            self.entry_maskfill_smooth.config(state="disabled")
-            self.entry_maskfill_verbose.config(state="disabled")
-        elif selected_method == "deepcr":
-            self.entry_npoints.config(state="disabled")
-            self.entry_degree.config(state="disabled")
-            self.entry_maskfill_size.config(state="disabled")
-            self.entry_maskfill_operator.config(state="disabled")
-            self.entry_maskfill_smooth.config(state="disabled")
-            self.entry_maskfill_verbose.config(state="disabled")
-        elif selected_method == "auxdata":
+        elif selected_method in ["lacosmic", "pycosmic", "deepcr", "auxdata"]:
             self.entry_npoints.config(state="disabled")
             self.entry_degree.config(state="disabled")
             self.entry_maskfill_size.config(state="disabled")

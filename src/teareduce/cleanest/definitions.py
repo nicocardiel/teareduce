@@ -120,6 +120,7 @@ VALID_CLEANING_METHODS = {
     "median": "a-median",
     "mean": "a-mean",
     "lacosmic": "lacosmic",
+    "pycosmic": "pycosmic",
     "deepcr": "deepcr",
     "maskfill": "maskfill",
     "auxdata": "auxdata",
