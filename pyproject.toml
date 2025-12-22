@@ -31,8 +31,6 @@ classifiers = [
 # Core dependencies (always installed)
 dependencies = [
     "astropy",
-    "cosmic-conn",
-    "deepCR",
     "lmfit",
     "matplotlib",
     "numpy >= 2",
@@ -47,6 +45,8 @@ dependencies = [
 # Version with dependencies needed to run the tea-cleanest script
 cleanest = [
     "ccdproc",
+    "cosmic-conn",
+    "deepCR",
     "maskfill",
 ]
 
