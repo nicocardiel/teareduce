@@ -31,6 +31,7 @@ classifiers = [
 # Core dependencies (always installed)
 dependencies = [
     "astropy",
+    "cosmic-conn",
     "lmfit",
     "matplotlib",
     "numpy >= 2",

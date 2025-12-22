@@ -72,6 +72,14 @@ lacosmic_default_dict = {
     "nruns": {"value": 1, "type": int, "positive": True, "intmode": "any"},
 }
 
+# Default parameters for Cosmic-CoNN algorithm
+cosmicconn_default_dict = {
+    # Threshold for CR probability map
+    "threshold": {"value": 0.5, "type": float, "positive": True},
+    # Dilation of the mask
+    "dilation": {"value": 0, "type": int, "positive": True},
+}
+
 # Valid cleaning methods (as shown to the user and their internal codes)
 VALID_CLEANING_METHODS = {
     "x interp.": "x",
@@ -102,7 +110,7 @@ DEFAULT_MASKFILL_VERBOSE = False
 
 # Default Tk window size
 DEFAULT_TK_WINDOW_SIZE_X = 800
-DEFAULT_TK_WINDOW_SIZE_Y = 700
+DEFAULT_TK_WINDOW_SIZE_Y = 800
 
 # Default font settings
 DEFAULT_FONT_FAMILY = "Helvetica"

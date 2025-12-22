@@ -9,7 +9,6 @@
 
 """Parameter editor dialog for L.A.Cosmic parameters."""
 
-from astropy.io import fits
 from pathlib import Path
 import tkinter as tk
 from tkinter import ttk
@@ -21,7 +20,7 @@ from .centerchildparent import center_on_parent
 from .definitions import lacosmic_default_dict
 
 
-class ParameterEditor:
+class ParameterEditorLACosmic:
     """A dialog to edit L.A.Cosmic parameters."""
 
     def __init__(

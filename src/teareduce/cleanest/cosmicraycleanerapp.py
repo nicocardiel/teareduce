@@ -19,6 +19,15 @@ import sys
 from astropy.io import fits
 
 try:
+    import cosmic_conn
+except ModuleNotFoundError as e:
+    raise ModuleNotFoundError(
+        "The 'teareduce.cleanest' module requires the 'cosmic-conn' package. "
+        "Please install teareduce with the 'cleanest' extra dependencies: "
+        "`pip install teareduce[cleanest]`."
+    ) from e
+
+try:
     from maskfill import maskfill
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(
@@ -26,6 +35,7 @@ except ModuleNotFoundError as e:
         "Please install teareduce with the 'cleanest' extra dependencies: "
         "`pip install teareduce[cleanest]`."
     ) from e
+
 import matplotlib.pyplot as plt
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -37,6 +47,7 @@ from rich import print
 
 from .askextension import ask_extension_input_image
 from .centerchildparent import center_on_parent
+from .definitions import cosmicconn_default_dict
 from .definitions import lacosmic_default_dict
 from .definitions import DEFAULT_NPOINTS_INTERP
 from .definitions import DEFAULT_DEGREE_INTERP
@@ -59,7 +70,7 @@ from .imagedisplay import ImageDisplay
 from .lacosmicpad import lacosmicpad
 from .mergemasks import merge_peak_tail_masks
 from .modalprogressbar import ModalProgressBar
-from .parametereditor import ParameterEditor
+from .parametereditor import ParameterEditorLACosmic
 from .reviewcosmicray import ReviewCosmicRay
 from .trackedbutton import TrackedTkButton
 
@@ -160,6 +171,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             Height of the GUI window in pixels.
         verbose : bool
             Enable verbose output.
+        cosmicconn_params : dict
+            Dictionary of Cosmic-CoNN parameters.
         lacosmic_params : dict
             Dictionary of L.A.Cosmic parameters.
         input_fits : str
@@ -233,6 +246,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.default_font.configure(
             family=fontfamily, size=fontsize, weight="normal", slant="roman", underline=0, overstrike=0
         )
+        self.cosmicconn_params = cosmicconn_default_dict.copy()
         self.lacosmic_params = lacosmic_default_dict.copy()
         self.lacosmic_params["run1_verbose"]["value"] = self.verbose
         self.lacosmic_params["run2_verbose"]["value"] = self.verbose
@@ -545,22 +559,33 @@ class CosmicRayCleanerApp(ImageDisplay):
             help_text="Run the L.A.Cosmic algorithm to detect cosmic rays in the image.",
         )
         self.run_lacosmic_button.pack(side=tk.LEFT, padx=5)
-        self.load_auxdata_button = tkbutton.new(
+        self.run_cosmiccnn_button = tkbutton.new(
             self.button_frame1,
+            text="Run Cosmic-CoNN",
+            command=self.run_cosmiccnn,
+            help_text="Run the Cosmic-CoNN algorithm to detect cosmic rays in the image.",
+        )
+        self.run_cosmiccnn_button.pack(side=tk.LEFT, padx=5)
+
+        # Row 2 of buttons
+        self.button_frame2 = tk.Frame(self.root)
+        self.button_frame2.pack(pady=5)
+        self.load_auxdata_button = tkbutton.new(
+            self.button_frame2,
             text="Load auxdata",
             command=self.load_auxdata_from_file,
             help_text="Load an auxiliary FITS file for display.",
         )
         self.load_auxdata_button.pack(side=tk.LEFT, padx=5)
         self.load_detected_cr_button = tkbutton.new(
-            self.button_frame1,
+            self.button_frame2,
             text="Load CR mask",
             command=self.load_detected_cr_from_file,
             help_text="Load a previously saved cosmic ray mask from a FITS file.",
         )
         self.load_detected_cr_button.pack(side=tk.LEFT, padx=5)
         self.replace_detected_cr_button = tkbutton.new(
-            self.button_frame1,
+            self.button_frame2,
             text="Replace detected CRs",
             command=self.apply_lacosmic,
             help_text="Apply the cleaning to the detected cosmic rays.",
@@ -568,7 +593,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.replace_detected_cr_button.pack(side=tk.LEFT, padx=5)
         self.replace_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
         self.review_detected_cr_button = tkbutton.new(
-            self.button_frame1,
+            self.button_frame2,
             text="Review detected CRs",
             command=lambda: self.review_detected_cr(1),
             help_text="Review the detected cosmic rays.",
@@ -576,12 +601,12 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.review_detected_cr_button.pack(side=tk.LEFT, padx=5)
         self.review_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
 
-        # Row 2 of buttons
-        self.button_frame2 = tk.Frame(self.root)
-        self.button_frame2.pack(pady=5)
+        # Row 3 of buttons
+        self.button_frame3 = tk.Frame(self.root)
+        self.button_frame3.pack(pady=5)
         self.use_cursor = False
         self.use_cursor_button = tkbutton.new(
-            self.button_frame2,
+            self.button_frame3,
             text="[c]ursor: OFF",
             command=self.set_cursor_onoff,
             help_text="Toggle the cursor ON or OFF (to select CR with mouse).",
@@ -589,7 +614,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         )
         self.use_cursor_button.pack(side=tk.LEFT, padx=5)
         self.toggle_auxdata_button = tkbutton.new(
-            self.button_frame2,
+            self.button_frame3,
             text="[t]oggle data",
             command=self.toggle_auxdata,
             help_text="Toggle the display of auxiliary data.",
@@ -601,14 +626,14 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.toggle_auxdata_button.config(state=tk.NORMAL)
         self.image_aspect = "equal"
         self.toggle_aspect_button = tkbutton.new(
-            self.button_frame2,
+            self.button_frame3,
             text=f"[a]spect: {self.image_aspect}",
             command=self.toggle_aspect,
             help_text="Toggle the image aspect ratio.",
         )
         self.toggle_aspect_button.pack(side=tk.LEFT, padx=5)
         self.save_button = tkbutton.new(
-            self.button_frame2,
+            self.button_frame3,
             text="Save cleaned FITS",
             command=self.save_fits_file,
             help_text="Save the cleaned FITS file.",
@@ -616,16 +641,16 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.save_button.pack(side=tk.LEFT, padx=5)
         self.save_button.config(state=tk.DISABLED)  # Initially disabled
         self.stop_button = tkbutton.new(
-            self.button_frame2, text="Stop program", command=self.stop_app, help_text="Stop the application."
+            self.button_frame3, text="Stop program", command=self.stop_app, help_text="Stop the application."
         )
         self.stop_button.pack(side=tk.LEFT, padx=5)
 
-        # Row 3 of buttons
-        self.button_frame3 = tk.Frame(self.root)
-        self.button_frame3.pack(pady=5)
+        # Row 4 of buttons
+        self.button_frame4 = tk.Frame(self.root)
+        self.button_frame4.pack(pady=5)
         vmin, vmax = zscale(self.data)
         self.vmin_button = tkbutton.new(
-            self.button_frame3,
+            self.button_frame4,
             text=f"vmin: {vmin:.2f}",
             command=self.set_vmin,
             help_text="Set the minimum value for the display scale.",
@@ -633,7 +658,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         )
         self.vmin_button.pack(side=tk.LEFT, padx=5)
         self.vmax_button = tkbutton.new(
-            self.button_frame3,
+            self.button_frame4,
             text=f"vmax: {vmax:.2f}",
             command=self.set_vmax,
             help_text="Set the maximum value for the display scale.",
@@ -641,14 +666,14 @@ class CosmicRayCleanerApp(ImageDisplay):
         )
         self.vmax_button.pack(side=tk.LEFT, padx=5)
         self.set_minmax_button = tkbutton.new(
-            self.button_frame3,
+            self.button_frame4,
             text="minmax [,]",
             command=self.set_minmax,
             help_text="Set the minimum and maximum values for the display scale.",
         )
         self.set_minmax_button.pack(side=tk.LEFT, padx=5)
         self.set_zscale_button = tkbutton.new(
-            self.button_frame3,
+            self.button_frame4,
             text="zscale [/]",
             command=self.set_zscale,
             help_text="Set the display scale using zscale.",
@@ -656,7 +681,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
         if self.overplot_cr_pixels:
             self.overplot_cr_button = tkbutton.new(
-                self.button_frame3,
+                self.button_frame4,
                 text="CR overlay: ON ",
                 command=self.toggle_cr_overlay,
                 help_text="Toggle the cosmic ray overlay ON or OFF.",
@@ -664,7 +689,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             )
         else:
             self.overplot_cr_button = tkbutton.new(
-                self.button_frame3,
+                self.button_frame4,
                 text="CR overlay: OFF",
                 command=self.toggle_cr_overlay,
                 help_text="Toggle the cosmic ray overlay ON or OFF.",
@@ -672,7 +697,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             )
         self.overplot_cr_button.pack(side=tk.LEFT, padx=5)
         self.help_button = tkbutton.new(
-            self.button_frame3,
+            self.button_frame4,
             text="Help",
             command=tkbutton.show_help,
             help_text="Show help information for all buttons.",
@@ -777,10 +802,10 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Define parameters for L.A.Cosmic from default dictionary
         editor_window = tk.Toplevel(self.root)
         center_on_parent(child=editor_window, parent=self.root)
-        editor = ParameterEditor(
+        editor = ParameterEditorLACosmic(
             root=editor_window,
             param_dict=self.lacosmic_params,
-            window_title="Cosmic Ray Mask Generation Parameters",
+            window_title="Mask Generation Parameters (L.A.Cosmic)",
             xmin=self.last_xmin,
             xmax=self.last_xmax,
             ymin=self.last_ymin,
@@ -910,6 +935,49 @@ class CosmicRayCleanerApp(ImageDisplay):
         else:
             print("Parameter editing cancelled. L.A.Cosmic detection skipped!")
         self.run_lacosmic_button.config(state=tk.NORMAL)
+
+    def run_cosmiccnn(self):
+        """Run Cosmic-CoNN to detect cosmic rays."""
+        if np.any(self.mask_crfound):
+            overwrite = messagebox.askyesno(
+                "Overwrite Cosmic Ray Mask",
+                "A cosmic ray mask is already defined.\n\nDo you want to overwrite it?",
+            )
+            if not overwrite:
+                return
+        self.run_cosmiccnn_button.config(state=tk.DISABLED)
+        print("[bold green]Executing Cosmic-CoNN...[/bold green]")
+        print(f"Running Cosmic-CoNN version: {cosmic_conn.__version__}")
+        # Initialize the generic ground-imaging model
+        cr_model = cosmic_conn.init_model("ground_imaging")
+        # The model outputs a CR probability map
+        cr_prob = cr_model.detect_cr(self.data.astype(np.float32))
+        # Ask for threshold value and update parameter
+        threshold = simpledialog.askfloat(
+            "Threshold",
+            "Enter Cosmic-CoNN probability threshold (0.0 - 1.0):",
+            initialvalue=self.cosmicconn_params["threshold"]["value"],
+            minvalue=0.0,
+            maxvalue=1.0,
+        )
+        if threshold is None:
+            print("Threshold input cancelled. Cosmic-CoNN detection skipped!")
+            self.run_cosmiccnn_button.config(state=tk.NORMAL)
+            return
+        self.cosmicconn_params["threshold"]["value"] = threshold
+        # Threshold the probability map to create a binary mask
+        self.mask_crfound = cr_prob > self.cosmicconn_params["threshold"]["value"]
+        # Process the mask: dilation and labeling
+        dilation = simpledialog.askinteger(
+            "Dilation", "Enter Dilation (min=0):", initialvalue=self.cosmicconn_params["dilation"]["value"], minvalue=0
+        )
+        if dilation is None:
+            print("Dilation input cancelled. Cosmic-CoNN detection skipped!")
+            self.run_cosmiccnn_button.config(state=tk.NORMAL)
+            return
+        self.cosmicconn_params["dilation"]["value"] = dilation
+        self.process_detected_cr(dilation=self.cosmicconn_params["dilation"]["value"])
+        self.run_cosmiccnn_button.config(state=tk.NORMAL)
 
     def toggle_cr_overlay(self):
         """Toggle the overlay of cosmic ray pixels on the image."""
