@@ -571,6 +571,22 @@ class CosmicRayCleanerApp(ImageDisplay):
         except Exception as e:
             print(f"Error saving FITS file: {e}")
 
+    def save_crmask_to_file(self):
+        """Save the current cosmic ray mask to a FITS file."""
+        output_fits = filedialog.asksaveasfilename(
+            initialdir=os.getcwd(),
+            title="Save last CR mask into a FITS file",
+            defaultextension=".fits",
+            filetypes=[("FITS files", "*.fits"), ("All files", "*.*")],
+            initialfile=None,
+        )
+        try:
+            hdu = fits.PrimaryHDU(self.mask_crfound.astype(np.uint8))
+            hdu.writeto(output_fits, overwrite=True)
+            print(f"Last mask saved to {output_fits}")
+        except Exception as e:
+            print(f"Error saving mask into a FITS file: {e}")  
+  
     def create_widgets(self):
         """Create the GUI widgets.
 
@@ -708,6 +724,15 @@ class CosmicRayCleanerApp(ImageDisplay):
         )
         self.save_button.pack(side=tk.LEFT, padx=5)
         self.save_button.config(state=tk.DISABLED)  # Initially disabled
+        # --- Save current mask button
+        self.save_crmask_button = tkbutton.new(
+            self.button_frame3,
+            text="Save CR mask",
+            command=self.save_crmask_to_file,
+            help_text="Save the current cosmic ray mask to a FITS file.",
+        )
+        self.save_crmask_button.pack(side=tk.LEFT, padx=5)
+        self.save_crmask_button.config(state=tk.DISABLED)  # Initially disabled
         # --- Stop program button
         self.stop_button = tkbutton.new(
             self.button_frame3, text="Stop program", command=self.stop_app, help_text="Stop the application."
@@ -1016,6 +1041,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         else:
             print("Parameter editing cancelled. L.A.Cosmic detection skipped!")
         self.run_lacosmic_button.config(state=tk.NORMAL)
+        self.save_crmask_button.config(state=tk.NORMAL)
 
     def run_pycosmic(self):
         """Run PyCosmic to detect cosmic rays."""
@@ -1156,6 +1182,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         else:
             print("Parameter editing cancelled. PyCosmic detection skipped!")
         self.run_pycosmic_button.config(state=tk.NORMAL)
+        self.save_crmask_button.config(state=tk.NORMAL)
 
     def run_deepcr(self):
         """Run DeepCR to detect cosmic rays."""
@@ -1209,6 +1236,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.cleandata_lacosmic = None
         self.cleandata_pycosmic = None
         self.run_deepcr_button.config(state=tk.NORMAL)
+        self.save_crmask_button.config(state=tk.NORMAL)
 
     def run_cosmiccnn(self):
         """Run Cosmic-CoNN to detect cosmic rays."""
@@ -1257,6 +1285,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.cleandata_pycosmic = None
         self.cleandata_deepcr = None
         self.run_cosmiccnn_button.config(state=tk.NORMAL)
+        self.save_crmask_button.config(state=tk.NORMAL)
 
     def toggle_cr_overlay(self):
         """Toggle the overlay of cosmic ray pixels on the image."""
