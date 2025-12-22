@@ -1010,6 +1010,9 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.mask_crfound[usefulregion] = mask_crfound[usefulregion]
             # Process the mask: dilation and labeling
             self.process_detected_cr(dilation=self.lacosmic_params["dilation"]["value"])
+            # Invalidate previous cleaned data from other methods
+            self.cleandata_deepcr = None
+            self.cleandata_pycosmic = None
         else:
             print("Parameter editing cancelled. L.A.Cosmic detection skipped!")
         self.run_lacosmic_button.config(state=tk.NORMAL)
@@ -1147,6 +1150,9 @@ class CosmicRayCleanerApp(ImageDisplay):
             # Process the mask: labeling (dilation is not necessary for PyCosmic; this
             # algorithm already includes a parameter 'increase_radius' to grow the detected CRs)
             self.process_detected_cr(dilation=0)
+            # Invalidate previous cleaned data from other methods
+            self.cleandata_lacosmic = None
+            self.cleandata_deepcr = None
         else:
             print("Parameter editing cancelled. PyCosmic detection skipped!")
         self.run_pycosmic_button.config(state=tk.NORMAL)
@@ -1199,6 +1205,9 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.cleandata_deepcr = None  # Invalidate DeepCR cleaned data if dilation applied
         self.deepcr_params["dilation"]["value"] = dilation
         self.process_detected_cr(dilation=self.deepcr_params["dilation"]["value"])
+        # Invalidate previous cleaned data from other methods
+        self.cleandata_lacosmic = None
+        self.cleandata_pycosmic = None
         self.run_deepcr_button.config(state=tk.NORMAL)
 
     def run_cosmiccnn(self):
@@ -1243,6 +1252,10 @@ class CosmicRayCleanerApp(ImageDisplay):
             return
         self.cosmicconn_params["dilation"]["value"] = dilation
         self.process_detected_cr(dilation=self.cosmicconn_params["dilation"]["value"])
+        # Invalidate previous cleaned data from other methods
+        self.cleandata_lacosmic = None
+        self.cleandata_pycosmic = None
+        self.cleandata_deepcr = None
         self.run_cosmiccnn_button.config(state=tk.NORMAL)
 
     def toggle_cr_overlay(self):
