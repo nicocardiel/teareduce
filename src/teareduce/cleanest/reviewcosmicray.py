@@ -58,6 +58,7 @@ class ReviewCosmicRay(ImageDisplay):
         data,
         auxdata,
         cleandata_lacosmic,
+        cleandata_pycosmic,
         cleandata_deepcr,
         cr_labels,
         num_features,
@@ -87,6 +88,8 @@ class ReviewCosmicRay(ImageDisplay):
             The auxiliary image data.
         cleandata_lacosmic: 2D numpy array or None
             The cleaned image data from L.A.Cosmic.
+        cleandata_pycosmic: 2D numpy array or None
+            The cleaned image data from PyCosmic.
         cleandata_deepcr: 2D numpy array or None
             The cleaned image data from DeepCR.
         cr_labels : 2D numpy array
@@ -161,6 +164,8 @@ class ReviewCosmicRay(ImageDisplay):
             The auxiliary image data.
         cleandata_lacosmic: 2D numpy array or None
             The cleaned image data from L.A.Cosmic.
+        cleandata_pycosmic: 2D numpy array or None
+            The cleaned image data from PyCosmic.
         cleandata_deepcr: 2D numpy array or None
             The cleaned image data from DeepCR.
         cr_labels : 2D numpy array
@@ -208,6 +213,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.root.geometry("+100+100")
         self.data = data
         self.cleandata_lacosmic = cleandata_lacosmic
+        self.cleandata_pycosmic = cleandata_pycosmic
         self.cleandata_deepcr = cleandata_deepcr
         self.data_original = data.copy()
         self.cr_labels = cr_labels
@@ -363,6 +369,16 @@ class ReviewCosmicRay(ImageDisplay):
             self.interp_l_button.config(state=tk.DISABLED)
         if self.cleandata_lacosmic is None:
             self.interp_l_button.config(state=tk.DISABLED)
+        # --- Interpolation using PyCosmic button
+        self.interp_pycosmic_button = tkbutton.new(
+            self.button_frame3,
+            text="PyCosmic",
+            command=self.use_pycosmic,
+            help_text="Use PyCosmic interpolation for the current cosmic ray.",
+        )
+        self.interp_pycosmic_button.pack(side=tk.LEFT, padx=5)
+        if self.cleandata_pycosmic is None:
+            self.interp_pycosmic_button.config(state=tk.DISABLED)
         # --- Interpolation using deepCR button
         self.interp_deepcr_button = tkbutton.new(
             self.button_frame3,
@@ -714,6 +730,20 @@ class ReviewCosmicRay(ImageDisplay):
         self.set_buttons_after_cleaning_cr()
         self.update_display(cleaned=True)
 
+    def use_pycosmic(self):
+        """Use PyCosmic cleaned data to clean a cosmic ray."""
+        if self.cleandata_pycosmic is None:
+            print("PyCosmic cleaned data not available.")
+            return
+        print(f"PyCosmic interpolation of cosmic ray {self.cr_index}")
+        ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
+        for iy, ix in zip(ycr_list, xcr_list):
+            self.data[iy, ix] = self.cleandata_pycosmic[iy, ix]
+            self.mask_fixed[iy, ix] = True
+        self.num_cr_cleaned += 1
+        self.set_buttons_after_cleaning_cr()
+        self.update_display(cleaned=True)
+    
     def use_deepcr(self):
         """Use DeepCR cleaned data to clean a cosmic ray."""
         if self.cleandata_deepcr is None:
@@ -887,6 +917,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_d_button.config(state=tk.DISABLED)
         self.interp_m_button.config(state=tk.DISABLED)
         self.interp_l_button.config(state=tk.DISABLED)
+        self.interp_pycosmic_button.config(state=tk.DISABLED)
         self.interp_deepcr_button.config(state=tk.DISABLED)
         self.interp_maskfill_button.config(state=tk.DISABLED)
         self.interp_aux_button.config(state=tk.DISABLED)
@@ -901,6 +932,8 @@ class ReviewCosmicRay(ImageDisplay):
         if self.cleandata_lacosmic is not None:
             if self.last_dilation is None or self.last_dilation == 0:
                 self.interp_l_button.config(state=tk.NORMAL)
+        if self.cleandata_pycosmic is not None:
+            self.interp_pycosmic_button.config(state=tk.NORMAL)
         if self.cleandata_deepcr is not None:
             self.interp_deepcr_button.config(state=tk.NORMAL)
         self.interp_maskfill_button.config(state=tk.NORMAL)
