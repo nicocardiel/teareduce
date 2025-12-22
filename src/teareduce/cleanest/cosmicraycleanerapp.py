@@ -874,6 +874,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             if not overwrite:
                 return
         self.run_lacosmic_button.config(state=tk.DISABLED)
+        print("[bold green]Define L.A.Cosmic parameters...[/bold green]")
         # Define parameters for L.A.Cosmic from default dictionary
         editor_window = tk.Toplevel(self.root)
         center_on_parent(child=editor_window, parent=self.root)
@@ -1023,7 +1024,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             if not overwrite:
                 return
         self.run_pycosmic_button.config(state=tk.DISABLED)
-        print("[bold green]Executing PyCosmic...[/bold green]")
+        print("[bold green]Define PyCosmic parameters...[/bold green]")
         # Define parameters for PyCosmic from default dictionary
         editor_window = tk.Toplevel(self.root)
         center_on_parent(child=editor_window, parent=self.root)
@@ -1061,38 +1062,41 @@ class CosmicRayCleanerApp(ImageDisplay):
                 print("Parameters updated:")
                 for key, info in self.pycosmic_params.items():
                     print(f"  {key}: {info['value']}")
+            if self.pycosmic_params["nruns"]["value"] not in [1, 2]:
+                raise ValueError("nruns must be 1 or 2")
             # Execute PyCosmic with updated parameters
-            print("[bold green]Executing PyCosmic...[/bold green]")
             try:
                 pycosmic_version = version("PyCosmic")
             except Exception:
                 pycosmic_version = "unknown"
-            if self.pycosmic_params["verbose"]["value"]:
+            print(f"Using PyCosmic version: {pycosmic_version}")
+            if self.pycosmic_params["run1_verbose"]["value"]:
                 end = "\n"
                 for key, info in self.pycosmic_params.items():
                     print(f"PyCosmic parameter: {key} = {info['value']}")
             else:
                 end = ""
-            print(f"Running PyCosmic version: {pycosmic_version}  (please wait...) ", end=end)
+            print("[bold green]Executing PyCosmic (run 1)...[/bold green]")
+            print(f"(please wait...) ", end=end)
             out = PyCosmic.det_cosmics(
                 data=self.data,
-                sigma_det=self.pycosmic_params["sigma_det"]["value"],
-                rlim=self.pycosmic_params["rlim"]["value"],
-                iterations=self.pycosmic_params["iterations"]["value"],
+                sigma_det=self.pycosmic_params["run1_sigma_det"]["value"],
+                rlim=self.pycosmic_params["run1_rlim"]["value"],
+                iterations=self.pycosmic_params["run1_iterations"]["value"],
                 fwhm_gauss=[
-                    self.pycosmic_params["fwhm_gauss_x"]["value"],
-                    self.pycosmic_params["fwhm_gauss_y"]["value"],
+                    self.pycosmic_params["run1_fwhm_gauss_x"]["value"],
+                    self.pycosmic_params["run1_fwhm_gauss_y"]["value"],
                 ],
                 replace_box=[
-                    self.pycosmic_params["replace_box_x"]["value"],
-                    self.pycosmic_params["replace_box_y"]["value"],
+                    self.pycosmic_params["run1_replace_box_x"]["value"],
+                    self.pycosmic_params["run1_replace_box_y"]["value"],
                 ],
-                replace_error=self.pycosmic_params["replace_error"]["value"],
-                increase_radius=self.pycosmic_params["increase_radius"]["value"],
-                gain=self.pycosmic_params["gain"]["value"],
-                rdnoise=self.pycosmic_params["rdnoise"]["value"],
-                bias=self.pycosmic_params["bias"]["value"],
-                verbose=self.pycosmic_params["verbose"]["value"],
+                replace_error=self.pycosmic_params["run1_replace_error"]["value"],
+                increase_radius=self.pycosmic_params["run1_increase_radius"]["value"],
+                gain=self.pycosmic_params["run1_gain"]["value"],
+                rdnoise=self.pycosmic_params["run1_rdnoise"]["value"],
+                bias=self.pycosmic_params["run1_bias"]["value"],
+                verbose=self.pycosmic_params["run1_verbose"]["value"],
             )
             print(f"Done!")
             cleandata_pycosmic = out.data
@@ -1100,13 +1104,48 @@ class CosmicRayCleanerApp(ImageDisplay):
             # Apply usefulmask to consider only selected region
             cleandata_pycosmic *= usefulmask
             mask_crfound = mask_crfound & (usefulmask.astype(bool))
+            # Second execution if nruns == 2
+            if self.pycosmic_params["nruns"]["value"] == 2:
+                print("[bold green]Executing PyCosmic (run 2)...[/bold green]")
+                print(f"(please wait...) ", end=end)
+                out2 = PyCosmic.det_cosmics(
+                    data=self.data,
+                    sigma_det=self.pycosmic_params["run2_sigma_det"]["value"],
+                    rlim=self.pycosmic_params["run2_rlim"]["value"],
+                    iterations=self.pycosmic_params["run2_iterations"]["value"],
+                    fwhm_gauss=[
+                        self.pycosmic_params["run2_fwhm_gauss_x"]["value"],
+                        self.pycosmic_params["run2_fwhm_gauss_y"]["value"],
+                    ],
+                    replace_box=[
+                        self.pycosmic_params["run2_replace_box_x"]["value"],
+                        self.pycosmic_params["run2_replace_box_y"]["value"],
+                    ],
+                    replace_error=self.pycosmic_params["run2_replace_error"]["value"],
+                    increase_radius=self.pycosmic_params["run2_increase_radius"]["value"],
+                    gain=self.pycosmic_params["run2_gain"]["value"],
+                    rdnoise=self.pycosmic_params["run2_rdnoise"]["value"],
+                    bias=self.pycosmic_params["run2_bias"]["value"],
+                    verbose=self.pycosmic_params["run2_verbose"]["value"],
+                )
+                print(f"Done!")
+                cleandata_pycosmic2 = out2.data
+                mask_crfound2 = out2.mask.astype(bool)
+                # Apply usefulmask to consider only selected region
+                cleandata_pycosmic2 *= usefulmask
+                mask_crfound2 = mask_crfound2 & (usefulmask.astype(bool))
+                # Combine results from both runs
+                if np.any(mask_crfound):
+                    mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound2, verbose=True)
+                # Use the cleandata from the second run
+                cleandata_pycosmic = cleandata_pycosmic2
             # Select the image region to process
             self.cleandata_pycosmic = self.data.copy()
             self.cleandata_pycosmic[usefulregion] = cleandata_pycosmic[usefulregion]
             self.mask_crfound = np.zeros_like(self.data, dtype=bool)
             self.mask_crfound[usefulregion] = mask_crfound[usefulregion]
-            # Process the mask: dilation and labeling
-            print(f"Number of cosmic ray pixels (merged peaks & tails): {np.sum(self.mask_crfound)}")
+            # Process the mask: labeling (dilation is not necessary for PyCosmic; this
+            # algorithm already includes a parameter 'increase_radius' to grow the detected CRs)
             self.process_detected_cr(dilation=0)
         else:
             print("Parameter editing cancelled. PyCosmic detection skipped!")

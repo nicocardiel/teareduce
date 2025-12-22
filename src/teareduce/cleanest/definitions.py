@@ -74,25 +74,41 @@ lacosmic_default_dict = {
 
 # Default parameters for PyCosmic algorithm
 pycosmic_default_dict = {
-    # PyCosmic parameters
-    "gain": {"value": 1.0, "type": float, "positive": True},
-    "rdnoise": {"value": 6.5, "type": float, "positive": True},
-    "sigma_det": {"value": 5.0, "type": float, "positive": True},
-    "rlim": {"value": 1.2, "type": float, "positive": True},
-    "iterations": {"value": 5, "type": int, "positive": True, "intmode": "any"},
-    "fwhm_gauss_x": {"value": 2.5, "type": float, "positive": True},
-    "fwhm_gauss_y": {"value": 2.5, "type": float, "positive": True},
-    "replace_box_x": {"value": 5, "type": int, "positive": True, "intmode": "odd"},
-    "replace_box_y": {"value": 5, "type": int, "positive": True, "intmode": "odd"},
-    "replace_error": {"value": 1e6, "type": float, "positive": True},
-    "increase_radius": {"value": 0, "type": int, "positive": True},
-    "bias": {"value": 0.0, "type": float},
-    "verbose": {"value": True, "type": bool},
+    # PyCosmic parameters for run 1
+    "run1_gain": {"value": 1.0, "type": float, "positive": True},
+    "run1_rdnoise": {"value": 6.5, "type": float, "positive": True},
+    "run1_sigma_det": {"value": 5.0, "type": float, "positive": True},
+    "run1_rlim": {"value": 1.2, "type": float, "positive": True},
+    "run1_iterations": {"value": 5, "type": int, "positive": True, "intmode": "any"},
+    "run1_fwhm_gauss_x": {"value": 2.5, "type": float, "positive": True},
+    "run1_fwhm_gauss_y": {"value": 2.5, "type": float, "positive": True},
+    "run1_replace_box_x": {"value": 5, "type": int, "positive": True, "intmode": "odd"},
+    "run1_replace_box_y": {"value": 5, "type": int, "positive": True, "intmode": "odd"},
+    "run1_replace_error": {"value": 1e6, "type": float, "positive": True},
+    "run1_increase_radius": {"value": 0, "type": int, "positive": True},
+    "run1_bias": {"value": 0.0, "type": float},
+    "run1_verbose": {"value": True, "type": bool},
+    # PyCosmic parameters for run 2
+    "run2_gain": {"value": 1.0, "type": float, "positive": True},
+    "run2_rdnoise": {"value": 6.5, "type": float, "positive": True},
+    "run2_sigma_det": {"value": 3.0, "type": float, "positive": True},
+    "run2_rlim": {"value": 1.2, "type": float, "positive": True},
+    "run2_iterations": {"value": 5, "type": int, "positive": True, "intmode": "any"},
+    "run2_fwhm_gauss_x": {"value": 2.5, "type": float, "positive": True},
+    "run2_fwhm_gauss_y": {"value": 2.5, "type": float, "positive": True},
+    "run2_replace_box_x": {"value": 5, "type": int, "positive": True, "intmode": "odd"},
+    "run2_replace_box_y": {"value": 5, "type": int, "positive": True, "intmode": "odd"},
+    "run2_replace_error": {"value": 1e6, "type": float, "positive": True},
+    "run2_increase_radius": {"value": 0, "type": int, "positive": True},
+    "run2_bias": {"value": 0.0, "type": float},
+    "run2_verbose": {"value": True, "type": bool},
     # Limits for the image section to process (pixels start at 1)
     "xmin": {"value": 1, "type": int, "positive": True},
     "xmax": {"value": None, "type": int, "positive": True},
     "ymin": {"value": 1, "type": int, "positive": True},
     "ymax": {"value": None, "type": int, "positive": True},
+    # Number of runs to execute PyCosmic
+    "nruns": {"value": 1, "type": int, "positive": True, "intmode": "any"},
 }
 
 # Default parameters for deepCR algorithm

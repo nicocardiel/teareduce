@@ -173,7 +173,7 @@ class ParameterEditorLACosmic:
         row += 1
 
         # Note: here we are using entry_vars to trace changes in the entries
-        # so that we can update the color of run2 entries if they differ from run1.
+        # so that we can update the color of run2 entries if they differ from run1
         self.entry_vars = {}
         row_subtable = 0
         coloff = 0
@@ -221,7 +221,7 @@ class ParameterEditorLACosmic:
                 entry = tk.Entry(main_frame, textvariable=self.entry_vars[key2], width=10)
                 entry.insert(0, str(self.param_dict[key2]["value"]))
             entry.grid(row=row, column=2 + coloff, padx=10, pady=5)
-            self.entries["run2_" + key[5:]] = entry  # dictionary to hold entry widgets
+            self.entries[key2] = entry  # dictionary to hold entry widgets
             # Type label
             infotext = info["type"].__name__
             if infotext == "int":
@@ -656,6 +656,11 @@ class ParameterEditorPyCosmic:
 
     def create_widgets(self):
         """Create the widgets for the dialog."""
+        # Define different styles for different conditions
+        style = ttk.Style()
+        style.configure("Normal.TCombobox", foreground="black", background="white")
+        style.configure("Changed.TCombobox", foreground="red", background="white")
+
         # Main frame
         main_frame = tk.Frame(self.root, padx=10, pady=10)
         main_frame.pack()
@@ -670,12 +675,14 @@ class ParameterEditorPyCosmic:
         subtitle_label.grid(row=row, column=0, columnspan=9, pady=(0, 10))
         row += 1
 
-        # Count number of parameters
-        nparams = 0
-        for key in self.param_dict.keys():
-            if key not in ["xmin", "xmax", "ymin", "ymax"]:
-                nparams += 1
-        max_num_params_in_columns = nparams // 2 + nparams % 2
+        # Count number of parameters for run1 and run2
+        nparams_run1 = sum(1 for key in self.param_dict.keys() if key.startswith("run1_"))
+        nparams_run2 = sum(1 for key in self.param_dict.keys() if key.startswith("run2_"))
+        if nparams_run1 != nparams_run2:
+            raise ValueError("Number of parameters for run1 and run2 do not match.")
+        else:
+            nparams_total = nparams_run1
+        max_num_params_in_columns = nparams_total // 2 + nparams_total % 2
 
         # Create labels and entry fields for each parameter.
         bold_font_subheader = default_font.copy()
@@ -687,27 +694,40 @@ class ParameterEditorPyCosmic:
                 coloff = 5
             label = tk.Label(main_frame, text="Parameter", font=bold_font_subheader, anchor="w", fg="gray")
             label.grid(row=row, column=0 + coloff, sticky="e", pady=0)
-            label = tk.Label(main_frame, text="Value", font=bold_font_subheader, anchor="w", fg="gray", width=10)
+            label = tk.Label(main_frame, text="Run 1", font=bold_font_subheader, anchor="w", fg="gray", width=10)
             label.grid(row=row, column=1 + coloff, sticky="w", padx=10, pady=0)
+            label = tk.Label(main_frame, text="Run 2", font=bold_font_subheader, anchor="w", fg="gray", width=10)
+            label.grid(row=row, column=2 + coloff, sticky="w", padx=10, pady=0)
             label = tk.Label(main_frame, text="Type", font=bold_font_subheader, anchor="w", fg="gray", width=10)
-            label.grid(row=row, column=2 + coloff, sticky="w", pady=0)
+            label.grid(row=row, column=3 + coloff, sticky="w", pady=0)
         row += 1
 
+        # Note: here we are using entry_vars to trace changes in the entries
+        # so that we can update the color of run2 entries if they differ from run1
         self.entry_vars = {}
         row_subtable = 0
         coloff = 0
         for key, info in self.param_dict.items():
-            if key in ["xmin", "xmax", "ymin", "ymax"]:
+            if not key.startswith("run1_"):
                 continue
             # Parameter name label
-            label = tk.Label(main_frame, text=f"{key}:", anchor="e", width=15)
+            label = tk.Label(main_frame, text=f"{key[5:]}:", anchor="e", width=15)
             label.grid(row=row, column=coloff, sticky="w", pady=5)
             # Entry field for run1
             self.entry_vars[key] = tk.StringVar()
+            self.entry_vars[key].trace_add("write", lambda *args: self.update_colour_param_run1_run2())
             entry = tk.Entry(main_frame, textvariable=self.entry_vars[key], width=10)
             entry.insert(0, str(info["value"]))
             entry.grid(row=row, column=1 + coloff, padx=10, pady=5)
             self.entries[key] = entry  # dictionary to hold entry widgets
+            # Entry field for run2
+            key2 = "run2_" + key[5:]
+            self.entry_vars[key2] = tk.StringVar()
+            self.entry_vars[key2].trace_add("write", lambda *args: self.update_colour_param_run1_run2())
+            entry = tk.Entry(main_frame, textvariable=self.entry_vars[key2], width=10)
+            entry.insert(0, str(self.param_dict[key2]["value"]))
+            entry.grid(row=row, column=2 + coloff, padx=10, pady=5)
+            self.entries[key2] = entry  # dictionary to
             # Type label
             infotext = info["type"].__name__
             if infotext == "int":
@@ -717,7 +737,7 @@ class ParameterEditorPyCosmic:
                     elif info["intmode"] == "even":
                         infotext += ", even"
             type_label = tk.Label(main_frame, text=f"({infotext})", fg="gray", anchor="w", width=10)
-            type_label.grid(row=row, column=2 + coloff, sticky="w", pady=5)
+            type_label.grid(row=row, column=3 + coloff, sticky="w", pady=5)
             row_subtable += 1
             if row_subtable == max_num_params_in_columns:
                 coloff = 5
@@ -725,8 +745,8 @@ class ParameterEditorPyCosmic:
             row += 1
 
         # Adjust row if odd number of parameters
-        if nparams % 2 != 0:
-            row += nparams % 2
+        if nparams_total % 2 != 0:
+            row += nparams_total % 2
 
         # Vertical separator
         separatorv1 = ttk.Separator(main_frame, orient="vertical")
@@ -809,6 +829,8 @@ class ParameterEditorPyCosmic:
         try:
             updated_dict = {}
             for key, info in self.param_dict.items():
+                if key in ["nruns"]:
+                    continue
                 entry_value = self.entries[key].get()
                 value_type = info["type"]
 
@@ -840,6 +862,19 @@ class ParameterEditorPyCosmic:
                 updated_dict[key] = self.param_dict[key].copy()
                 updated_dict[key]["value"] = converted_value
 
+            # Check whether any run1 and run2 parameters differ
+            nruns = 1
+            for key in self.param_dict.keys():
+                if key.startswith("run1_"):
+                    parname = key[5:]
+                    key2 = "run2_" + parname
+                    if updated_dict[key]["value"] != updated_dict[key2]["value"]:
+                        nruns = 2
+                        print(
+                            f"Parameter '{parname}' differs between run1 and run2: "
+                            f"{updated_dict[key]['value']} (run1) vs {updated_dict[key2]['value']} (run2)"
+                        )
+
             # Additional validation for region limits
             try:
                 if updated_dict["xmin"]["value"] < 1 or updated_dict["xmin"]["value"] > self.imgshape[1]:
@@ -855,6 +890,9 @@ class ParameterEditorPyCosmic:
                 if updated_dict["ymax"]["value"] <= updated_dict["ymin"]["value"]:
                     raise ValueError("ymax must be greater than ymin")
                 self.result_dict = updated_dict
+                self.result_dict["nruns"] = {"value": nruns, "type": int, "positive": True}
+                if nruns not in [1, 2]:
+                    raise ValueError("nruns must be 1 or 2")
                 self.root.destroy()
             except ValueError as e:
                 messagebox.showerror(
@@ -886,3 +924,15 @@ class ParameterEditorPyCosmic:
     def get_result(self):
         """Return the updated dictionary"""
         return self.result_dict
+
+    def update_colour_param_run1_run2(self):
+        """Update the foreground color of run1 and run2 entries."""
+        # Highlight run2 parameter if different from run1
+        for key in self.param_dict.keys():
+            if key.startswith("run1_"):
+                parname = key[5:]
+                if key in self.entries and "run2_" + parname in self.entries:
+                    if self.entries[key].get() != self.entries["run2_" + parname].get():
+                        self.entries["run2_" + parname].config(fg="red")
+                    else:
+                        self.entries["run2_" + parname].config(fg="black")
