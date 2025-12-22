@@ -72,6 +72,15 @@ lacosmic_default_dict = {
     "nruns": {"value": 1, "type": int, "positive": True, "intmode": "any"},
 }
 
+# Default parameters for deepCR algorithm
+deepcr_default_dict = {
+    # Model name
+    "mask": {"value": "ACS-WFC", "type": str, "valid_values": ["ACS-WFC", "WFC3-UVIS"]},
+    # Threshold for CR probability map
+    "threshold": {"value": 0.5, "type": float, "positive": True},
+    "dilation": {"value": 0, "type": int, "positive": True},
+}
+
 # Default parameters for Cosmic-CoNN algorithm
 cosmicconn_default_dict = {
     # Threshold for CR probability map
@@ -88,6 +97,7 @@ VALID_CLEANING_METHODS = {
     "median": "a-median",
     "mean": "a-mean",
     "lacosmic": "lacosmic",
+    "deepcr": "deepcr",
     "maskfill": "maskfill",
     "auxdata": "auxdata",
 }

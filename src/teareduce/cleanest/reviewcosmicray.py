@@ -58,6 +58,7 @@ class ReviewCosmicRay(ImageDisplay):
         data,
         auxdata,
         cleandata_lacosmic,
+        cleandata_deepcr,
         cr_labels,
         num_features,
         first_cr_index=1,
@@ -86,6 +87,8 @@ class ReviewCosmicRay(ImageDisplay):
             The auxiliary image data.
         cleandata_lacosmic: 2D numpy array or None
             The cleaned image data from L.A.Cosmic.
+        cleandata_deepcr: 2D numpy array or None
+            The cleaned image data from DeepCR.
         cr_labels : 2D numpy array
             Labels of connected cosmic ray pixel groups.
         num_features : int
@@ -158,6 +161,8 @@ class ReviewCosmicRay(ImageDisplay):
             The auxiliary image data.
         cleandata_lacosmic: 2D numpy array or None
             The cleaned image data from L.A.Cosmic.
+        cleandata_deepcr: 2D numpy array or None
+            The cleaned image data from DeepCR.
         cr_labels : 2D numpy array
             Labels of connected cosmic ray pixel groups.
         num_features : int
@@ -190,19 +195,20 @@ class ReviewCosmicRay(ImageDisplay):
         self.factor_height = root_height / DEFAULT_TK_WINDOW_SIZE_Y
         self.auxdata = auxdata
         if self.auxdata is not None:
-            # self.root.geometry("1000x700+100+100")  # This does not work in Fedora
+            # self.root.geometry("1000x760+100+100")  # This does not work in Fedora
             window_width = int(1000 * self.factor_width + 0.5)
-            window_height = int(700 * self.factor_height + 0.5)
+            window_height = int(760 * self.factor_height + 0.5)
             self.root.minsize(window_width, window_height)
         else:
-            # self.root.geometry("900x700+100+100")  # This does not work in Fedora
+            # self.root.geometry("900x760+100+100")  # This does not work in Fedora
             window_width = int(900 * self.factor_width + 0.5)
-            window_height = int(700 * self.factor_height + 0.5)
+            window_height = int(760 * self.factor_height + 0.5)
             self.root.minsize(window_width, window_height)
         self.root.update_idletasks()
         self.root.geometry("+100+100")
         self.data = data
         self.cleandata_lacosmic = cleandata_lacosmic
+        self.cleandata_deepcr = cleandata_deepcr
         self.data_original = data.copy()
         self.cr_labels = cr_labels
         self.num_features = num_features
@@ -238,6 +244,7 @@ class ReviewCosmicRay(ImageDisplay):
         # Row 1 of buttons
         self.button_frame1 = tk.Frame(self.root)
         self.button_frame1.pack(pady=5)
+        # --- Npoints and Degree button
         self.ndeg_label = tkbutton.new(
             self.button_frame1,
             text=f"Npoints={self.npoints}, Degree={self.degree}",
@@ -246,6 +253,7 @@ class ReviewCosmicRay(ImageDisplay):
             alttext="Npoints=?, Degree=?",
         )
         self.ndeg_label.pack(side=tk.LEFT, padx=5)
+        # --- Maskfill params. button
         self.maskfill_button = tkbutton.new(
             self.button_frame1,
             text="Maskfill params.",
@@ -253,6 +261,7 @@ class ReviewCosmicRay(ImageDisplay):
             help_text="Set the parameters for the maskfill method.",
         )
         self.maskfill_button.pack(side=tk.LEFT, padx=5)
+        # --- Remove crosses button
         self.remove_crosses_button = tkbutton.new(
             self.button_frame1,
             text="remove all x's",
@@ -260,6 +269,7 @@ class ReviewCosmicRay(ImageDisplay):
             help_text="Remove all cross marks from the image.",
         )
         self.remove_crosses_button.pack(side=tk.LEFT, padx=5)
+        # --- Restore CR button
         self.restore_cr_button = tkbutton.new(
             self.button_frame1,
             text="restore CR",
@@ -268,6 +278,7 @@ class ReviewCosmicRay(ImageDisplay):
         )
         self.restore_cr_button.pack(side=tk.LEFT, padx=5)
         self.restore_cr_button.config(state=tk.DISABLED)
+        # --- Next button
         self.next_button = tkbutton.new(
             self.button_frame1,
             text="[c]ontinue",
@@ -275,6 +286,7 @@ class ReviewCosmicRay(ImageDisplay):
             help_text="Continue to the next cosmic ray.",
         )
         self.next_button.pack(side=tk.LEFT, padx=5)
+        # --- Exit button
         self.exit_button = tkbutton.new(
             self.button_frame1,
             text="[e]xit review",
@@ -286,6 +298,7 @@ class ReviewCosmicRay(ImageDisplay):
         # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.root)
         self.button_frame2.pack(pady=5)
+        # --- X interpolation button
         self.interp_x_button = tkbutton.new(
             self.button_frame2,
             text="[x] interp.",
@@ -293,6 +306,7 @@ class ReviewCosmicRay(ImageDisplay):
             help_text="Perform X-interpolation for the current cosmic ray.",
         )
         self.interp_x_button.pack(side=tk.LEFT, padx=5)
+        # --- Y interpolation button
         self.interp_y_button = tkbutton.new(
             self.button_frame2,
             text="[y] interp.",
@@ -300,11 +314,14 @@ class ReviewCosmicRay(ImageDisplay):
             help_text="Perform Y-interpolation for the current cosmic ray.",
         )
         self.interp_y_button.pack(side=tk.LEFT, padx=5)
+        # --- Plane interpolation button
         # it is important to use lambda here to pass the method argument correctly
         # (avoiding the execution of the function at button creation time, which would happen
         # if we didn't use lambda; in that case, the function would be called immediately and
         # its return value (None) would be assigned to the command parameter; furthermore,
-        # the function is trying to deactivate the buttons before they are created, which
+        # the function is trying to deactivate the buttons before they are created, 
+        # which would lead to an error; in addition, since I have two buttons calling 
+        # the same function with different arguments, using lambda allows to differentiate them)
         # would lead to an error; in addition, since I have two buttons calling the same function
         # with different arguments, using lambda allows to differentiate them)
         self.interp_s_button = tkbutton.new(
@@ -314,6 +331,7 @@ class ReviewCosmicRay(ImageDisplay):
             help_text="Perform surface interpolation for the current cosmic ray.",
         )
         self.interp_s_button.pack(side=tk.LEFT, padx=5)
+        # --- Median interpolation button
         self.interp_d_button = tkbutton.new(
             self.button_frame2,
             text="me[d]ian",
@@ -321,6 +339,7 @@ class ReviewCosmicRay(ImageDisplay):
             help_text="Perform median interpolation for the current cosmic ray.",
         )
         self.interp_d_button.pack(side=tk.LEFT, padx=5)
+        # --- Mean interpolation button
         self.interp_m_button = tkbutton.new(
             self.button_frame2,
             text="[m]ean",
@@ -328,8 +347,14 @@ class ReviewCosmicRay(ImageDisplay):
             help_text="Perform mean interpolation for the current cosmic ray.",
         )
         self.interp_m_button.pack(side=tk.LEFT, padx=5)
+
+
+        # Row 3 of buttons
+        self.button_frame3 = tk.Frame(self.root)
+        self.button_frame3.pack(pady=5)
+        # --- Interpolation using L.A.Cosmic button
         self.interp_l_button = tkbutton.new(
-            self.button_frame2,
+            self.button_frame3,
             text="[l]acosmic",
             command=self.use_lacosmic,
             help_text="Use L.A.Cosmic interpolation for the current cosmic ray.",
@@ -339,15 +364,27 @@ class ReviewCosmicRay(ImageDisplay):
             self.interp_l_button.config(state=tk.DISABLED)
         if self.cleandata_lacosmic is None:
             self.interp_l_button.config(state=tk.DISABLED)
+        # --- Interpolation using deepCR button
+        self.interp_deepcr_button = tkbutton.new(
+            self.button_frame3,
+            text="deepCR",
+            command=self.use_deepcr,
+            help_text="Use DeepCR interpolation for the current cosmic ray.",
+        )
+        self.interp_deepcr_button.pack(side=tk.LEFT, padx=5)
+        if self.cleandata_deepcr is None:
+            self.interp_deepcr_button.config(state=tk.DISABLED)
+        # --- Interpolation using maskfill button
         self.interp_maskfill_button = tkbutton.new(
-            self.button_frame2,
+            self.button_frame3,
             text="mask[f]ill",
             command=self.use_maskfill,
             help_text="Perform maskfill interpolation for the current cosmic ray.",
         )
         self.interp_maskfill_button.pack(side=tk.LEFT, padx=5)
+        # --- Interpolation using auxiliary data button
         self.interp_aux_button = tkbutton.new(
-            self.button_frame2,
+            self.button_frame3,
             text="[a]ux. data",
             command=self.use_auxdata,
             help_text="Use auxiliary data for interpolation of the current cosmic ray.",
@@ -356,42 +393,47 @@ class ReviewCosmicRay(ImageDisplay):
         if self.auxdata is None:
             self.interp_aux_button.config(state=tk.DISABLED)
 
-        # Row 3 of buttons
-        self.button_frame3 = tk.Frame(self.root)
-        self.button_frame3.pack(pady=5)
+        # Row 4 of buttons
+        self.button_frame4 = tk.Frame(self.root)
+        self.button_frame4.pack(pady=5)
+        # --- vmin button
         vmin, vmax = zscale(self.data)
         self.vmin_button = tkbutton.new(
-            self.button_frame3,
+            self.button_frame4,
             text=f"vmin: {vmin:.2f}",
             command=self.set_vmin,
             help_text="Set the minimum value for the display scale.",
             alttext="vmin: ??",
         )
         self.vmin_button.pack(side=tk.LEFT, padx=5)
+        # --- vmax button
         self.vmax_button = tkbutton.new(
-            self.button_frame3,
+            self.button_frame4,
             text=f"vmax: {vmax:.2f}",
             command=self.set_vmax,
             help_text="Set the maximum value for the display scale.",
             alttext="vmax: ??",
         )
         self.vmax_button.pack(side=tk.LEFT, padx=5)
+        # --- minmax button
         self.set_minmax_button = tkbutton.new(
-            self.button_frame3,
+            self.button_frame4,
             text="minmax [,]",
             command=self.set_minmax,
             help_text="Set the display scale to the minimum and maximum data values.",
         )
         self.set_minmax_button.pack(side=tk.LEFT, padx=5)
+        # --- zscale button
         self.set_zscale_button = tkbutton.new(
-            self.button_frame3,
+            self.button_frame4,
             text="zscale [/]",
             command=self.set_zscale,
             help_text="Set the display scale using zscale.",
         )
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
+        # --- Help button
         self.help_button = tkbutton.new(
-            self.button_frame3,
+            self.button_frame4,
             text="Help",
             command=tkbutton.show_help,
             help_text="Show help information for all buttons.",
@@ -673,6 +715,20 @@ class ReviewCosmicRay(ImageDisplay):
         self.set_buttons_after_cleaning_cr()
         self.update_display(cleaned=True)
 
+    def use_deepcr(self):
+        """Use DeepCR cleaned data to clean a cosmic ray."""
+        if self.cleandata_deepcr is None:
+            print("DeepCR cleaned data not available.")
+            return
+        print(f"DeepCR interpolation of cosmic ray {self.cr_index}")
+        ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
+        for iy, ix in zip(ycr_list, xcr_list):
+            self.data[iy, ix] = self.cleandata_deepcr[iy, ix]
+            self.mask_fixed[iy, ix] = True
+        self.num_cr_cleaned += 1
+        self.set_buttons_after_cleaning_cr()
+        self.update_display(cleaned=True)
+
     def use_maskfill(self):
         """Use maskfill cleaned data to clean a cosmic ray."""
         print(f"Maskfill interpolation of cosmic ray {self.cr_index}")
@@ -832,6 +888,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_d_button.config(state=tk.DISABLED)
         self.interp_m_button.config(state=tk.DISABLED)
         self.interp_l_button.config(state=tk.DISABLED)
+        self.interp_deepcr_button.config(state=tk.DISABLED)
         self.interp_maskfill_button.config(state=tk.DISABLED)
         self.interp_aux_button.config(state=tk.DISABLED)
 
@@ -845,6 +902,8 @@ class ReviewCosmicRay(ImageDisplay):
         if self.cleandata_lacosmic is not None:
             if self.last_dilation is None or self.last_dilation == 0:
                 self.interp_l_button.config(state=tk.NORMAL)
+        if self.cleandata_deepcr is not None:
+            self.interp_deepcr_button.config(state=tk.NORMAL)
         self.interp_maskfill_button.config(state=tk.NORMAL)
         if self.auxdata is not None:
             self.interp_aux_button.config(state=tk.NORMAL)

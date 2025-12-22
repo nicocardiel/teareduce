@@ -32,6 +32,7 @@ classifiers = [
 dependencies = [
     "astropy",
     "cosmic-conn",
+    "deepCR",
     "lmfit",
     "matplotlib",
     "numpy >= 2",

@@ -19,6 +19,15 @@ import sys
 from astropy.io import fits
 
 try:
+    import deepCR
+except ModuleNotFoundError as e:
+    raise ModuleNotFoundError(
+        "The 'teareduce.cleanest' module requires the 'deepCR' package. "
+        "Please install teareduce with the 'cleanest' extra dependencies: "
+        "`pip install teareduce[cleanest]`."
+    ) from e
+
+try:
     import cosmic_conn
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(
@@ -48,6 +57,7 @@ from rich import print
 from .askextension import ask_extension_input_image
 from .centerchildparent import center_on_parent
 from .definitions import cosmicconn_default_dict
+from .definitions import deepcr_default_dict
 from .definitions import lacosmic_default_dict
 from .definitions import DEFAULT_NPOINTS_INTERP
 from .definitions import DEFAULT_DEGREE_INTERP
@@ -144,8 +154,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             Toggle the overlay of cosmic ray pixels on the image.
         update_cr_overlay()
             Update the overlay of cosmic ray pixels on the image.
-        apply_lacosmic()
-            Apply the L.A.Cosmic algorithm to the data.
+        apply_cleaning()
+            Apply selected cleaning algorithm to the data.
         review_detected_cr()
             Examine detected cosmic rays.
         stop_app()
@@ -173,6 +183,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             Enable verbose output.
         cosmicconn_params : dict
             Dictionary of Cosmic-CoNN parameters.
+        deepcr_params : dict
+            Dictionary of DeepCR parameters.
         lacosmic_params : dict
             Dictionary of L.A.Cosmic parameters.
         input_fits : str
@@ -225,6 +237,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             Last used verbose parameter for maskfill.
         cleandata_lacosmic : np.ndarray
             The cleaned data returned from L.A.Cosmic.
+        cleandata_deepcr : np.ndarray
+            The cleaned data returned from DeepCR.
         cr_labels : np.ndarray
             Labeled cosmic ray features.
         num_features : int
@@ -247,6 +261,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             family=fontfamily, size=fontsize, weight="normal", slant="roman", underline=0, overstrike=0
         )
         self.cosmicconn_params = cosmicconn_default_dict.copy()
+        self.deepcr_params = deepcr_default_dict.copy()
         self.lacosmic_params = lacosmic_default_dict.copy()
         self.lacosmic_params["run1_verbose"]["value"] = self.verbose
         self.lacosmic_params["run2_verbose"]["value"] = self.verbose
@@ -277,6 +292,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.last_maskfill_verbose = DEFAULT_MASKFILL_VERBOSE
         self.create_widgets()
         self.cleandata_lacosmic = None
+        self.cleandata_deepcr = None
         self.cr_labels = None
         self.num_features = 0
         self.working_in_review_window = False
@@ -371,7 +387,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                         "Dilation", "Enter Dilation (min=0):", initialvalue=0, minvalue=0
                     )
                     self.process_detected_cr(dilation=dilation)
-                    # self.lacosmic_params["dilation"]["value"] = dilation
+                    self.cleandata_deepcr = None  # Invalidate previous DeepCR cleaned data
                     self.cleandata_lacosmic = None  # Invalidate previous L.A.Cosmic cleaned data
             except Exception as e:
                 messagebox.showerror("Error", f"Error loading cosmic ray mask: {e}")
@@ -552,6 +568,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Row 1 of buttons
         self.button_frame1 = tk.Frame(self.root)
         self.button_frame1.pack(pady=5)
+        # --- L.A.Cosmic button
         self.run_lacosmic_button = tkbutton.new(
             self.button_frame1,
             text="Run L.A.Cosmic",
@@ -559,6 +576,15 @@ class CosmicRayCleanerApp(ImageDisplay):
             help_text="Run the L.A.Cosmic algorithm to detect cosmic rays in the image.",
         )
         self.run_lacosmic_button.pack(side=tk.LEFT, padx=5)
+        # --- DeepCR button
+        self.run_deepcr_button = tkbutton.new(
+            self.button_frame1,
+            text="Run DeepCR",
+            command=self.run_deepcr,
+            help_text="Run the DeepCR algorithm to detect cosmic rays in the image.",
+        )
+        self.run_deepcr_button.pack(side=tk.LEFT, padx=5)
+        # --- Cosmic-CoNN button
         self.run_cosmiccnn_button = tkbutton.new(
             self.button_frame1,
             text="Run Cosmic-CoNN",
@@ -570,6 +596,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.root)
         self.button_frame2.pack(pady=5)
+        # --- Load auxdata button
         self.load_auxdata_button = tkbutton.new(
             self.button_frame2,
             text="Load auxdata",
@@ -577,6 +604,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             help_text="Load an auxiliary FITS file for display.",
         )
         self.load_auxdata_button.pack(side=tk.LEFT, padx=5)
+        # --- Load detected CR button
         self.load_detected_cr_button = tkbutton.new(
             self.button_frame2,
             text="Load CR mask",
@@ -584,14 +612,16 @@ class CosmicRayCleanerApp(ImageDisplay):
             help_text="Load a previously saved cosmic ray mask from a FITS file.",
         )
         self.load_detected_cr_button.pack(side=tk.LEFT, padx=5)
+        # --- Replace detected CR button
         self.replace_detected_cr_button = tkbutton.new(
             self.button_frame2,
             text="Replace detected CRs",
-            command=self.apply_lacosmic,
+            command=self.apply_cleaning,
             help_text="Apply the cleaning to the detected cosmic rays.",
         )
         self.replace_detected_cr_button.pack(side=tk.LEFT, padx=5)
         self.replace_detected_cr_button.config(state=tk.DISABLED)  # Initially disabled
+        # --- Review detected CR button
         self.review_detected_cr_button = tkbutton.new(
             self.button_frame2,
             text="Review detected CRs",
@@ -604,6 +634,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Row 3 of buttons
         self.button_frame3 = tk.Frame(self.root)
         self.button_frame3.pack(pady=5)
+        # --- Cursor ON/OFF button
         self.use_cursor = False
         self.use_cursor_button = tkbutton.new(
             self.button_frame3,
@@ -613,6 +644,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             alttext="[c]ursor: ??",
         )
         self.use_cursor_button.pack(side=tk.LEFT, padx=5)
+        # --- Toggle auxdata button
         self.toggle_auxdata_button = tkbutton.new(
             self.button_frame3,
             text="[t]oggle data",
@@ -624,6 +656,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.toggle_auxdata_button.config(state=tk.DISABLED)
         else:
             self.toggle_auxdata_button.config(state=tk.NORMAL)
+        # --- Toggle aspect button
         self.image_aspect = "equal"
         self.toggle_aspect_button = tkbutton.new(
             self.button_frame3,
@@ -632,6 +665,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             help_text="Toggle the image aspect ratio.",
         )
         self.toggle_aspect_button.pack(side=tk.LEFT, padx=5)
+        # --- Save cleaned FITS button
         self.save_button = tkbutton.new(
             self.button_frame3,
             text="Save cleaned FITS",
@@ -640,6 +674,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         )
         self.save_button.pack(side=tk.LEFT, padx=5)
         self.save_button.config(state=tk.DISABLED)  # Initially disabled
+        # --- Stop program button
         self.stop_button = tkbutton.new(
             self.button_frame3, text="Stop program", command=self.stop_app, help_text="Stop the application."
         )
@@ -648,6 +683,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Row 4 of buttons
         self.button_frame4 = tk.Frame(self.root)
         self.button_frame4.pack(pady=5)
+        # --- vmin button
         vmin, vmax = zscale(self.data)
         self.vmin_button = tkbutton.new(
             self.button_frame4,
@@ -657,6 +693,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             alttext="vmin: ??",
         )
         self.vmin_button.pack(side=tk.LEFT, padx=5)
+        # --- vmax button
         self.vmax_button = tkbutton.new(
             self.button_frame4,
             text=f"vmax: {vmax:.2f}",
@@ -665,6 +702,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             alttext="vmax: ??",
         )
         self.vmax_button.pack(side=tk.LEFT, padx=5)
+        # --- minmax button
         self.set_minmax_button = tkbutton.new(
             self.button_frame4,
             text="minmax [,]",
@@ -672,6 +710,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             help_text="Set the minimum and maximum values for the display scale.",
         )
         self.set_minmax_button.pack(side=tk.LEFT, padx=5)
+        # --- zscale button
         self.set_zscale_button = tkbutton.new(
             self.button_frame4,
             text="zscale [/]",
@@ -679,6 +718,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             help_text="Set the display scale using zscale.",
         )
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
+        # --- Overplot CR pixels button
         if self.overplot_cr_pixels:
             self.overplot_cr_button = tkbutton.new(
                 self.button_frame4,
@@ -696,6 +736,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 alttext="CR overlay: ??",
             )
         self.overplot_cr_button.pack(side=tk.LEFT, padx=5)
+        # --- Help button
         self.help_button = tkbutton.new(
             self.button_frame4,
             text="Help",
@@ -936,6 +977,55 @@ class CosmicRayCleanerApp(ImageDisplay):
             print("Parameter editing cancelled. L.A.Cosmic detection skipped!")
         self.run_lacosmic_button.config(state=tk.NORMAL)
 
+    def run_deepcr(self):
+        """Run DeepCR to detect cosmic rays."""
+        if np.any(self.mask_crfound):
+            overwrite = messagebox.askyesno(
+                "Overwrite Cosmic Ray Mask",
+                "A cosmic ray mask is already defined.\n\nDo you want to overwrite it?",
+            )
+            if not overwrite:
+                return
+        self.run_deepcr_button.config(state=tk.DISABLED)
+        print("[bold green]Executing DeepCR...[/bold green]")
+        # Initialize the DeepCR model
+        mdl = deepCR.deepCR(mask=self.deepcr_params["mask"]["value"])
+        # Ask for threshold value and update parameter
+        threshold = simpledialog.askfloat(
+            "Threshold",
+            "Enter DeepCR probability threshold (0.0 - 1.0):",
+            initialvalue=self.deepcr_params["threshold"]["value"],
+            minvalue=0.0,
+            maxvalue=1.0,
+        )
+        if threshold is None:
+            print("Threshold input cancelled. DeepCR detection skipped!")
+            self.run_deepcr_button.config(state=tk.NORMAL)
+            return
+        self.deepcr_params["threshold"]["value"] = threshold
+        print(f"Running DeepCR version: {deepCR.__version__}  (please wait...)", end="")
+        self.mask_crfound, self.cleandata_deepcr = mdl.clean(
+            self.data,
+            threshold=self.deepcr_params["threshold"]["value"],
+            inpaint=True,
+        )
+        print(" Done!")
+        # Process the mask: dilation and labeling
+        dilation = simpledialog.askinteger(
+            "Dilation", 
+            "Note: Applying dilation will prevent the use of the DeepCR cleaned data.\n\n"
+            "Enter Dilation (min=0):", initialvalue=self.deepcr_params["dilation"]["value"], minvalue=0
+        )
+        if dilation is None:
+            print("Dilation input cancelled. DeepCR detection skipped!")
+            self.run_deepcr_button.config(state=tk.NORMAL)
+            return
+        if dilation > 0:
+            self.cleandata_deepcr = None  # Invalidate DeepCR cleaned data if dilation applied
+        self.deepcr_params["dilation"]["value"] = dilation
+        self.process_detected_cr(dilation=self.deepcr_params["dilation"]["value"])
+        self.run_deepcr_button.config(state=tk.NORMAL)
+
     def run_cosmiccnn(self):
         """Run Cosmic-CoNN to detect cosmic rays."""
         if np.any(self.mask_crfound):
@@ -947,11 +1037,12 @@ class CosmicRayCleanerApp(ImageDisplay):
                 return
         self.run_cosmiccnn_button.config(state=tk.DISABLED)
         print("[bold green]Executing Cosmic-CoNN...[/bold green]")
-        print(f"Running Cosmic-CoNN version: {cosmic_conn.__version__}")
         # Initialize the generic ground-imaging model
         cr_model = cosmic_conn.init_model("ground_imaging")
         # The model outputs a CR probability map
+        print(f"Running Cosmic-CoNN version: {cosmic_conn.__version__}  (please wait...)", end="")
         cr_prob = cr_model.detect_cr(self.data.astype(np.float32))
+        print(" Done!")
         # Ask for threshold value and update parameter
         threshold = simpledialog.askfloat(
             "Threshold",
@@ -1006,7 +1097,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 del self.scatter_cr
         self.canvas.draw_idle()
 
-    def apply_lacosmic(self):
+    def apply_cleaning(self):
         """Apply the selected cleaning method to the detected cosmic rays."""
         if np.any(self.mask_crfound):
             # recalculate labels and number of features
@@ -1026,6 +1117,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 last_maskfill_verbose=self.last_maskfill_verbose,
                 auxdata=self.auxdata,
                 cleandata_lacosmic=self.cleandata_lacosmic,
+                cleandata_deepcr=self.cleandata_deepcr,
                 xmin=self.last_xmin,
                 xmax=self.last_xmax,
                 ymin=self.last_ymin,
@@ -1063,6 +1155,14 @@ class CosmicRayCleanerApp(ImageDisplay):
                 if cleaning_method == "lacosmic":
                     # Replace detected CR pixels with L.A.Cosmic values
                     self.data[mask_crfound_region] = self.cleandata_lacosmic[mask_crfound_region]
+                    # update mask_fixed to include the newly fixed pixels
+                    self.mask_fixed[mask_crfound_region] = True
+                    # upate mask_crfound by eliminating the cleaned pixels
+                    self.mask_crfound[mask_crfound_region] = False
+                    data_has_been_modified = True
+                elif cleaning_method == "deepcr":
+                    # Replace detected CR pixels with DeepCR values
+                    self.data[mask_crfound_region] = self.cleandata_deepcr[mask_crfound_region]
                     # update mask_fixed to include the newly fixed pixels
                     self.mask_fixed[mask_crfound_region] = True
                     # upate mask_crfound by eliminating the cleaned pixels
@@ -1173,7 +1273,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
             self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
             num_cr_remaining = np.sum(self.mask_crfound)
-            sdum = str(num_cr_remaining)
+            sdum = str(int(num_cr_remaining + 0.5))
             print(f"Remaining number of cosmic ray pixels...................: {sdum}")
             print(f"Remaining number of cosmic ray features (grouped pixels): {self.num_features:>{len(sdum)}}")
             if num_cr_remaining == 0:
@@ -1205,6 +1305,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 data=self.data,
                 auxdata=self.auxdata,
                 cleandata_lacosmic=self.cleandata_lacosmic,
+                cleandata_deepcr=self.cleandata_deepcr,
                 cr_labels=tmp_cr_labels,
                 num_features=1,
                 first_cr_index=1,
@@ -1221,6 +1322,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 data=self.data,
                 auxdata=self.auxdata,
                 cleandata_lacosmic=self.cleandata_lacosmic,
+                cleandata_deepcr=self.cleandata_deepcr,
                 cr_labels=self.cr_labels,
                 num_features=self.num_features,
                 first_cr_index=first_cr_index,
@@ -1247,7 +1349,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
             self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
             num_remaining = np.sum(self.mask_crfound)
-            sdum = str(num_remaining)
+            sdum = str(int(num_remaining + 0.5))
             print(f"Remaining number of cosmic ray pixels...................: {sdum}")
             print(f"Remaining number of cosmic ray features (grouped pixels): {self.num_features:>{len(sdum)}}")
             if num_remaining == 0:

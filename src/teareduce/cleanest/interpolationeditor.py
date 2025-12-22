@@ -35,6 +35,7 @@ class InterpolationEditor:
         last_maskfill_verbose,
         auxdata,
         cleandata_lacosmic,
+        cleandata_deepcr,
         xmin,
         xmax,
         ymin,
@@ -65,6 +66,8 @@ class InterpolationEditor:
             Auxiliary data for cleaning, if available.
         cleandata_lacosmic : array-like or None
             Cleaned data from L.A.Cosmic, if available.
+        cleandata_deepcr : array-like or None
+            Cleaned data from DeepCR, if available.
         xmin : float
             Minimum x value of the data. From 1 to NAXIS1.
         xmax : float
@@ -97,6 +100,8 @@ class InterpolationEditor:
             Auxiliary data for cleaning, if available.
         cleandata_lacosmic : array-like or None
             Cleaned data from L.A.Cosmic, if available.
+        cleandata_deepcr : array-like or None
+            Cleaned data from DeepCR, if available.
         dict_interp_methods : dict
             Mapping of interpolation method names to their codes.
         cleaning_method : str or None
@@ -127,6 +132,7 @@ class InterpolationEditor:
         self.last_dilation = last_dilation
         self.auxdata = auxdata
         self.cleandata_lacosmic = cleandata_lacosmic
+        self.cleandata_deepcr = cleandata_deepcr
         # Initialize parameters
         self.cleaning_method = None
         self.npoints = last_npoints
@@ -169,13 +175,18 @@ class InterpolationEditor:
         for interp_method in VALID_CLEANING_METHODS.keys():
             state = "normal"
             # Skip replace by L.A.Cosmic values if last dilation is not zero
+            # or cleandata_lacosmic is not available
             if interp_method == "lacosmic":
                 if self.last_dilation != 0:
                     state = "disabled"
                 if self.cleandata_lacosmic is None:
                     state = "disabled"
+            # Skip replace by DeepCR values if cleandata_deepcr is not available
+            elif interp_method == "deepcr":
+                if self.cleandata_deepcr is None:
+                    state = "disabled"
             # Skip auxdata method if auxdata is not available
-            if interp_method == "auxdata" and self.auxdata is None:
+            elif interp_method == "auxdata" and self.auxdata is None:
                 state = "disabled"
             tk.Radiobutton(
                 main_frame,
@@ -455,6 +466,13 @@ class InterpolationEditor:
             self.entry_maskfill_smooth.config(state="disabled")
             self.entry_maskfill_verbose.config(state="disabled")
         elif selected_method == "lacosmic":
+            self.entry_npoints.config(state="disabled")
+            self.entry_degree.config(state="disabled")
+            self.entry_maskfill_size.config(state="disabled")
+            self.entry_maskfill_operator.config(state="disabled")
+            self.entry_maskfill_smooth.config(state="disabled")
+            self.entry_maskfill_verbose.config(state="disabled")
+        elif selected_method == "deepcr":
             self.entry_npoints.config(state="disabled")
             self.entry_degree.config(state="disabled")
             self.entry_maskfill_size.config(state="disabled")
