@@ -327,266 +327,6 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.num_features = 0
         self.working_in_review_window = False
 
-    def process_detected_cr(self, dilation):
-        """Process the detected cosmic ray mask.
-
-        Parameters
-        ----------
-        dilation : int
-            Number of pixels to dilate the cosmic ray mask.
-        """
-        # Process the mask: dilation and labeling
-        if np.any(self.mask_crfound):
-            num_cr_pixels_before_dilation = np.sum(self.mask_crfound)
-            if dilation > 0:
-                # Dilate the mask by the specified number of pixels
-                self.mask_crfound = dilatemask(mask=self.mask_crfound, iterations=dilation, connectivity=1)
-                num_cr_pixels_after_dilation = np.sum(self.mask_crfound)
-                sdum = str(num_cr_pixels_after_dilation)
-                print(
-                    f"Number of cosmic ray pixels after dilation........: "
-                    f"{num_cr_pixels_after_dilation:>{len(sdum)}}"
-                )
-            else:
-                sdum = str(num_cr_pixels_before_dilation)
-            # Label connected components in the mask; note that by default,
-            # structure is a cross [0,1,0;1,1,1;0,1,0], but we want to consider
-            # diagonal connections too, so we define a 3x3 square.
-            structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
-            self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
-            print(f"Number of cosmic ray features (grouped pixels)....: {self.num_features:>{len(sdum)}}")
-            self.replace_detected_cr_button.config(state=tk.NORMAL)
-            self.review_detected_cr_button.config(state=tk.NORMAL)
-            self.update_cr_overlay()
-            self.use_cursor = True
-            self.use_cursor_button.config(text="[c]ursor: ON ")
-        else:
-            print("No cosmic ray pixels detected!")
-            self.cr_labels = None
-            self.num_features = 0
-            self.replace_detected_cr_button.config(state=tk.DISABLED)
-            self.review_detected_cr_button.config(state=tk.DISABLED)
-
-    def load_detected_cr_from_file(self):
-        """Load detected cosmic ray mask from a FITS file."""
-        if np.any(self.mask_crfound):
-            overwrite = messagebox.askyesno(
-                "Overwrite Cosmic Ray Mask",
-                "A cosmic ray mask is already defined.\n\nDo you want to overwrite it?",
-            )
-            if not overwrite:
-                return
-        crmask_file = filedialog.askopenfilename(
-            initialdir=os.getcwd(),
-            title="Select FITS file with cosmic ray mask",
-            filetypes=[("FITS files", "*.fits"), ("All files", "*.*")],
-        )
-        if crmask_file:
-            print(f"Selected input FITS file: {crmask_file}")
-            extension = ask_extension_input_image(crmask_file, self.data.shape)
-            try:
-                with fits.open(crmask_file, mode="readonly") as hdul:
-                    if isinstance(extension, int):
-                        if extension < 0 or extension >= len(hdul):
-                            raise IndexError(f"Extension index {extension} out of range.")
-                    else:
-                        if extension not in hdul:
-                            raise KeyError(f"Extension name '{extension}' not found.")
-                    if hdul[extension].header["BITPIX"] not in [8, 16]:
-                        answer = messagebox.askyesno(
-                            f"Invalid Mask Data Type",
-                            f"Invalid Mask Data Type: {hdul[extension].header['BITPIX']}\n"
-                            "Cosmic ray mask is not of integer type (BITPIX=8 or 16).\n\n"
-                            "Do you want to continue loading it anyway?",
-                        )
-                        if not answer:
-                            return
-                    mask_crfound_loaded = hdul[extension].data.astype(bool)
-                    if mask_crfound_loaded.shape != self.data.shape:
-                        print(f"data shape...: {self.data.shape}")
-                        print(f"mask shape...: {mask_crfound_loaded.shape}")
-                        raise ValueError("Cosmic ray mask has different shape.")
-                    self.mask_crfound = mask_crfound_loaded
-                    print(f"Loaded cosmic ray mask from {crmask_file}")
-                    dilation = simpledialog.askinteger(
-                        "Dilation", "Enter Dilation (min=0):", initialvalue=0, minvalue=0
-                    )
-                    self.process_detected_cr(dilation=dilation)
-                    self.cleandata_deepcr = None  # Invalidate previous DeepCR cleaned data
-                    self.cleandata_lacosmic = None  # Invalidate previous L.A.Cosmic cleaned data
-                    self.cleandata_pycosmic = None  # Invalidate previous PyCosmic cleaned data
-            except Exception as e:
-                messagebox.showerror("Error", f"Error loading cosmic ray mask: {e}")
-
-    def load_fits_file(self):
-        """Load the FITS file and auxiliary file (if provided).
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        This method loads the FITS file specified by `self.input_fits` and
-        reads the data from the specified extension. If an auxiliary file is
-        provided, it also loads the auxiliary data from the specified extension.
-        The loaded data is stored in `self.data` and `self.auxdata` attributes.
-        """
-        # check if extension is compatible with an integer
-        try:
-            extnum = int(self.extension)
-            self.extension = extnum
-        except ValueError:
-            # Keep as string (delaying checking until opening the file)
-            self.extension = self.extension.upper()  # Convert to uppercase
-        try:
-            with fits.open(self.input_fits, mode="readonly") as hdul:
-                if isinstance(self.extension, int):
-                    if self.extension < 0 or self.extension >= len(hdul):
-                        raise IndexError(f"Extension index {self.extension} out of range.")
-                else:
-                    if self.extension not in hdul:
-                        raise KeyError(f"Extension name '{self.extension}' not found.")
-                print(f"Reading file [bold green]{self.input_fits}[/bold green], extension {self.extension}")
-                self.data = hdul[self.extension].data
-                if "CRMASK" in hdul:
-                    self.mask_fixed = hdul["CRMASK"].data.astype(bool)
-                else:
-                    self.mask_fixed = np.zeros(self.data.shape, dtype=bool)
-        except Exception as e:
-            print(f"Error loading FITS file: {e}")
-            sys.exit(1)
-        self.mask_crfound = np.zeros(self.data.shape, dtype=bool)
-        naxis2, naxis1 = self.data.shape
-        self.region = SliceRegion2D(f"[1:{naxis1}, 1:{naxis2}]", mode="fits").python
-        # Read auxiliary file if provided
-        if self.auxfile is not None:
-            # check if extension_auxfile is compatible with an integer
-            try:
-                extnum_aux = int(self.extension_auxfile)
-                self.extension_auxfile = extnum_aux
-            except ValueError:
-                # Keep as string (delaying checking until opening the file)
-                self.extension_auxfile = self.extension_auxfile.upper()  # Convert to uppercase
-            try:
-                with fits.open(self.auxfile, mode="readonly") as hdul_aux:
-                    if isinstance(self.extension_auxfile, int):
-                        if self.extension_auxfile < 0 or self.extension_auxfile >= len(hdul_aux):
-                            raise IndexError(f"Extension index {self.extension_auxfile} out of range.")
-                    else:
-                        if self.extension_auxfile not in hdul_aux:
-                            raise KeyError(f"Extension name '{self.extension_auxfile}' not found.")
-                    print(
-                        f"Reading auxiliary file [bold green]{self.auxfile}[/bold green], extension {self.extension_auxfile}"
-                    )
-                    self.auxdata = hdul_aux[self.extension_auxfile].data
-                    if self.auxdata.shape != self.data.shape:
-                        print(f"data shape...: {self.data.shape}")
-                        print(f"auxdata shape: {self.auxdata.shape}")
-                        raise ValueError("Auxiliary file has different shape.")
-            except Exception as e:
-                sys.exit(f"Error loading auxiliary FITS file: {e}")
-
-    def load_auxdata_from_file(self):
-        """Load auxiliary data from a FITS file."""
-        if self.auxfile is not None:
-            overwrite = messagebox.askyesno(
-                "Overwrite Auxiliary Data",
-                f"An auxiliary file is already loaded:\n\n{self.auxfile}\n\n" "Do you want to overwrite it?",
-            )
-            if not overwrite:
-                return
-        auxfile = filedialog.askopenfilename(
-            initialdir=os.getcwd(),
-            title="Select auxiliary FITS file",
-            filetypes=[("FITS files", "*.fits"), ("All files", "*.*")],
-        )
-        if auxfile:
-            extension = ask_extension_input_image(auxfile, self.data.shape)
-            try:
-                with fits.open(auxfile, mode="readonly") as hdul:
-                    if isinstance(extension, int):
-                        if extension < 0 or extension >= len(hdul):
-                            raise IndexError(f"Extension index {extension} out of range.")
-                    else:
-                        if extension not in hdul:
-                            raise KeyError(f"Extension name '{extension}' not found.")
-                    auxdata_loaded = hdul[extension].data
-                    if auxdata_loaded.shape != self.data.shape:
-                        print(f"data shape...: {self.data.shape}")
-                        print(f"auxdata shape: {auxdata_loaded.shape}")
-                        raise ValueError("Auxiliary file has different shape.")
-                    self.auxfile = auxfile
-                    self.auxdata = auxdata_loaded
-                    self.extension_auxfile = extension
-                    print(f"Loaded auxiliary data from {auxfile}")
-                    self.toggle_auxdata_button.config(state=tk.NORMAL)
-            except Exception as e:
-                print(f"Error loading auxiliary FITS file: {e}")
-
-    def save_fits_file(self):
-        """Save the cleaned FITS file.
-
-        This method prompts the user to select a location and filename to
-        save the cleaned FITS file. It writes the cleaned data and
-        the cosmic ray mask to the specified FITS file.
-
-        If the initial file contains a 'CRMASK' extension, it updates
-        that extension with the new mask. Otherwise, it creates a new
-        'CRMASK' extension to store the mask.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        After successfully saving the cleaned FITS file, the chosen output
-        filename is stored in `self.input_fits`, and the save button is disabled
-        to prevent multiple saves without further modifications.
-        """
-        base, ext = os.path.splitext(self.input_fits)
-        suggested_name = f"{base}_cleaned"
-        output_fits = filedialog.asksaveasfilename(
-            initialdir=os.getcwd(),
-            title="Save cleaned FITS file",
-            defaultextension=".fits",
-            filetypes=[("FITS files", "*.fits"), ("All files", "*.*")],
-            initialfile=suggested_name,
-        )
-        try:
-            with fits.open(self.input_fits, mode="readonly") as hdul:
-                hdul[self.extension].data = self.data
-                if "CRMASK" in hdul:
-                    hdul["CRMASK"].data = self.mask_fixed.astype(np.uint8)
-                else:
-                    crmask_hdu = fits.ImageHDU(self.mask_fixed.astype(np.uint8), name="CRMASK")
-                    hdul.append(crmask_hdu)
-                hdul.writeto(output_fits, overwrite=True)
-            print(f"Cleaned data saved to {output_fits}")
-            self.ax.set_title(os.path.basename(output_fits))
-            self.canvas.draw_idle()
-            self.input_fits = os.path.basename(output_fits)
-            self.save_button.config(state=tk.DISABLED)
-        except Exception as e:
-            print(f"Error saving FITS file: {e}")
-
-    def save_crmask_to_file(self):
-        """Save the current cosmic ray mask to a FITS file."""
-        output_fits = filedialog.asksaveasfilename(
-            initialdir=os.getcwd(),
-            title="Save last CR mask into a FITS file",
-            defaultextension=".fits",
-            filetypes=[("FITS files", "*.fits"), ("All files", "*.*")],
-            initialfile=None,
-        )
-        try:
-            hdu = fits.PrimaryHDU(self.mask_crfound.astype(np.uint8))
-            hdu.writeto(output_fits, overwrite=True)
-            print(f"Last mask saved to {output_fits}")
-        except Exception as e:
-            print(f"Error saving mask into a FITS file: {e}")  
-  
     def create_widgets(self):
         """Create the GUI widgets.
 
@@ -848,6 +588,266 @@ class CosmicRayCleanerApp(ImageDisplay):
         )
         self.fig.tight_layout()
 
+    def process_detected_cr(self, dilation):
+        """Process the detected cosmic ray mask.
+
+        Parameters
+        ----------
+        dilation : int
+            Number of pixels to dilate the cosmic ray mask.
+        """
+        # Process the mask: dilation and labeling
+        if np.any(self.mask_crfound):
+            num_cr_pixels_before_dilation = np.sum(self.mask_crfound)
+            if dilation > 0:
+                # Dilate the mask by the specified number of pixels
+                self.mask_crfound = dilatemask(mask=self.mask_crfound, iterations=dilation, connectivity=1)
+                num_cr_pixels_after_dilation = np.sum(self.mask_crfound)
+                sdum = str(num_cr_pixels_after_dilation)
+                print(
+                    f"Number of cosmic ray pixels after dilation........: "
+                    f"{num_cr_pixels_after_dilation:>{len(sdum)}}"
+                )
+            else:
+                sdum = str(num_cr_pixels_before_dilation)
+            # Label connected components in the mask; note that by default,
+            # structure is a cross [0,1,0;1,1,1;0,1,0], but we want to consider
+            # diagonal connections too, so we define a 3x3 square.
+            structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
+            self.cr_labels, self.num_features = ndimage.label(self.mask_crfound, structure=structure)
+            print(f"Number of cosmic ray features (grouped pixels)....: {self.num_features:>{len(sdum)}}")
+            self.replace_detected_cr_button.config(state=tk.NORMAL)
+            self.review_detected_cr_button.config(state=tk.NORMAL)
+            self.update_cr_overlay()
+            self.use_cursor = True
+            self.use_cursor_button.config(text="[c]ursor: ON ")
+        else:
+            print("No cosmic ray pixels detected!")
+            self.cr_labels = None
+            self.num_features = 0
+            self.replace_detected_cr_button.config(state=tk.DISABLED)
+            self.review_detected_cr_button.config(state=tk.DISABLED)
+
+    def load_detected_cr_from_file(self):
+        """Load detected cosmic ray mask from a FITS file."""
+        if np.any(self.mask_crfound):
+            overwrite = messagebox.askyesno(
+                "Overwrite Cosmic Ray Mask",
+                "A cosmic ray mask is already defined.\n\nDo you want to overwrite it?",
+            )
+            if not overwrite:
+                return
+        crmask_file = filedialog.askopenfilename(
+            initialdir=os.getcwd(),
+            title="Select FITS file with cosmic ray mask",
+            filetypes=[("FITS files", "*.fits"), ("All files", "*.*")],
+        )
+        if crmask_file:
+            print(f"Selected input FITS file: {crmask_file}")
+            extension = ask_extension_input_image(crmask_file, self.data.shape)
+            try:
+                with fits.open(crmask_file, mode="readonly") as hdul:
+                    if isinstance(extension, int):
+                        if extension < 0 or extension >= len(hdul):
+                            raise IndexError(f"Extension index {extension} out of range.")
+                    else:
+                        if extension not in hdul:
+                            raise KeyError(f"Extension name '{extension}' not found.")
+                    if hdul[extension].header["BITPIX"] not in [8, 16]:
+                        answer = messagebox.askyesno(
+                            f"Invalid Mask Data Type",
+                            f"Invalid Mask Data Type: {hdul[extension].header['BITPIX']}\n"
+                            "Cosmic ray mask is not of integer type (BITPIX=8 or 16).\n\n"
+                            "Do you want to continue loading it anyway?",
+                        )
+                        if not answer:
+                            return
+                    mask_crfound_loaded = hdul[extension].data.astype(bool)
+                    if mask_crfound_loaded.shape != self.data.shape:
+                        print(f"data shape...: {self.data.shape}")
+                        print(f"mask shape...: {mask_crfound_loaded.shape}")
+                        raise ValueError("Cosmic ray mask has different shape.")
+                    self.mask_crfound = mask_crfound_loaded
+                    print(f"Loaded cosmic ray mask from {crmask_file}")
+                    dilation = simpledialog.askinteger(
+                        "Dilation", "Enter Dilation (min=0):", initialvalue=0, minvalue=0
+                    )
+                    self.process_detected_cr(dilation=dilation)
+                    self.cleandata_deepcr = None  # Invalidate previous DeepCR cleaned data
+                    self.cleandata_lacosmic = None  # Invalidate previous L.A.Cosmic cleaned data
+                    self.cleandata_pycosmic = None  # Invalidate previous PyCosmic cleaned data
+            except Exception as e:
+                messagebox.showerror("Error", f"Error loading cosmic ray mask: {e}")
+
+    def load_fits_file(self):
+        """Load the FITS file and auxiliary file (if provided).
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        This method loads the FITS file specified by `self.input_fits` and
+        reads the data from the specified extension. If an auxiliary file is
+        provided, it also loads the auxiliary data from the specified extension.
+        The loaded data is stored in `self.data` and `self.auxdata` attributes.
+        """
+        # check if extension is compatible with an integer
+        try:
+            extnum = int(self.extension)
+            self.extension = extnum
+        except ValueError:
+            # Keep as string (delaying checking until opening the file)
+            self.extension = self.extension.upper()  # Convert to uppercase
+        try:
+            with fits.open(self.input_fits, mode="readonly") as hdul:
+                if isinstance(self.extension, int):
+                    if self.extension < 0 or self.extension >= len(hdul):
+                        raise IndexError(f"Extension index {self.extension} out of range.")
+                else:
+                    if self.extension not in hdul:
+                        raise KeyError(f"Extension name '{self.extension}' not found.")
+                print(f"Reading file [bold green]{self.input_fits}[/bold green], extension {self.extension}")
+                self.data = hdul[self.extension].data
+                if "CRMASK" in hdul:
+                    self.mask_fixed = hdul["CRMASK"].data.astype(bool)
+                else:
+                    self.mask_fixed = np.zeros(self.data.shape, dtype=bool)
+        except Exception as e:
+            print(f"Error loading FITS file: {e}")
+            sys.exit(1)
+        self.mask_crfound = np.zeros(self.data.shape, dtype=bool)
+        naxis2, naxis1 = self.data.shape
+        self.region = SliceRegion2D(f"[1:{naxis1}, 1:{naxis2}]", mode="fits").python
+        # Read auxiliary file if provided
+        if self.auxfile is not None:
+            # check if extension_auxfile is compatible with an integer
+            try:
+                extnum_aux = int(self.extension_auxfile)
+                self.extension_auxfile = extnum_aux
+            except ValueError:
+                # Keep as string (delaying checking until opening the file)
+                self.extension_auxfile = self.extension_auxfile.upper()  # Convert to uppercase
+            try:
+                with fits.open(self.auxfile, mode="readonly") as hdul_aux:
+                    if isinstance(self.extension_auxfile, int):
+                        if self.extension_auxfile < 0 or self.extension_auxfile >= len(hdul_aux):
+                            raise IndexError(f"Extension index {self.extension_auxfile} out of range.")
+                    else:
+                        if self.extension_auxfile not in hdul_aux:
+                            raise KeyError(f"Extension name '{self.extension_auxfile}' not found.")
+                    print(
+                        f"Reading auxiliary file [bold green]{self.auxfile}[/bold green], extension {self.extension_auxfile}"
+                    )
+                    self.auxdata = hdul_aux[self.extension_auxfile].data
+                    if self.auxdata.shape != self.data.shape:
+                        print(f"data shape...: {self.data.shape}")
+                        print(f"auxdata shape: {self.auxdata.shape}")
+                        raise ValueError("Auxiliary file has different shape.")
+            except Exception as e:
+                sys.exit(f"Error loading auxiliary FITS file: {e}")
+
+    def load_auxdata_from_file(self):
+        """Load auxiliary data from a FITS file."""
+        if self.auxfile is not None:
+            overwrite = messagebox.askyesno(
+                "Overwrite Auxiliary Data",
+                f"An auxiliary file is already loaded:\n\n{self.auxfile}\n\n" "Do you want to overwrite it?",
+            )
+            if not overwrite:
+                return
+        auxfile = filedialog.askopenfilename(
+            initialdir=os.getcwd(),
+            title="Select auxiliary FITS file",
+            filetypes=[("FITS files", "*.fits"), ("All files", "*.*")],
+        )
+        if auxfile:
+            extension = ask_extension_input_image(auxfile, self.data.shape)
+            try:
+                with fits.open(auxfile, mode="readonly") as hdul:
+                    if isinstance(extension, int):
+                        if extension < 0 or extension >= len(hdul):
+                            raise IndexError(f"Extension index {extension} out of range.")
+                    else:
+                        if extension not in hdul:
+                            raise KeyError(f"Extension name '{extension}' not found.")
+                    auxdata_loaded = hdul[extension].data
+                    if auxdata_loaded.shape != self.data.shape:
+                        print(f"data shape...: {self.data.shape}")
+                        print(f"auxdata shape: {auxdata_loaded.shape}")
+                        raise ValueError("Auxiliary file has different shape.")
+                    self.auxfile = auxfile
+                    self.auxdata = auxdata_loaded
+                    self.extension_auxfile = extension
+                    print(f"Loaded auxiliary data from {auxfile}")
+                    self.toggle_auxdata_button.config(state=tk.NORMAL)
+            except Exception as e:
+                print(f"Error loading auxiliary FITS file: {e}")
+
+    def save_fits_file(self):
+        """Save the cleaned FITS file.
+
+        This method prompts the user to select a location and filename to
+        save the cleaned FITS file. It writes the cleaned data and
+        the cosmic ray mask to the specified FITS file.
+
+        If the initial file contains a 'CRMASK' extension, it updates
+        that extension with the new mask. Otherwise, it creates a new
+        'CRMASK' extension to store the mask.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        After successfully saving the cleaned FITS file, the chosen output
+        filename is stored in `self.input_fits`, and the save button is disabled
+        to prevent multiple saves without further modifications.
+        """
+        base, ext = os.path.splitext(self.input_fits)
+        suggested_name = f"{base}_cleaned"
+        output_fits = filedialog.asksaveasfilename(
+            initialdir=os.getcwd(),
+            title="Save cleaned FITS file",
+            defaultextension=".fits",
+            filetypes=[("FITS files", "*.fits"), ("All files", "*.*")],
+            initialfile=suggested_name,
+        )
+        try:
+            with fits.open(self.input_fits, mode="readonly") as hdul:
+                hdul[self.extension].data = self.data
+                if "CRMASK" in hdul:
+                    hdul["CRMASK"].data = self.mask_fixed.astype(np.uint8)
+                else:
+                    crmask_hdu = fits.ImageHDU(self.mask_fixed.astype(np.uint8), name="CRMASK")
+                    hdul.append(crmask_hdu)
+                hdul.writeto(output_fits, overwrite=True)
+            print(f"Cleaned data saved to {output_fits}")
+            self.ax.set_title(os.path.basename(output_fits))
+            self.canvas.draw_idle()
+            self.input_fits = os.path.basename(output_fits)
+            self.save_button.config(state=tk.DISABLED)
+        except Exception as e:
+            print(f"Error saving FITS file: {e}")
+
+    def save_crmask_to_file(self):
+        """Save the current cosmic ray mask to a FITS file."""
+        output_fits = filedialog.asksaveasfilename(
+            initialdir=os.getcwd(),
+            title="Save last CR mask into a FITS file",
+            defaultextension=".fits",
+            filetypes=[("FITS files", "*.fits"), ("All files", "*.*")],
+            initialfile=None,
+        )
+        try:
+            hdu = fits.PrimaryHDU(self.mask_crfound.astype(np.uint8))
+            hdu.writeto(output_fits, overwrite=True)
+            print(f"Last mask saved to {output_fits}")
+        except Exception as e:
+            print(f"Error saving mask into a FITS file: {e}")  
+  
     def set_cursor_onoff(self):
         """Toggle cursor selection mode on or off."""
         if not self.use_cursor:
