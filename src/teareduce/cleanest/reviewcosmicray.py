@@ -91,7 +91,7 @@ class ReviewCosmicRay(ImageDisplay):
         cleandata_pycosmic: 2D numpy array or None
             The cleaned image data from PyCosmic.
         cleandata_deepcr: 2D numpy array or None
-            The cleaned image data from DeepCR.
+            The cleaned image data from deepCR.
         cr_labels : 2D numpy array
             Labels of connected cosmic ray pixel groups.
         num_features : int
@@ -167,7 +167,7 @@ class ReviewCosmicRay(ImageDisplay):
         cleandata_pycosmic: 2D numpy array or None
             The cleaned image data from PyCosmic.
         cleandata_deepcr: 2D numpy array or None
-            The cleaned image data from DeepCR.
+            The cleaned image data from deepCR.
         cr_labels : 2D numpy array
             Labels of connected cosmic ray pixel groups.
         num_features : int
@@ -360,7 +360,7 @@ class ReviewCosmicRay(ImageDisplay):
         # --- Interpolation using L.A.Cosmic button
         self.interp_l_button = tkbutton.new(
             self.button_frame3,
-            text="[l]acosmic",
+            text="[L].A.Cosmic",
             command=self.use_lacosmic,
             help_text="Use L.A.Cosmic interpolation for the current cosmic ray.",
         )
@@ -384,7 +384,7 @@ class ReviewCosmicRay(ImageDisplay):
             self.button_frame3,
             text="deepCR",
             command=self.use_deepcr,
-            help_text="Use DeepCR interpolation for the current cosmic ray.",
+            help_text="Use deepCR interpolation for the current cosmic ray.",
         )
         self.interp_deepcr_button.pack(side=tk.LEFT, padx=5)
         if self.cleandata_deepcr is None:
@@ -745,11 +745,11 @@ class ReviewCosmicRay(ImageDisplay):
         self.update_display(cleaned=True)
     
     def use_deepcr(self):
-        """Use DeepCR cleaned data to clean a cosmic ray."""
+        """Use deepCR cleaned data to clean a cosmic ray."""
         if self.cleandata_deepcr is None:
-            print("DeepCR cleaned data not available.")
+            print("deepCR cleaned data not available.")
             return
-        print(f"DeepCR interpolation of cosmic ray {self.cr_index}")
+        print(f"deepCR interpolation of cosmic ray {self.cr_index}")
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         for iy, ix in zip(ycr_list, xcr_list):
             self.data[iy, ix] = self.cleandata_deepcr[iy, ix]

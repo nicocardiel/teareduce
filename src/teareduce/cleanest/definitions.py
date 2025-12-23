@@ -135,9 +135,9 @@ VALID_CLEANING_METHODS = {
     "surface interp.": "a-plane",
     "median": "a-median",
     "mean": "a-mean",
-    "lacosmic": "lacosmic",
-    "pycosmic": "pycosmic",
-    "deepcr": "deepcr",
+    "L.A.Cosmic": "lacosmic",
+    "PyCosmic": "pycosmic",
+    "deepCR": "deepcr",
     "maskfill": "maskfill",
     "auxdata": "auxdata",
 }

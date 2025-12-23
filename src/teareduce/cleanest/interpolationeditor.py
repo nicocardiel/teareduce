@@ -70,7 +70,7 @@ class InterpolationEditor:
         cleandata_pycosmic : array-like or None
             Cleaned data from PyCosmic, if available.
         cleandata_deepcr : array-like or None
-            Cleaned data from DeepCR, if available.
+            Cleaned data from deepCR, if available.
         xmin : float
             Minimum x value of the data. From 1 to NAXIS1.
         xmax : float
@@ -106,7 +106,7 @@ class InterpolationEditor:
         cleandata_pycosmic : array-like or None
             Cleaned data from PyCosmic, if available.
         cleandata_deepcr : array-like or None
-            Cleaned data from DeepCR, if available.
+            Cleaned data from deepCR, if available.
         dict_interp_methods : dict
             Mapping of interpolation method names to their codes.
         cleaning_method : str or None
@@ -182,17 +182,17 @@ class InterpolationEditor:
             state = "normal"
             # Skip replace by L.A.Cosmic values if last dilation is not zero
             # or cleandata_lacosmic is not available
-            if interp_method == "lacosmic":
+            if interp_method == "L.A.Cosmic":
                 if self.last_dilation != 0:
                     state = "disabled"
                 if self.cleandata_lacosmic is None:
                     state = "disabled"
             # Skip replace by PyCosmic values if cleandata_pycosmic is not available
-            elif interp_method == "pycosmic":
+            elif interp_method == "PyCosmic":
                 if self.cleandata_pycosmic is None:
                     state = "disabled"
-            # Skip replace by DeepCR values if cleandata_deepcr is not available
-            elif interp_method == "deepcr":
+            # Skip replace by deepCR values if cleandata_deepcr is not available
+            elif interp_method == "deepCR":
                 if self.cleandata_deepcr is None:
                     state = "disabled"
             # Skip auxdata method if auxdata is not available
@@ -475,7 +475,7 @@ class InterpolationEditor:
             self.entry_maskfill_operator.config(state="disabled")
             self.entry_maskfill_smooth.config(state="disabled")
             self.entry_maskfill_verbose.config(state="disabled")
-        elif selected_method in ["lacosmic", "pycosmic", "deepcr", "auxdata"]:
+        elif selected_method in ["L.A.Cosmic", "PyCosmic", "deepCR", "auxdata"]:
             self.entry_npoints.config(state="disabled")
             self.entry_degree.config(state="disabled")
             self.entry_maskfill_size.config(state="disabled")
