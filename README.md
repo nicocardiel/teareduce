@@ -33,13 +33,6 @@ $ . venv_teareduce/bin/activate
 (venv_teareduce) $ 
 ```
 
-If you are planning to use **tea-cleanest**, you need to install this package
-with extra dependencies. In this case employ:
-
-```shell
-(venv_teareduce) $ pip install 'teareduce[cleanest]'
-```
-
 ### Installing the package
 
 The latest stable version is available via de [PyPI repository](https://pypi.org/project/teareduce/):
@@ -55,6 +48,20 @@ The latest development version is available through [GitHub](https://github.com/
 
 ```shell
 (venv_teareduce) $ pip install git+https://github.com/nicocardiel/teareduce.git@main#egg=teareduce
+```
+
+If you are planning to use **tea-cleanest**, you need to install this package
+with extra dependencies. In this case employ:
+
+```shell
+(venv_teareduce) $ pip install 'teareduce[cleanest]'
+```
+
+In addition, in order to make use of the **PyCosmic* algorithm with
+`tea-cleanest`, you need to install that package. This can be done using:
+
+```shell
+(venv_teareduce) $ pip install git+https://github.com/nicocardiel/PyCosmic.git@test
 ```
 
 ### Testing the installation
