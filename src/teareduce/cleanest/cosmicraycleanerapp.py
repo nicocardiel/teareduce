@@ -20,12 +20,13 @@ from astropy.io import fits
 
 try:
     import PyCosmic
+    PYCOSMIC_AVAILABLE = True
 except ModuleNotFoundError as e:
-    raise ModuleNotFoundError(
-        "The 'teareduce.cleanest' module requires the 'PyCosmic' package. "
-        "Please install teareduce with the 'cleanest' extra dependencies: "
-        "`pip install teareduce[cleanest]`."
-    ) from e
+    print("The 'teareduce.cleanest' module requires the 'PyCosmic' package.\n"
+          "Please install this module using:\n"
+          "`pip install git+https://github.com/nicocardiel/PyCosmic.git@test`"
+    )
+    PYCOSMIC_AVAILABLE = False
 
 try:
     import deepCR
@@ -366,6 +367,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             help_text="Run the PyCosmic algorithm to detect cosmic rays in the image.",
         )
         self.run_pycosmic_button.pack(side=tk.LEFT, padx=5)
+        if not PYCOSMIC_AVAILABLE:
+            self.run_pycosmic_button.config(state=tk.DISABLED)
         # --- DeepCR button
         self.run_deepcr_button = tkbutton.new(
             self.button_frame1,
