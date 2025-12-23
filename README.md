@@ -74,7 +74,7 @@ In addition, in order to make use of the **PyCosmic** algorithm with
 (venv_teareduce) $ ipython
 In [1]: import teareduce as tea
 In [2]: print(tea.__version__)
-0.6.6
+0.6.7
 ```
 
 Note that in PyPI there is a package called **tea** that provides utilities
