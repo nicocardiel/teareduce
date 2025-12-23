@@ -372,9 +372,9 @@ class CosmicRayCleanerApp(ImageDisplay):
         # --- DeepCR button
         self.run_deepcr_button = tkbutton.new(
             self.button_frame1,
-            text="Run DeepCR",
+            text="Run deepCR",
             command=self.run_deepcr,
-            help_text="Run the DeepCR algorithm to detect cosmic rays in the image.",
+            help_text="Run the deepCR algorithm to detect cosmic rays in the image.",
         )
         self.run_deepcr_button.pack(side=tk.LEFT, padx=5)
         # --- Cosmic-CoNN button
@@ -677,7 +677,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                         "Dilation", "Enter Dilation (min=0):", initialvalue=0, minvalue=0
                     )
                     self.process_detected_cr(dilation=dilation)
-                    self.cleandata_deepcr = None  # Invalidate previous DeepCR cleaned data
+                    self.cleandata_deepcr = None  # Invalidate previous deepCR cleaned data
                     self.cleandata_lacosmic = None  # Invalidate previous L.A.Cosmic cleaned data
                     self.cleandata_pycosmic = None  # Invalidate previous PyCosmic cleaned data
             except Exception as e:
@@ -1189,7 +1189,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.save_crmask_button.config(state=tk.NORMAL)
 
     def run_deepcr(self):
-        """Run DeepCR to detect cosmic rays."""
+        """Run deepCR to detect cosmic rays."""
         if np.any(self.mask_crfound):
             overwrite = messagebox.askyesno(
                 "Overwrite Cosmic Ray Mask",
@@ -1198,23 +1198,23 @@ class CosmicRayCleanerApp(ImageDisplay):
             if not overwrite:
                 return
         self.run_deepcr_button.config(state=tk.DISABLED)
-        print("[bold green]Executing DeepCR...[/bold green]")
-        # Initialize the DeepCR model
+        print("[bold green]Executing deepCR...[/bold green]")
+        # Initialize the deepCR model
         mdl = deepCR.deepCR(mask=self.deepcr_params["mask"]["value"])
         # Ask for threshold value and update parameter
         threshold = simpledialog.askfloat(
             "Threshold",
-            "Enter DeepCR probability threshold (0.0 - 1.0):",
+            "Enter deepCR probability threshold (0.0 - 1.0):",
             initialvalue=self.deepcr_params["threshold"]["value"],
             minvalue=0.0,
             maxvalue=1.0,
         )
         if threshold is None:
-            print("Threshold input cancelled. DeepCR detection skipped!")
+            print("Threshold input cancelled. deepCR detection skipped!")
             self.run_deepcr_button.config(state=tk.NORMAL)
             return
         self.deepcr_params["threshold"]["value"] = threshold
-        print(f"Running DeepCR version: {deepCR.__version__}  (please wait...)", end="")
+        print(f"Running deepCR version: {deepCR.__version__}  (please wait...)", end="")
         self.mask_crfound, self.cleandata_deepcr = mdl.clean(
             self.data,
             threshold=self.deepcr_params["threshold"]["value"],
@@ -1224,16 +1224,16 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Process the mask: dilation and labeling
         dilation = simpledialog.askinteger(
             "Dilation",
-            "Note: Applying dilation will prevent the use of the DeepCR cleaned data.\n\n" "Enter Dilation (min=0):",
+            "Note: Applying dilation will prevent the use of the deepCR cleaned data.\n\n" "Enter Dilation (min=0):",
             initialvalue=self.deepcr_params["dilation"]["value"],
             minvalue=0,
         )
         if dilation is None:
-            print("Dilation input cancelled. DeepCR detection skipped!")
+            print("Dilation input cancelled. deepCR detection skipped!")
             self.run_deepcr_button.config(state=tk.NORMAL)
             return
         if dilation > 0:
-            self.cleandata_deepcr = None  # Invalidate DeepCR cleaned data if dilation applied
+            self.cleandata_deepcr = None  # Invalidate deepCR cleaned data if dilation applied
         self.deepcr_params["dilation"]["value"] = dilation
         self.process_detected_cr(dilation=self.deepcr_params["dilation"]["value"])
         # Invalidate previous cleaned data from other methods
