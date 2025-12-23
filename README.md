@@ -1,6 +1,9 @@
 # teareduce
 
-|teareduce|
+```{image} https://badge.fury.io/py/teareduce.svg
+:target: https://badge.fury.io/py/teareduce
+:alt: Teareduce's PyPI version
+```
 
 Utilities for astronomical data reduction.
 
@@ -74,8 +77,3 @@ Note that in PyPI there is a package called **tea** that provides utilities
 unrelated to **teareduce**. However, throughout the examples described
 in the documentation we are making use of ``import teareduce as tea``
 to define a convenient alias.
-
-.. |teareduce| image:: https://badge.fury.io/py/teareduce.svg
-    :target: https://badge.fury.io/py/teareduce
-    :alt: Teareduce's PyPI version
-
