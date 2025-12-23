@@ -1,6 +1,6 @@
 # teareduce
 
-[![Teareduce's PyPI version](https://badge.fury.io/py/teareduce.svg)](https://badge.fury.io/py/teareduce)
+[![Teareduce's PyPI version](https://badge.fury.io/py/teareduce.svg?kill_cache=1)](https://badge.fury.io/py/teareduce)
 
 Utilities for astronomical data reduction.
 
