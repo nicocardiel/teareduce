@@ -57,7 +57,7 @@ with extra dependencies. In this case employ:
 (venv_teareduce) $ pip install 'teareduce[cleanest]'
 ```
 
-In addition, in order to make use of the **PyCosmic* algorithm with
+In addition, in order to make use of the **PyCosmic** algorithm with
 `tea-cleanest`, you need to install that package. This can be done using:
 
 ```shell
