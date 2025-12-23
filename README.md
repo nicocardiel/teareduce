@@ -67,7 +67,7 @@ The latest development version is available through [GitHub](https://github.com/
 (venv_teareduce) $ ipython
 In [1]: import teareduce as tea
 In [2]: print(tea.__version__)
-0.5.9
+0.6.6
 ```
 
 Note that in PyPI there is a package called **tea** that provides utilities
