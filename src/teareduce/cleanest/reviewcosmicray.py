@@ -98,6 +98,8 @@ class ReviewCosmicRay(ImageDisplay):
             Number of connected cosmic ray pixel groups.
         first_cr_index : int, optional
             The index of the first cosmic ray to review (default is 1).
+            If set to 0, the user have selected the CR region
+            directly with the mouse cursor.
         single_cr : bool, optional
             Whether to review a single cosmic ray (default is False).
             If True, the review window will close after reviewing the
@@ -236,7 +238,11 @@ class ReviewCosmicRay(ImageDisplay):
         if self.num_features == 0:
             print("No CR hits found!")
         else:
-            self.cr_index = first_cr_index
+            self.first_cr_index = first_cr_index
+            if self.first_cr_index == 0:  # Select CR directly with mouse cursor
+                self.cr_index = 1
+            else:
+                self.cr_index = self.first_cr_index
             self.single_cr = single_cr
             self.create_widgets()
             center_on_parent(child=self.root, parent=self.root.master, offset_x=50, offset_y=50)
@@ -494,11 +500,14 @@ class ReviewCosmicRay(ImageDisplay):
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
         ycr_list_original, xcr_list_original = np.where(self.cr_labels_original == self.cr_index)
         if self.first_plot:
-            print(
-                f"Cosmic ray {self.cr_index}: "
-                f"Number of pixels = {len(xcr_list)}, "
-                f"Centroid = ({np.mean(xcr_list)+1:.2f}, {np.mean(ycr_list)+1:.2f})"
-            )
+            if self.first_cr_index == 0:
+                print(f"Centroid = ({np.mean(xcr_list)+1:.2f}, {np.mean(ycr_list)+1:.2f})")
+            else:
+                print(
+                    f"Cosmic ray {self.cr_index}: "
+                    f"Number of pixels = {len(xcr_list)}, "
+                    f"Centroid = ({np.mean(xcr_list)+1:.2f}, {np.mean(ycr_list)+1:.2f})"
+                )
         # Use original positions to define the region to display in order
         # to avoid image shifts when some pixels are unmarked or new ones are marked
         i0 = int(np.mean(ycr_list_original) + 0.5)
@@ -564,7 +573,10 @@ class ReviewCosmicRay(ImageDisplay):
                 self.ax.plot([xcr - 0.5, xcr + 0.5], [ycr - 0.5, ycr + 0.5], "r-")
         self.ax.set_xlim(xlim)
         self.ax.set_ylim(ylim)
-        self.ax.set_title(f"Cosmic ray #{self.cr_index}/{self.num_features}")
+        if self.first_cr_index == 0:
+            self.ax.set_title("Selecting CR pixels with mouse cursor")
+        else:
+            self.ax.set_title(f"Cosmic ray #{self.cr_index}/{self.num_features}")
         if self.first_plot:
             self.first_plot = False
         self.canvas.draw_idle()
@@ -743,7 +755,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.num_cr_cleaned += 1
         self.set_buttons_after_cleaning_cr()
         self.update_display(cleaned=True)
-    
+
     def use_deepcr(self):
         """Use deepCR cleaned data to clean a cosmic ray."""
         if self.cleandata_deepcr is None:
@@ -895,10 +907,10 @@ class ReviewCosmicRay(ImageDisplay):
             iy = int(y + 0.5) - 1  # from pixel to index
             if int(self.cr_labels[iy, ix]) == self.cr_index:
                 self.cr_labels[iy, ix] = 0
-                print(f"Pixel ({ix+1}, {iy+1}) unmarked as cosmic ray.")
+                print(f"Pixel ({ix+1}, {iy+1}) unmarked as CR pixel.")
             else:
                 self.cr_labels[iy, ix] = self.cr_index
-                print(f"Pixel ({ix+1}, {iy+1}), with signal {self.data[iy, ix]}, marked as cosmic ray.")
+                print(f"Pixel ({ix+1}, {iy+1}), with signal {self.data[iy, ix]}, marked as CR pixel.")
             xcr_list, ycr_list = np.where(self.cr_labels == self.cr_index)
             if len(xcr_list) == 0:
                 self.disable_interpolation_buttons()

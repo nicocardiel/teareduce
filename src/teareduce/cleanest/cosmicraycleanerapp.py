@@ -20,11 +20,13 @@ from astropy.io import fits
 
 try:
     import PyCosmic
+
     PYCOSMIC_AVAILABLE = True
 except ModuleNotFoundError as e:
-    print("The 'teareduce.cleanest' module requires the 'PyCosmic' package.\n"
-          "Please install this module using:\n"
-          "`pip install git+https://github.com/nicocardiel/PyCosmic.git@test`"
+    print(
+        "The 'teareduce.cleanest' module requires the 'PyCosmic' package.\n"
+        "Please install this module using:\n"
+        "`pip install git+https://github.com/nicocardiel/PyCosmic.git@test`"
     )
     PYCOSMIC_AVAILABLE = False
 
@@ -390,7 +392,6 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.button_frame1, text="Stop program", command=self.stop_app, help_text="Stop the application."
         )
         self.stop_button.pack(side=tk.LEFT, padx=5)
-
 
         # Row 2 of buttons
         self.button_frame2 = tk.Frame(self.root)
@@ -850,8 +851,8 @@ class CosmicRayCleanerApp(ImageDisplay):
             hdu.writeto(output_fits, overwrite=True)
             print(f"Last mask saved to {output_fits}")
         except Exception as e:
-            print(f"Error saving mask into a FITS file: {e}")  
-  
+            print(f"Error saving mask into a FITS file: {e}")
+
     def set_cursor_onoff(self):
         """Toggle cursor selection mode on or off."""
         if not self.use_cursor:
@@ -1539,7 +1540,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 cleandata_deepcr=self.cleandata_deepcr,
                 cr_labels=tmp_cr_labels,
                 num_features=1,
-                first_cr_index=1,
+                first_cr_index=first_cr_index,
                 single_cr=True,
                 last_dilation=self.lacosmic_params["dilation"]["value"],
                 last_npoints=self.last_npoints,
