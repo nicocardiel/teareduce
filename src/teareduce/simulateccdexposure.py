@@ -194,7 +194,7 @@ class SimulateCCDExposure:
 
     CCD exposures are simulated making use of basic CCD parameters,
     such as gain, readout noise, bias, dark and flat field.
-    A data model can also be employed to simulate more realising
+    A data model can also be employed to simulate more realistic
     CCD exposures.
 
     The saturated pixels in 'data_model' are returned as 2**bitpix - 1
@@ -230,6 +230,8 @@ class SimulateCCDExposure:
         Numpy array with the pixel to pixel sensitivity (without units).
     data_model : Quantity
         Numpy array with the model of the source to be simulated (ADU).
+        Note that this is the model before applying the flatfield.
+        The values in this array must be the total ADU for each pixel.
     seed : int or None
         Random number generator seed.
     _rng : np.random.RandomState
