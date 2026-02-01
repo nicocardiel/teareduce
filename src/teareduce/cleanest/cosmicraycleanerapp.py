@@ -1,5 +1,5 @@
 #
-# Copyright 2025 Universidad Complutense de Madrid
+# Copyright 2025-2026 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
@@ -69,6 +69,7 @@ from rich import print
 
 from .askextension import ask_extension_input_image
 from .centerchildparent import center_on_parent
+from .choose_index_with_three_buttons import choose_index_with_three_buttons
 from .definitions import cosmicconn_default_dict
 from .definitions import deepcr_default_dict
 from .definitions import lacosmic_default_dict
@@ -117,8 +118,8 @@ class CosmicRayCleanerApp(ImageDisplay):
         root,
         input_fits,
         extension="0",
-        auxfile=None,
-        extension_auxfile="0",
+        auxfile_ini=None,
+        extension_auxfile_ini="0",
         fontfamily=DEFAULT_FONT_FAMILY,
         fontsize=DEFAULT_FONT_SIZE,
         width=DEFAULT_TK_WINDOW_SIZE_X,
@@ -136,9 +137,9 @@ class CosmicRayCleanerApp(ImageDisplay):
             Path to the FITS file to be cleaned.
         extension : str, optional
             FITS extension to use (default is "0").
-        auxfile : str, optional
-            Path to an auxiliary FITS file (default is None).
-        extension_auxfile : str, optional
+        auxfile_ini : str, optional
+            Path to first auxiliary FITS file (default is None).
+        extension_auxfile_ini : str, optional
             FITS extension for auxiliary file (default is "0").
         fontfamily : str, optional
             Font family for the GUI (default is "Helvetica").
@@ -222,12 +223,18 @@ class CosmicRayCleanerApp(ImageDisplay):
             FITS extension to use.
         data : np.ndarray
             The image data from the FITS file.
-        auxfile : str
-            Path to an auxiliary FITS file.
-        extension_auxfile : int
-            FITS extension for auxiliary file.
-        auxdata : np.ndarray
-            The image data from the auxiliary FITS file.
+        auxfile : list of str
+            List of Paths to auxiliary FITS files.
+        extension_auxfile : list of int
+            List of FITS extension for auxiliary files.
+        auxdata : list of np.ndarray
+            The list of image data from the auxiliary FITS files.
+        auxdata_mean : np.ndarray
+            The mean image data computed from the auxiliary FITS files.
+        auxdata_median : np.ndarray
+            The median image data computed from the auxiliary FITS files.
+        auxdata_min : np.ndarray
+            The minimum image data computed from the auxiliary FITS files.
         overplot_cr_pixels : bool
             Flag to indicate whether to overlay cosmic ray pixels.
         mask_crfound : np.ndarray
@@ -300,9 +307,12 @@ class CosmicRayCleanerApp(ImageDisplay):
         self.input_fits = input_fits
         self.extension = extension
         self.data = None
-        self.auxfile = auxfile
-        self.extension_auxfile = extension_auxfile
-        self.auxdata = None
+        self.auxfile = [auxfile_ini] if auxfile_ini is not None else []
+        self.extension_auxfile = [extension_auxfile_ini] if extension_auxfile_ini is not None else []
+        self.auxdata = []
+        self.auxdata_mean = None
+        self.auxdata_median = None
+        self.auxdata_min = None
         self.overplot_cr_pixels = True
         self.mask_crfound = None
         self.load_fits_file()
@@ -578,7 +588,7 @@ class CosmicRayCleanerApp(ImageDisplay):
         ylabel = "Y pixel (from 1 to NAXIS2)"
         extent = [0.5, self.data.shape[1] + 0.5, 0.5, self.data.shape[0] + 0.5]
         self.image_aspect = "equal"
-        self.displaying_auxdata = False
+        self.displaying_auxdata = 0   # 0: main data, > 0: auxdata
         self.image, _, _ = imshow(
             fig=self.fig,
             ax=self.ax,
@@ -726,42 +736,59 @@ class CosmicRayCleanerApp(ImageDisplay):
         naxis2, naxis1 = self.data.shape
         self.region = SliceRegion2D(f"[1:{naxis1}, 1:{naxis2}]", mode="fits").python
         # Read auxiliary file if provided
-        if self.auxfile is not None:
+        if len(self.auxfile) > 0 and self.auxfile[0] is not None:
             # check if extension_auxfile is compatible with an integer
             try:
-                extnum_aux = int(self.extension_auxfile)
-                self.extension_auxfile = extnum_aux
+                extnum_aux = int(self.extension_auxfile[0])
+                self.extension_auxfile[0] = extnum_aux
             except ValueError:
                 # Keep as string (delaying checking until opening the file)
-                self.extension_auxfile = self.extension_auxfile.upper()  # Convert to uppercase
+                self.extension_auxfile[0] = self.extension_auxfile[0].upper()  # Convert to uppercase
             try:
-                with fits.open(self.auxfile, mode="readonly") as hdul_aux:
-                    if isinstance(self.extension_auxfile, int):
-                        if self.extension_auxfile < 0 or self.extension_auxfile >= len(hdul_aux):
-                            raise IndexError(f"Extension index {self.extension_auxfile} out of range.")
+                with fits.open(self.auxfile[0], mode="readonly") as hdul_aux:
+                    if isinstance(self.extension_auxfile[0], int):
+                        if self.extension_auxfile[0] < 0 or self.extension_auxfile[0] >= len(hdul_aux):
+                            raise IndexError(f"Extension index {self.extension_auxfile[0]} out of range.")
                     else:
-                        if self.extension_auxfile not in hdul_aux:
-                            raise KeyError(f"Extension name '{self.extension_auxfile}' not found.")
+                        if self.extension_auxfile[0] not in hdul_aux:
+                            raise KeyError(f"Extension name '{self.extension_auxfile[0]}' not found.")
                     print(
-                        f"Reading auxiliary file [bold green]{self.auxfile}[/bold green], extension {self.extension_auxfile}"
+                        f"Reading auxiliary file [bold green]{self.auxfile[0]}[/bold green], extension {self.extension_auxfile[0]}"
                     )
-                    self.auxdata = hdul_aux[self.extension_auxfile].data
-                    if self.auxdata.shape != self.data.shape:
+                    self.auxdata.append(hdul_aux[self.extension_auxfile[0]].data)
+                    if self.auxdata[0].shape != self.data.shape:
                         print(f"data shape...: {self.data.shape}")
-                        print(f"auxdata shape: {self.auxdata.shape}")
+                        print(f"auxdata shape: {self.auxdata[0].shape}")
                         raise ValueError("Auxiliary file has different shape.")
+                    self.auxdata_mean = self.auxdata[0].copy()
+                    self.auxdata_median = self.auxdata[0].copy()
+                    self.auxdata_min = self.auxdata[0].copy()
             except Exception as e:
-                sys.exit(f"Error loading auxiliary FITS file: {e}")
+                sys.exit(f"Error loading auxiliary FITS file {self.auxfile[0]}:\n{e}")
 
     def load_auxdata_from_file(self):
         """Load auxiliary data from a FITS file."""
-        if self.auxfile is not None:
+        if len(self.auxfile) > 0:
+            nchoice = choose_index_with_three_buttons(
+                parent=self.root,
+                title="Select Auxiliary Data Index",
+                prompt="Select the auxiliary data to overwrite\nor create new auxiliary data:",
+                items=[f"Aux. data #{i+1}: {os.path.basename(self.auxfile[i])}" for i in range(len(self.auxfile))],
+            )
+            if nchoice == 0:
+                return
+            else:
+                aux_number = nchoice - 1
+            """
             overwrite = messagebox.askyesno(
                 "Overwrite Auxiliary Data",
                 f"An auxiliary file is already loaded:\n\n{self.auxfile}\n\n" "Do you want to overwrite it?",
             )
             if not overwrite:
                 return
+            aux_number = len(self.auxfile)"""
+        else:
+            aux_number = 0
         auxfile = filedialog.askopenfilename(
             initialdir=os.getcwd(),
             title="Select auxiliary FITS file",
@@ -782,9 +809,26 @@ class CosmicRayCleanerApp(ImageDisplay):
                         print(f"data shape...: {self.data.shape}")
                         print(f"auxdata shape: {auxdata_loaded.shape}")
                         raise ValueError("Auxiliary file has different shape.")
-                    self.auxfile = auxfile
-                    self.auxdata = auxdata_loaded
-                    self.extension_auxfile = extension
+                    if aux_number == len(self.auxfile):
+                        self.auxfile.append(auxfile)
+                        self.extension_auxfile.append(extension)
+                        self.auxdata.append(auxdata_loaded)
+                    else:
+                        self.auxfile[aux_number] = auxfile
+                        self.auxdata[aux_number] = auxdata_loaded
+                        self.extension_auxfile[aux_number] = extension
+                    # Compute mean, median, min if multiple auxdata are loaded
+                    if len(self.auxdata) > 1:
+                        data3d = np.zeros((len(self.auxdata),) + self.data.shape, dtype=self.data.dtype)
+                        for i in range(len(self.auxdata)):
+                            data3d[i, :, :] = self.auxdata[i]
+                        self.auxdata_mean = np.mean(data3d, axis=0)
+                        self.auxdata_median = np.median(data3d, axis=0)
+                        self.auxdata_min = np.min(data3d, axis=0)
+                    else:
+                        self.auxdata_mean = self.auxdata[0].copy()
+                        self.auxdata_median = self.auxdata[0].copy()
+                        self.auxdata_min = self.auxdata[0].copy()
                     print(f"Loaded auxiliary data from {auxfile}")
                     self.toggle_auxdata_button.config(state=tk.NORMAL)
             except Exception as e:
@@ -864,22 +908,24 @@ class CosmicRayCleanerApp(ImageDisplay):
 
     def toggle_auxdata(self):
         """Toggle between main data and auxiliary data for display."""
-        if self.displaying_auxdata:
+        self.displaying_auxdata += 1
+        if self.displaying_auxdata > len(self.auxdata):
+            self.displaying_auxdata = 0
+        if self.displaying_auxdata == 0:
             # Switch to main data
             vmin = self.get_vmin()
             vmax = self.get_vmax()
             self.image.set_data(self.data)
             self.image.set_clim(vmin=vmin, vmax=vmax)
-            self.displaying_auxdata = False
+            self.displaying_auxdata = 0
             self.ax.set_title(f"data: {os.path.basename(self.input_fits)}")
         else:
             # Switch to auxiliary data
             vmin = self.get_vmin()
             vmax = self.get_vmax()
-            self.image.set_data(self.auxdata)
+            self.image.set_data(self.auxdata[self.displaying_auxdata - 1])
             self.image.set_clim(vmin=vmin, vmax=vmax)
-            self.displaying_auxdata = True
-            self.ax.set_title(f"auxdata: {os.path.basename(self.auxfile)}")
+            self.ax.set_title(f"auxdata: {os.path.basename(self.auxfile[self.displaying_auxdata - 1])}")
         self.canvas.draw_idle()
 
     def toggle_aspect(self):
@@ -1616,7 +1662,7 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.set_cursor_onoff()
         elif event.key == "a":
             self.toggle_aspect()
-        elif event.key == "t" and self.auxdata is not None:
+        elif event.key == "t" and len(self.auxdata) > 0:
             self.toggle_auxdata()
         elif event.key == ",":
             self.set_minmax()

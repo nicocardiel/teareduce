@@ -1,5 +1,5 @@
 #
-# Copyright 2025 Universidad Complutense de Madrid
+# Copyright 2025-2026 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
@@ -151,8 +151,8 @@ def main():
         root=root,
         input_fits=args.input_fits,
         extension=args.extension,
-        auxfile=args.auxfile,
-        extension_auxfile=args.extension_auxfile,
+        auxfile_ini=args.auxfile,
+        extension_auxfile_ini=args.extension_auxfile,
         fontfamily=args.fontfamily,
         fontsize=args.fontsize,
         width=args.width,
