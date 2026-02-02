@@ -9,6 +9,7 @@
 
 """Interpolation editor dialog for interpolation parameters."""
 
+import os
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
@@ -156,7 +157,7 @@ class InterpolationEditor:
             self.auxdata_options = []
         else:
             self.auxdata_options = [
-                f"{self.auxfile_list[i]}[{self.extension_auxfile_list[i]}]" for i in range(self.naux)
+                f"{os.path.basename(self.auxfile_list[i])}[{self.extension_auxfile_list[i]}]" for i in range(self.naux)
             ]
             if self.naux > 1:
                 self.auxdata_options.extend(

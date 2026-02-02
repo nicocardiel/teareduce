@@ -9,6 +9,7 @@
 
 """Define the ReviewCosmicRay class."""
 
+import os
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
@@ -56,6 +57,7 @@ class ReviewCosmicRay(ImageDisplay):
         root,
         root_width,
         root_height,
+        input_fits,
         data,
         auxdata,
         auxfile_list,
@@ -88,6 +90,8 @@ class ReviewCosmicRay(ImageDisplay):
             The width of the root window. The review window is scaled accordingly.
         root_height : int
             The height of the root window. The review window is scaled accordingly.
+        input_fits : str
+            Path to the FITS file to be cleaned.
         data : 2D numpy array
             The original image data.
         auxdata : 2D numpy array or None
@@ -176,6 +180,8 @@ class ReviewCosmicRay(ImageDisplay):
             The scaling factor for the width of the review window.
         factor_height : float
             The scaling factor for the height of the review window.
+        input_fits : str
+            Path to the FITS file to be cleaned.
         data : 2D numpy array
             The original image data.
         auxdata : 2D numpy array or None
@@ -226,6 +232,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.root.title(f"Review Cosmic Rays (TEA version {VERSION})")
         self.factor_width = root_width / DEFAULT_TK_WINDOW_SIZE_X
         self.factor_height = root_height / DEFAULT_TK_WINDOW_SIZE_Y
+        self.input_fits = input_fits
         self.auxdata = auxdata
         self.naux = len(self.auxdata)
         if self.naux > 0:
@@ -250,14 +257,17 @@ class ReviewCosmicRay(ImageDisplay):
             self.auxiliary_data_index = None
         else:
             self.auxdata_options = [
-                f"#{i+1}: {self.auxfile_list[i]}[{self.extension_auxfile_list[i]}]" for i in range(self.naux)
+                f"#[{i+1}]: {os.path.basename(self.auxfile_list[i])}[{self.extension_auxfile_list[i]}]"
+                for i in range(self.naux)
             ]
             if self.naux > 1:
-                self.auxdata_options.extend([
-                    f"#{self.naux+1}: MEAN of auxiliary data", 
-                    f"#{self.naux+2}: MEDIAN of auxiliary data", 
-                    f"#{self.naux+3}: MINIMUM of auxiliary data"
-                ])
+                self.auxdata_options.extend(
+                    [
+                        f"#[{self.naux+1}]: MEAN of auxiliary data",
+                        f"#[{self.naux+2}]: MEDIAN of auxiliary data",
+                        f"#[{self.naux+3}]: MINIMUM of auxiliary data",
+                    ]
+                )
         self.auxiliary_data_index = 0  # first auxiliary data by default
         self.auxdata_mean = auxdata_mean
         self.auxdata_median = auxdata_median
@@ -658,7 +668,10 @@ class ReviewCosmicRay(ImageDisplay):
                 vmax=vmax,
             )
             self.image_aux.set_extent([jmin + 0.5, jmax + 1.5, imin + 0.5, imax + 1.5])
-            self.ax_aux.set_title(f"Auxiliary data: {self.auxdata_options[self.auxiliary_data_index - 1]}")
+            dumfname = self.auxdata_options[self.auxiliary_data_index - 1]
+            dumi = dumfname.find(":")
+            dumc = dumfname[:dumi].replace("[", "").replace("]", "")
+            self.ax_aux.set_title(f"Auxiliary data {dumc}:\n{dumfname[dumi+1:].strip()}")
         # Overplot cosmic ray pixels
         xlim = self.ax.get_xlim()
         ylim = self.ax.get_ylim()
@@ -675,7 +688,7 @@ class ReviewCosmicRay(ImageDisplay):
         if self.first_cr_index == 0:
             self.ax.set_title("Selecting CR pixels with mouse cursor")
         else:
-            self.ax.set_title(f"Cosmic ray #{self.cr_index}/{self.num_features}")
+            self.ax.set_title(f"Cosmic ray #{self.cr_index}/{self.num_features}\n{os.path.basename(self.input_fits)}")
         if self.first_plot:
             self.first_plot = False
         self.canvas.draw_idle()
@@ -1007,7 +1020,7 @@ class ReviewCosmicRay(ImageDisplay):
         elif event.key == "e":
             self.exit_review()
             return  # important: do not remove (to avoid errors)
-        elif event.key in ["1","2","3","4","5","6","7","8","9"]:
+        elif event.key in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
             if self.naux > 1 and int(event.key) <= self.naux + 3:
                 index = int(event.key) - 1
                 if 0 <= index < len(self.auxdata_options):
