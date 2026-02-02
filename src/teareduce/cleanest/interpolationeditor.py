@@ -1,5 +1,5 @@
 #
-# Copyright 2025 Universidad Complutense de Madrid
+# Copyright 2025-2026 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
@@ -502,7 +502,9 @@ class InterpolationEditor:
         selected_method = self.cleaning_method_var.get()
         if selected_method == "Auxiliary data":
             self.auxiliary_data_index = self.auxdata_options.index(self.auxdata_var.get()) + 1
-            print(f"Selected cleaning method: [red bold]{selected_method}[/red bold]: {self.auxdata_options[self.auxiliary_data_index - 1]}")
+            print(
+                f"Selected cleaning method: [red bold]{selected_method}[/red bold]: {self.auxdata_options[self.auxiliary_data_index - 1]}"
+            )
             self.auxdata_combobox.config(state="readonly")
         else:
             print(f"Selected cleaning method: [red bold]{selected_method}[/red bold]")

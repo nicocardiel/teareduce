@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2023-2025 Universidad Complutense de Madrid
+# Copyright 2023-2026 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
@@ -9,7 +9,7 @@
 #
 """Module to define the version of the teareduce package."""
 
-VERSION = '0.6.9'
+VERSION = '0.7.0'
 
 
 def main():

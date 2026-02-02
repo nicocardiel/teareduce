@@ -154,9 +154,7 @@ def main():
                 if len(matched_files) == 0:
                     print(f"Error: No files matched the pattern '{s}'.")
                     exit(1)
-                args.auxfile = ",".join(
-                    [f"{fname}[{ext}]" if ext is not None else fname for fname in matched_files]
-                )
+                args.auxfile = ",".join([f"{fname}[{ext}]" if ext is not None else fname for fname in matched_files])
             else:
                 matched_files = sorted(glob.glob(args.auxfile))
                 if len(matched_files) == 0:
