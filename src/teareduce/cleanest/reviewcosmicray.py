@@ -250,12 +250,14 @@ class ReviewCosmicRay(ImageDisplay):
             self.auxiliary_data_index = None
         else:
             self.auxdata_options = [
-                f"{self.auxfile_list[i]}[{self.extension_auxfile_list[i]}]" for i in range(self.naux)
+                f"#{i+1}: {self.auxfile_list[i]}[{self.extension_auxfile_list[i]}]" for i in range(self.naux)
             ]
             if self.naux > 1:
-                self.auxdata_options.extend(
-                    ["MEAN of auxiliary data", "MEDIAN of auxiliary data", "MINIMUM of auxiliary data"]
-                )
+                self.auxdata_options.extend([
+                    f"#{self.naux+1}: MEAN of auxiliary data", 
+                    f"#{self.naux+2}: MEDIAN of auxiliary data", 
+                    f"#{self.naux+3}: MINIMUM of auxiliary data"
+                ])
         self.auxiliary_data_index = 0  # first auxiliary data by default
         self.auxdata_mean = auxdata_mean
         self.auxdata_median = auxdata_median
@@ -307,7 +309,10 @@ class ReviewCosmicRay(ImageDisplay):
         def give_focus_to_canvas():
             self.canvas.get_tk_widget().focus_set()
 
-        event.widget.after(10, give_focus_to_canvas)
+        if event is None:
+            self.root.after(10, give_focus_to_canvas)
+        else:
+            event.widget.after(10, give_focus_to_canvas)
 
     def create_widgets(self):
         """Create the GUI widgets for the review window."""
@@ -1002,6 +1007,12 @@ class ReviewCosmicRay(ImageDisplay):
         elif event.key == "e":
             self.exit_review()
             return  # important: do not remove (to avoid errors)
+        elif event.key in ["1","2","3","4","5","6","7","8","9"]:
+            if self.naux > 1 and int(event.key) <= self.naux + 3:
+                index = int(event.key) - 1
+                if 0 <= index < len(self.auxdata_options):
+                    self.auxdata_var.set(self.auxdata_options[index])
+                    self.on_combo_auxdata_select(None)
         else:
             print(f"Key pressed: {event.key}")
 
