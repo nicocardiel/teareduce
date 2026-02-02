@@ -10,6 +10,7 @@
 """Interactive Cosmic Ray cleaning tool."""
 
 import argparse
+import glob
 import tkinter as tk
 from tkinter import filedialog
 import os
@@ -127,6 +128,42 @@ def main():
     extension_auxfile_list = []
     if args.auxfile is not None:
         # Check several auxiliary files separated by commas
+        if "\n" in args.auxfile:
+            if "?" in args.auxfile or "*" in args.auxfile:
+                print("Error: Cannot combine newlines and wildcards in --auxfile specification.")
+                exit(1)
+            # Replace newlines by commas to allow:
+            # --auxfile="`ls file??.fits`"   -> without extensions
+            # --auxfile="`for f in file??.fits; do echo "${f}[primary]"; done`"  -> with extension name (the same for all files!)
+            args.auxfile = args.auxfile.replace("\n", ",")
+        elif "?" in args.auxfile or "*" in args.auxfile:
+            # Handle wildcards to allow:
+            # --auxfile="file??.fits"   -> without extensions
+            # --auxfile="file??.fits[primary]"  -> with extension name (the same for all files!)
+            if "," in args.auxfile:
+                print("Error: Cannot combine wildcards with commas in --auxfile specification.")
+                exit(1)
+            # Expand possible wildcards in the auxiliary file specification
+            if "[" in args.auxfile:
+                s = args.auxfile.strip()
+                ext = None
+                if s.endswith("]"):
+                    ext = s[s.rfind("[") + 1 : s.rfind("]")]
+                    s = s[: s.rfind("[")]
+                matched_files = sorted(glob.glob(s))
+                if len(matched_files) == 0:
+                    print(f"Error: No files matched the pattern '{s}'.")
+                    exit(1)
+                args.auxfile = ",".join(
+                    [f"{fname}[{ext}]" if ext is not None else fname for fname in matched_files]
+                )
+            else:
+                matched_files = sorted(glob.glob(args.auxfile))
+                if len(matched_files) == 0:
+                    print(f"Error: No files matched the pattern '{args.auxfile}'.")
+                    exit(1)
+                args.auxfile = ",".join(matched_files)
+        # Now process the comma-separated auxiliary files
         for item in args.auxfile.split(","):
             # Extract possible [ext] from filename
             if "[" in item:
