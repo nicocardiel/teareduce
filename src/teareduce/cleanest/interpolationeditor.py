@@ -186,6 +186,11 @@ class InterpolationEditor:
         self.create_widgets()
         center_on_parent(child=self.root, parent=self.root.master)
 
+    def on_combo_auxdata_change(self, event):
+        """Handle changes in the auxiliary data combobox selection."""
+        self.auxiliary_data_index = self.auxdata_options.index(self.auxdata_var.get()) + 1
+        self.action_on_method_change()
+
     def create_widgets(self):
         """Create the widgets for the dialog."""
         # Main frame
@@ -250,6 +255,8 @@ class InterpolationEditor:
             )
             self.auxdata_combobox.grid(row=row, column=column, columnspan=4, sticky="w", padx=5, pady=5)
             self.auxdata_combobox.config(state="disabled")
+            # --- Bind the selection event to the handler
+            self.auxdata_combobox.bind("<<ComboboxSelected>>", self.on_combo_auxdata_change)
 
         row += 1
 
@@ -493,10 +500,12 @@ class InterpolationEditor:
     def action_on_method_change(self):
         """Handle changes in the selected cleaning method."""
         selected_method = self.cleaning_method_var.get()
-        print(f"Selected cleaning method: [red bold]{selected_method}[/red bold]")
         if selected_method == "Auxiliary data":
+            self.auxiliary_data_index = self.auxdata_options.index(self.auxdata_var.get()) + 1
+            print(f"Selected cleaning method: [red bold]{selected_method}[/red bold]: {self.auxdata_options[self.auxiliary_data_index - 1]}")
             self.auxdata_combobox.config(state="readonly")
         else:
+            print(f"Selected cleaning method: [red bold]{selected_method}[/red bold]")
             self.auxdata_combobox.config(state="disabled")
 
         if selected_method in ["x interp.", "y interp."]:
