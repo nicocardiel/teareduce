@@ -236,14 +236,14 @@ class ReviewCosmicRay(ImageDisplay):
         self.auxdata = auxdata
         self.naux = len(self.auxdata)
         if self.naux > 0:
-            # self.root.geometry("1000x760+100+100")  # This does not work in Fedora
+            # self.root.geometry("1000x800+100+100")  # This does not work in Fedora
             window_width = int(1000 * self.factor_width + 0.5)
-            window_height = int(760 * self.factor_height + 0.5)
+            window_height = int(800 * self.factor_height + 0.5)
             self.root.minsize(window_width, window_height)
         else:
-            # self.root.geometry("900x760+100+100")  # This does not work in Fedora
-            window_width = int(900 * self.factor_width + 0.5)
-            window_height = int(760 * self.factor_height + 0.5)
+            # self.root.geometry("950x800+100+100")  # This does not work in Fedora
+            window_width = int(950 * self.factor_width + 0.5)
+            window_height = int(800 * self.factor_height + 0.5)
             self.root.minsize(window_width, window_height)
         if len(auxfile_list) != self.naux:
             raise ValueError("Length of auxfile_list must match length of auxdata.")
@@ -367,6 +367,15 @@ class ReviewCosmicRay(ImageDisplay):
         )
         self.restore_cr_button.pack(side=tk.LEFT, padx=5)
         self.restore_cr_button.config(state=tk.DISABLED)
+        # --- Fix CR button
+        self.fix_cr_button = tkbutton.new(
+            self.button_frame1,
+            text="[f]ix CR",
+            command=self.fix_cr_interpolation,
+            help_text="Fix current interpolation and allow new one.",
+        )
+        self.fix_cr_button.pack(side=tk.LEFT, padx=5)
+        self.fix_cr_button.config(state=tk.DISABLED)
         # --- Next button
         self.next_button = tkbutton.new(
             self.button_frame1,
@@ -766,6 +775,7 @@ class ReviewCosmicRay(ImageDisplay):
         """Set the state of buttons after cleaning a cosmic ray."""
         self.disable_interpolation_buttons()
         self.restore_cr_button.config(state=tk.NORMAL)
+        self.fix_cr_button.config(state=tk.NORMAL)
         self.remove_crosses_button.config(state=tk.DISABLED)
 
     def interp_x(self):
@@ -959,6 +969,17 @@ class ReviewCosmicRay(ImageDisplay):
         self.enable_interpolation_buttons()
         self.remove_crosses_button.config(state=tk.NORMAL)
         self.restore_cr_button.config(state=tk.DISABLED)
+        self.fix_cr_button.config(state=tk.DISABLED)
+        self.update_display()
+
+    def fix_cr_interpolation(self):
+        """Fix the current interpolation and allow new one."""
+        print(f"Fixed interpolation for cosmic ray {self.cr_index}")
+        ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
+        for iy, ix in zip(ycr_list, xcr_list):
+            self.cr_labels[iy, ix] = 0
+        self.restore_cr_button.config(state=tk.DISABLED)
+        self.fix_cr_button.config(state=tk.DISABLED)
         self.update_display()
 
     def continue_cr(self):
@@ -972,6 +993,7 @@ class ReviewCosmicRay(ImageDisplay):
             return  # important: do not remove (to avoid errors)
         self.first_plot = True
         self.restore_cr_button.config(state=tk.DISABLED)
+        self.fix_cr_button.config(state=tk.DISABLED)
         self.enable_interpolation_buttons()
         self.remove_crosses_button.config(state=tk.NORMAL)
         self.update_display()
@@ -987,6 +1009,9 @@ class ReviewCosmicRay(ImageDisplay):
         elif event.key == "r":
             if self.restore_cr_button.cget("state") != "disabled":
                 self.restore_cr()
+        elif event.key == "f":
+            if self.fix_cr_button.cget("state") != "disabled":
+                self.fix_cr_interpolation()
         elif event.key == "x":
             if self.interp_x_button.cget("state") != "disabled":
                 self.interp_x()
