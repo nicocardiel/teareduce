@@ -10,6 +10,7 @@
 """Define the ReviewCosmicRay class."""
 
 import tkinter as tk
+from tkinter import ttk
 from tkinter import messagebox
 from tkinter import simpledialog
 
@@ -57,6 +58,11 @@ class ReviewCosmicRay(ImageDisplay):
         root_height,
         data,
         auxdata,
+        auxfile_list,
+        extension_auxfile_list,
+        auxdata_mean,
+        auxdata_median,
+        auxdata_min,
         cleandata_lacosmic,
         cleandata_pycosmic,
         cleandata_deepcr,
@@ -86,6 +92,16 @@ class ReviewCosmicRay(ImageDisplay):
             The original image data.
         auxdata : 2D numpy array or None
             The auxiliary image data.
+        auxfile_list : list of str
+            List of auxiliary FITS file names.
+        extension_auxfile_list : list of str
+            List of FITS extensions for auxiliary files.
+        auxdata_mean : 2D numpy array or None
+            The mean auxiliary image data.
+        auxdata_median : 2D numpy array or None
+            The median auxiliary image data.
+        auxdata_min : 2D numpy array or None
+            The minimum auxiliary image data.
         cleandata_lacosmic: 2D numpy array or None
             The cleaned image data from L.A.Cosmic.
         cleandata_pycosmic: 2D numpy array or None
@@ -164,6 +180,16 @@ class ReviewCosmicRay(ImageDisplay):
             The original image data.
         auxdata : 2D numpy array or None
             The auxiliary image data.
+        auxfile_list : list of str
+            List of auxiliary FITS file names.
+        extension_auxfile_list : list of str
+            List of FITS extensions for auxiliary files.
+        auxdata_mean : 2D numpy array or None
+            The mean auxiliary image data.
+        auxdata_median : 2D numpy array or None
+            The median auxiliary image data.
+        auxdata_min : 2D numpy array or None
+            The minimum auxiliary image data.
         cleandata_lacosmic: 2D numpy array or None
             The cleaned image data from L.A.Cosmic.
         cleandata_pycosmic: 2D numpy array or None
@@ -201,7 +227,8 @@ class ReviewCosmicRay(ImageDisplay):
         self.factor_width = root_width / DEFAULT_TK_WINDOW_SIZE_X
         self.factor_height = root_height / DEFAULT_TK_WINDOW_SIZE_Y
         self.auxdata = auxdata
-        if self.auxdata is not None:
+        self.naux = len(self.auxdata)
+        if self.naux > 0:
             # self.root.geometry("1000x760+100+100")  # This does not work in Fedora
             window_width = int(1000 * self.factor_width + 0.5)
             window_height = int(760 * self.factor_height + 0.5)
@@ -211,6 +238,28 @@ class ReviewCosmicRay(ImageDisplay):
             window_width = int(900 * self.factor_width + 0.5)
             window_height = int(760 * self.factor_height + 0.5)
             self.root.minsize(window_width, window_height)
+        if len(auxfile_list) != self.naux:
+            raise ValueError("Length of auxfile_list must match length of auxdata.")
+        if len(extension_auxfile_list) != self.naux:
+            raise ValueError("Length of extension_auxfile_list must match length of auxdata.")
+        self.auxfile_list = auxfile_list
+        self.extension_auxfile_list = extension_auxfile_list
+        self.extension_auxfile_list = extension_auxfile_list
+        if self.naux == 0:
+            self.auxdata_options = []
+            self.auxiliary_data_index = None
+        else:
+            self.auxdata_options = [
+                f"{self.auxfile_list[i]}[{self.extension_auxfile_list[i]}]" for i in range(self.naux)
+            ]
+            if self.naux > 1:
+                self.auxdata_options.extend(
+                    ["MEAN of auxiliary data", "MEDIAN of auxiliary data", "MINIMUM of auxiliary data"]
+                )
+        self.auxiliary_data_index = 0  # first auxiliary data by default
+        self.auxdata_mean = auxdata_mean
+        self.auxdata_median = auxdata_median
+        self.auxdata_min = auxdata_min
         self.root.update_idletasks()
         self.root.geometry("+100+100")
         self.data = data
@@ -246,6 +295,19 @@ class ReviewCosmicRay(ImageDisplay):
             self.single_cr = single_cr
             self.create_widgets()
             center_on_parent(child=self.root, parent=self.root.master, offset_x=50, offset_y=50)
+
+    def on_combo_auxdata_select(self, event):
+        """Handle selection of auxiliary data from the combobox."""
+        selected_option = self.auxdata_var.get()
+        self.auxiliary_data_index = self.auxdata_options.index(selected_option) + 1
+        self.update_display()
+
+        # Return focus to the Matplotlib figure to keep keyboard shortcuts working
+        # (requires a tiny delay to avoid conflicts with the combobox event handling)
+        def give_focus_to_canvas():
+            self.canvas.get_tk_widget().focus_set()
+
+        event.widget.after(10, give_focus_to_canvas)
 
     def create_widgets(self):
         """Create the GUI widgets for the review window."""
@@ -403,24 +465,45 @@ class ReviewCosmicRay(ImageDisplay):
             help_text="Perform maskfill interpolation for the current cosmic ray.",
         )
         self.interp_maskfill_button.pack(side=tk.LEFT, padx=5)
+
+        # Row 4 of buttons
+        self.button_frame4 = tk.Frame(self.root)
+        self.button_frame4.pack(pady=5)
         # --- Interpolation using auxiliary data button
         self.interp_aux_button = tkbutton.new(
-            self.button_frame3,
+            self.button_frame4,
             text="[a]ux. data",
             command=self.use_auxdata,
             help_text="Use auxiliary data for interpolation of the current cosmic ray.",
         )
         self.interp_aux_button.pack(side=tk.LEFT, padx=5)
-        if self.auxdata is None:
+        if self.naux == 0:
             self.interp_aux_button.config(state=tk.DISABLED)
+        # --- Add combobox to choose auxdata if auxdata method is selected and naux > 0:
+        if self.naux == 0:
+            self.auxdata_var = tk.StringVar(value="No auxiliary data available")
+        else:
+            self.auxdata_var = tk.StringVar(value=self.auxdata_options[self.auxiliary_data_index])
+        self.auxdata_combobox = ttk.Combobox(
+            self.button_frame4,
+            textvariable=self.auxdata_var,
+            values=self.auxdata_options,
+            state="readonly",
+            width=40,
+        )
+        self.auxdata_combobox.pack(side=tk.LEFT, padx=5)
+        if self.naux == 0:
+            self.auxdata_combobox.config(state="disabled")
+        # --- Bind the selection event to the handler
+        self.auxdata_combobox.bind("<<ComboboxSelected>>", self.on_combo_auxdata_select)
 
-        # Row 4 of buttons
-        self.button_frame4 = tk.Frame(self.root)
-        self.button_frame4.pack(pady=5)
+        # Row 5 of buttons
+        self.button_frame5 = tk.Frame(self.root)
+        self.button_frame5.pack(pady=5)
         # --- vmin button
         vmin, vmax = zscale(self.data)
         self.vmin_button = tkbutton.new(
-            self.button_frame4,
+            self.button_frame5,
             text=f"vmin: {vmin:.2f}",
             command=self.set_vmin,
             help_text="Set the minimum value for the display scale.",
@@ -429,7 +512,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.vmin_button.pack(side=tk.LEFT, padx=5)
         # --- vmax button
         self.vmax_button = tkbutton.new(
-            self.button_frame4,
+            self.button_frame5,
             text=f"vmax: {vmax:.2f}",
             command=self.set_vmax,
             help_text="Set the maximum value for the display scale.",
@@ -438,7 +521,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.vmax_button.pack(side=tk.LEFT, padx=5)
         # --- minmax button
         self.set_minmax_button = tkbutton.new(
-            self.button_frame4,
+            self.button_frame5,
             text="minmax [,]",
             command=self.set_minmax,
             help_text="Set the display scale to the minimum and maximum data values.",
@@ -446,7 +529,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.set_minmax_button.pack(side=tk.LEFT, padx=5)
         # --- zscale button
         self.set_zscale_button = tkbutton.new(
-            self.button_frame4,
+            self.button_frame5,
             text="zscale [/]",
             command=self.set_zscale,
             help_text="Set the display scale using zscale.",
@@ -454,7 +537,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.set_zscale_button.pack(side=tk.LEFT, padx=5)
         # --- Help button
         self.help_button = tkbutton.new(
-            self.button_frame4,
+            self.button_frame5,
             text="Help",
             command=tkbutton.show_help,
             help_text="Show help information for all buttons.",
@@ -462,7 +545,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.help_button.pack(side=tk.LEFT, padx=5)
 
         # Figure
-        if self.auxdata is not None:
+        if self.naux > 0:
             self.fig, (self.ax, self.ax_aux) = plt.subplots(
                 ncols=2, figsize=(11 * self.factor_width, 5.5 * self.factor_height), constrained_layout=True
             )
@@ -546,12 +629,23 @@ class ReviewCosmicRay(ImageDisplay):
             vmax=vmax,
         )
         self.image.set_extent([jmin + 0.5, jmax + 1.5, imin + 0.5, imax + 1.5])
-        if self.auxdata is not None:
+        if self.naux > 0:
+            self.auxiliary_data_index = self.auxdata_options.index(self.auxdata_var.get()) + 1
+            if 1 <= self.auxiliary_data_index <= self.naux:
+                auximg = self.auxdata[self.auxiliary_data_index - 1]
+            elif self.auxiliary_data_index == self.naux + 1:
+                auximg = self.auxdata_mean
+            elif self.auxiliary_data_index == self.naux + 2:
+                auximg = self.auxdata_median
+            elif self.auxiliary_data_index == self.naux + 3:
+                auximg = self.auxdata_min
+            else:
+                raise ValueError(f"Invalid auxiliary data index: {self.auxiliary_data_index}")
             self.ax_aux.clear()
             self.image_aux, _, _ = imshow(
                 self.fig,
                 self.ax_aux,
-                self.auxdata[self.region],
+                auximg[self.region],
                 colorbar=False,
                 xlabel=xlabel,
                 ylabel=ylabel,
@@ -559,7 +653,7 @@ class ReviewCosmicRay(ImageDisplay):
                 vmax=vmax,
             )
             self.image_aux.set_extent([jmin + 0.5, jmax + 1.5, imin + 0.5, imax + 1.5])
-            self.ax_aux.set_title("Auxiliary data")
+            self.ax_aux.set_title(f"Auxiliary data: {self.auxdata_options[self.auxiliary_data_index - 1]}")
         # Overplot cosmic ray pixels
         xlim = self.ax.get_xlim()
         ylim = self.ax.get_ylim()
@@ -800,13 +894,25 @@ class ReviewCosmicRay(ImageDisplay):
 
     def use_auxdata(self):
         """Use auxiliary data to clean a cosmic ray."""
-        if self.auxdata is None:
+        if self.naux == 0:
             print("Auxiliary data not available.")
             return
         print(f"Auxiliary data interpolation of cosmic ray {self.cr_index}")
+        self.auxiliary_data_index = self.auxdata_options.index(self.auxdata_var.get()) + 1
+        print(f"Using auxiliary data: {self.auxdata_options[self.auxiliary_data_index-1]}")
         ycr_list, xcr_list = np.where(self.cr_labels == self.cr_index)
+        if 1 <= self.auxiliary_data_index <= self.naux:
+            replacement_data = self.auxdata[self.auxiliary_data_index - 1]
+        elif self.auxiliary_data_index == self.naux + 1:
+            replacement_data = self.auxdata_mean
+        elif self.auxiliary_data_index == self.naux + 2:
+            replacement_data = self.auxdata_median
+        elif self.auxiliary_data_index == self.naux + 3:
+            replacement_data = self.auxdata_min
+        else:
+            raise ValueError(f"Invalid auxiliary data index: {self.auxiliary_data_index}.")
         for iy, ix in zip(ycr_list, xcr_list):
-            self.data[iy, ix] = self.auxdata[iy, ix]
+            self.data[iy, ix] = replacement_data[iy, ix]
             self.mask_fixed[iy, ix] = True
         self.num_cr_cleaned += 1
         self.set_buttons_after_cleaning_cr()
@@ -933,6 +1039,7 @@ class ReviewCosmicRay(ImageDisplay):
         self.interp_deepcr_button.config(state=tk.DISABLED)
         self.interp_maskfill_button.config(state=tk.DISABLED)
         self.interp_aux_button.config(state=tk.DISABLED)
+        self.auxdata_combobox.config(state=tk.DISABLED)
 
     def enable_interpolation_buttons(self):
         """Enable all interpolation buttons."""
@@ -949,5 +1056,6 @@ class ReviewCosmicRay(ImageDisplay):
         if self.cleandata_deepcr is not None:
             self.interp_deepcr_button.config(state=tk.NORMAL)
         self.interp_maskfill_button.config(state=tk.NORMAL)
-        if self.auxdata is not None:
+        if self.naux > 0:
             self.interp_aux_button.config(state=tk.NORMAL)
+            self.auxdata_combobox.config(state="readonly")
