@@ -139,7 +139,7 @@ VALID_CLEANING_METHODS = {
     "PyCosmic": "pycosmic",
     "deepCR": "deepcr",
     "maskfill": "maskfill",
-    "auxdata": "auxdata",
+    "Auxiliary data": "auxdata",
 }
 
 # Maximum pixel distance to consider when finding closest CR pixel

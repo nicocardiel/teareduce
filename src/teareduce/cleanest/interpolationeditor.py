@@ -33,7 +33,8 @@ class InterpolationEditor:
         last_maskfill_operator,
         last_maskfill_smooth,
         last_maskfill_verbose,
-        auxdata,
+        auxfile_list,
+        extension_auxfile_list,
         cleandata_lacosmic,
         cleandata_pycosmic,
         cleandata_deepcr,
@@ -63,8 +64,10 @@ class InterpolationEditor:
             The last used maskfill smooth parameter.
         last_maskfill_verbose : bool
             The last used maskfill verbose parameter.
-        auxdata : array-like or None
-            Auxiliary data for cleaning, if available.
+        auxfile_list : list of str
+            List of paths to auxiliary FITS files.
+        extension_auxfile_list : list of str
+            List of FITS extensions for auxiliary files.
         cleandata_lacosmic : array-like or None
             Cleaned data from L.A.Cosmic, if available.
         cleandata_pycosmic : array-like or None
@@ -99,8 +102,17 @@ class InterpolationEditor:
             The root Tkinter window.
         last_dilation : int
             The last used dilation parameter.
-        auxdata : array-like or None
-            Auxiliary data for cleaning, if available.
+        auxfile_list : list of str
+            List of paths to auxiliary FITS files.
+        extension_auxfile_list : list of str
+            List of FITS extensions for auxiliary files.
+        naux : int
+            Number of auxiliary files.
+        extension_auxfile_list : list of str
+            List of file names and extensions for auxiliary files.
+        auxiliary_data_index : int or None
+            Index of the selected auxiliary data option, ranging
+            from 1 to naux + 3 (mean, median, minimum), or None if not selected.
         cleandata_lacosmic : array-like or None
             Cleaned data from L.A.Cosmic, if available.
         cleandata_pycosmic : array-like or None
@@ -135,7 +147,22 @@ class InterpolationEditor:
         self.root = root
         self.root.title("Cleaning Parameters")
         self.last_dilation = last_dilation
-        self.auxdata = auxdata
+        self.auxfile_list = auxfile_list
+        self.naux = len(auxfile_list)
+        if len(extension_auxfile_list) != self.naux:
+            raise ValueError("Length of extension_auxfile_list must match length of auxfile_list.")
+        self.extension_auxfile_list = extension_auxfile_list
+        if self.naux == 0:
+            self.auxdata_options = []
+        else:
+            self.auxdata_options = [
+                f"{self.auxfile_list[i]}[{self.extension_auxfile_list[i]}]" for i in range(self.naux)
+            ]
+            if self.naux > 1:
+                self.auxdata_options.extend(
+                    ["MEAN of auxiliary data", "MEDIAN of auxiliary data", "MINIMUM of auxiliary data"]
+                )
+        self.auxiliary_data_index = None  # to be set when OK is pressed
         self.cleandata_lacosmic = cleandata_lacosmic
         self.cleandata_pycosmic = cleandata_pycosmic
         self.cleandata_deepcr = cleandata_deepcr
@@ -196,7 +223,7 @@ class InterpolationEditor:
                 if self.cleandata_deepcr is None:
                     state = "disabled"
             # Skip auxdata method if auxdata is not available
-            elif interp_method == "auxdata" and self.auxdata is None:
+            elif interp_method == "Auxiliary data" and self.naux == 0:
                 state = "disabled"
             tk.Radiobutton(
                 main_frame,
@@ -210,6 +237,19 @@ class InterpolationEditor:
             if column > 6:
                 column = 0
                 row += 1
+        # Add combobox to choose auxdata if auxdata method is selected and naux > 0:
+        if self.naux > 0:
+            self.auxdata_var = tk.StringVar(value=self.auxdata_options[0])
+            self.auxdata_combobox = ttk.Combobox(
+                main_frame,
+                textvariable=self.auxdata_var,
+                values=self.auxdata_options,
+                state="readonly",
+                width=40,
+            )
+            self.auxdata_combobox.grid(row=row, column=column, columnspan=4, sticky="w", padx=5, pady=5)
+            self.auxdata_combobox.config(state="disabled")
+
         row += 1
 
         # Separator
@@ -335,6 +375,7 @@ class InterpolationEditor:
     def on_ok(self):
         """Handle the OK button click event."""
         self.cleaning_method = VALID_CLEANING_METHODS[self.cleaning_method_var.get()]
+
         try:
             self.npoints = int(self.entry_npoints.get())
         except ValueError:
@@ -434,6 +475,11 @@ class InterpolationEditor:
                     return
             self.__dict__[key] = value
 
+        if self.cleaning_method == "auxdata":
+            # set auxiliary_data_index to the index of the selected auxdata option
+            # ranging from 1 to naux + 3 (mean, median, minimum)
+            self.auxiliary_data_index = self.auxdata_options.index(self.auxdata_var.get()) + 1
+
         self.root.destroy()
 
     def on_cancel(self):
@@ -447,6 +493,11 @@ class InterpolationEditor:
         """Handle changes in the selected cleaning method."""
         selected_method = self.cleaning_method_var.get()
         print(f"Selected cleaning method: [red bold]{selected_method}[/red bold]")
+        if selected_method == "Auxiliary data":
+            self.auxdata_combobox.config(state="readonly")
+        else:
+            self.auxdata_combobox.config(state="disabled")
+
         if selected_method in ["x interp.", "y interp."]:
             self.entry_npoints.config(state="normal")
             self.entry_degree.config(state="normal")
@@ -475,7 +526,7 @@ class InterpolationEditor:
             self.entry_maskfill_operator.config(state="disabled")
             self.entry_maskfill_smooth.config(state="disabled")
             self.entry_maskfill_verbose.config(state="disabled")
-        elif selected_method in ["L.A.Cosmic", "PyCosmic", "deepCR", "auxdata"]:
+        elif selected_method in ["L.A.Cosmic", "PyCosmic", "deepCR", "Auxiliary data"]:
             self.entry_npoints.config(state="disabled")
             self.entry_degree.config(state="disabled")
             self.entry_maskfill_size.config(state="disabled")

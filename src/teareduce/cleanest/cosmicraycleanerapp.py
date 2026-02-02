@@ -914,7 +914,11 @@ class CosmicRayCleanerApp(ImageDisplay):
             self.use_cursor_button.config(text="[c]ursor: OFF")
 
     def toggle_auxdata(self):
-        """Toggle between main data and auxiliary data for display."""
+        """Toggle between main data and auxiliary data for display.
+
+        If multiple auxiliary data are loaded, cycle through them,
+        including mean, median, and min of all auxiliary data.
+        """
         naux = len(self.auxdata)
         if naux == 0:
             self.displaying_auxdata = 0
@@ -1422,7 +1426,8 @@ class CosmicRayCleanerApp(ImageDisplay):
                 last_maskfill_operator=self.last_maskfill_operator,
                 last_maskfill_smooth=self.last_maskfill_smooth,
                 last_maskfill_verbose=self.last_maskfill_verbose,
-                auxdata=self.auxdata,
+                auxfile_list=self.auxfile_list,
+                extension_auxfile_list=self.extension_auxfile_list,
                 cleandata_lacosmic=self.cleandata_lacosmic,
                 cleandata_pycosmic=self.cleandata_pycosmic,
                 cleandata_deepcr=self.cleandata_deepcr,
@@ -1507,11 +1512,33 @@ class CosmicRayCleanerApp(ImageDisplay):
                     self.mask_crfound[mask_crfound_region] = False
                     data_has_been_modified = True
                 elif cleaning_method == "auxdata":
-                    if self.auxdata is None:
+                    if len(self.auxdata) == 0:
                         print("No auxiliary data available. Cleaning skipped!")
                         return
-                    # Replace detected CR pixels with auxiliary data values
-                    self.data[mask_crfound_region] = self.auxdata[mask_crfound_region]
+                    inum = editor.auxiliary_data_index  # 1-based index of auxiliary data
+                    if inum <= len(self.auxdata):
+                        print(
+                            f"Using auxiliary data: "
+                            f"{os.path.basename(self.auxfile_list[inum - 1])}"
+                            f"[{self.extension_auxfile_list[inum - 1]}]"
+                        )
+                        # Replace detected CR pixels with auxiliary data values
+                        self.data[mask_crfound_region] = self.auxdata[inum - 1][mask_crfound_region]
+                    elif inum == len(self.auxdata) + 1:
+                        print("Using auxiliary data: MEAN of all loaded auxiliary data")
+                        # Replace detected CR pixels with auxiliary mean data values
+                        self.data[mask_crfound_region] = self.auxdata_mean[mask_crfound_region]
+                    elif inum == len(self.auxdata) + 2:
+                        print("Using auxiliary data: MEDIAN of all loaded auxiliary data")
+                        # Replace detected CR pixels with auxiliary median data values
+                        self.data[mask_crfound_region] = self.auxdata_median[mask_crfound_region]
+                    elif inum == len(self.auxdata) + 3:
+                        print("Using auxiliary data: MIN of all loaded auxiliary data")
+                        # Replace detected CR pixels with auxiliary min data values
+                        self.data[mask_crfound_region] = self.auxdata_min[mask_crfound_region]
+                    else:
+                        print(f"Invalid auxiliary data index: {inum}. Cleaning skipped!")
+                        return
                     # update mask_fixed to include the newly fixed pixels
                     self.mask_fixed[mask_crfound_region] = True
                     # upate mask_crfound by eliminating the cleaned pixels
