@@ -28,9 +28,7 @@ class ThreeButtonListDialog(simpledialog.Dialog):
 
     # ---------- Core layout ----------
     def body(self, master):
-        ttk.Label(master, text=self.prompt).grid(
-            row=0, column=0, columnspan=1, sticky="w", padx=8, pady=(8, 4)
-        )
+        ttk.Label(master, text=self.prompt).grid(row=0, column=0, columnspan=1, sticky="w", padx=8, pady=(8, 4))
 
         self.listbox = tk.Listbox(master, height=min(12, max(4, len(self.items))), activestyle="dotbox")
         for s in self.items:
@@ -43,8 +41,8 @@ class ThreeButtonListDialog(simpledialog.Dialog):
 
         # Keyboard bindings
         self.listbox.bind("<Double-Button-1>", lambda e: self.ok())  # OK on double-click
-        self.bind("<Return>", lambda e: self.ok())                   # Enter = OK
-        self.bind("<Escape>", lambda e: self.cancel())               # Esc = Cancel (→ 0)
+        self.bind("<Return>", lambda e: self.ok())  # Enter = OK
+        self.bind("<Escape>", lambda e: self.cancel())  # Esc = Cancel (→ 0)
 
         # Resize behavior
         master.grid_columnconfigure(0, weight=1)
@@ -96,9 +94,9 @@ class ThreeButtonListDialog(simpledialog.Dialog):
         Called after validate(). Set the final result here.
         """
         if self._force_new:
-            self.result = len(self.items) + 1      # N+1 (New)
+            self.result = len(self.items) + 1  # N+1 (New)
         else:
-            self.result = self._selected_index + 1 # 1..N (index of selection)
+            self.result = self._selected_index + 1  # 1..N (index of selection)
 
     def _on_new(self):
         """
@@ -117,7 +115,7 @@ class ThreeButtonListDialog(simpledialog.Dialog):
         super().cancel(event)
 
 
-def choose_index_with_three_buttons(parent, title, prompt,items):
+def choose_index_with_three_buttons(parent, title, prompt, items):
     """
     Show the dialog and return:
       - 1..N : highlighted item index (OK)

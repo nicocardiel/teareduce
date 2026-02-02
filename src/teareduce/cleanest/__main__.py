@@ -12,9 +12,7 @@
 import argparse
 import tkinter as tk
 from tkinter import filedialog
-from tkinter import simpledialog
 import os
-from pathlib import Path
 import platform
 from rich import print
 from rich_argparse import RichHelpFormatter
@@ -38,14 +36,7 @@ def main():
         formatter_class=RichHelpFormatter,
     )
     parser.add_argument("input_fits", nargs="?", default=None, help="Path to the FITS file to be cleaned.")
-    parser.add_argument("--extension", type=str, default="0", help="FITS extension to use (default: 0).")
-    parser.add_argument("--auxfile", type=str, default=None, help="Auxiliary FITS file")
-    parser.add_argument(
-        "--extension_auxfile",
-        type=str,
-        default="0",
-        help="FITS extension for auxiliary file (default: 0).",
-    )
+    parser.add_argument("--auxfile", type=str, default=None, help="Auxiliary FITS files (comma-separated if several).")
     parser.add_argument(
         "--fontfamily",
         type=str,
@@ -114,16 +105,42 @@ def main():
             use_auxfile = True
         if use_auxfile:
             print(f"Selected auxiliary FITS file: {args.auxfile}")
-            args.extension_auxfile = ask_extension_input_image(args.auxfile, imgshape=None)
+            extension_auxfile = ask_extension_input_image(args.auxfile, imgshape=None)
+            args.auxfile = f"{args.auxfile}[{extension_auxfile}]"
+        else:
+            args.auxfile = None
         root.destroy()
 
-    # Check that input files, and the corresponding extensions, exist
-    if not os.path.isfile(args.input_fits):
-        print(f"Error: File '{args.input_fits}' does not exist.")
+    # Check that input file exists
+    if "[" in args.input_fits:
+        input_fits = args.input_fits[: args.input_fits.index("[")]
+        extension = args.input_fits[args.input_fits.index("[") + 1 : args.input_fits.index("]")]
+    else:
+        input_fits = args.input_fits
+        extension = "0"
+    if not os.path.isfile(input_fits):
+        print(f"Error: File '{input_fits}' does not exist.")
         exit(1)
-    if args.auxfile is not None and not os.path.isfile(args.auxfile):
-        print(f"Error: Auxiliary file '{args.auxfile}' does not exist.")
-        exit(1)
+
+    # Process auxiliary files if provided
+    auxfile_list = []
+    extension_auxfile_list = []
+    if args.auxfile is not None:
+        # Check several auxiliary files separated by commas
+        for item in args.auxfile.split(","):
+            # Extract possible [ext] from filename
+            if "[" in item:
+                # Separate filename and extension, removing blanks
+                fname = item[: item.index("[")].strip()
+                # Check that file exists
+                if not os.path.isfile(fname):
+                    print(f"Error: File '{fname}' does not exist.")
+                    exit(1)
+                auxfile_list.append(fname)
+                extension_auxfile_list.append(item[item.index("[") + 1 : item.index("]")])
+            else:
+                auxfile_list.append(item.strip())
+                extension_auxfile_list.append("0")
 
     # Initialize Tkinter root
     try:
@@ -149,10 +166,10 @@ def main():
     # Create and run the application
     CosmicRayCleanerApp(
         root=root,
-        input_fits=args.input_fits,
-        extension=args.extension,
-        auxfile_ini=args.auxfile,
-        extension_auxfile_ini=args.extension_auxfile,
+        input_fits=input_fits,
+        extension=extension,
+        auxfile_list=auxfile_list,
+        extension_auxfile_list=extension_auxfile_list,
         fontfamily=args.fontfamily,
         fontsize=args.fontsize,
         width=args.width,
