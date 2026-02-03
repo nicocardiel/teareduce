@@ -154,7 +154,7 @@ class InterpolationEditor:
             raise ValueError("Length of extension_auxfile_list must match length of auxfile_list.")
         self.extension_auxfile_list = extension_auxfile_list
         if self.naux == 0:
-            self.auxdata_options = []
+            self.auxdata_options = ['No auxiliary data available']
         else:
             self.auxdata_options = [
                 f"{os.path.basename(self.auxfile_list[i])}[{self.extension_auxfile_list[i]}]" for i in range(self.naux)
@@ -244,19 +244,18 @@ class InterpolationEditor:
                 column = 0
                 row += 1
         # Add combobox to choose auxdata if auxdata method is selected and naux > 0:
-        if self.naux > 0:
-            self.auxdata_var = tk.StringVar(value=self.auxdata_options[0])
-            self.auxdata_combobox = ttk.Combobox(
-                main_frame,
-                textvariable=self.auxdata_var,
-                values=self.auxdata_options,
-                state="readonly",
-                width=40,
-            )
-            self.auxdata_combobox.grid(row=row, column=column, columnspan=4, sticky="w", padx=5, pady=5)
-            self.auxdata_combobox.config(state="disabled")
-            # --- Bind the selection event to the handler
-            self.auxdata_combobox.bind("<<ComboboxSelected>>", self.on_combo_auxdata_change)
+        self.auxdata_var = tk.StringVar(value=self.auxdata_options[0])
+        self.auxdata_combobox = ttk.Combobox(
+            main_frame,
+            textvariable=self.auxdata_var,
+            values=self.auxdata_options,
+            state="readonly",
+            width=40,
+        )
+        self.auxdata_combobox.grid(row=row, column=column, columnspan=4, sticky="w", padx=5, pady=5)
+        self.auxdata_combobox.config(state="disabled")
+        # --- Bind the selection event to the handler
+        self.auxdata_combobox.bind("<<ComboboxSelected>>", self.on_combo_auxdata_change)
 
         row += 1
 
