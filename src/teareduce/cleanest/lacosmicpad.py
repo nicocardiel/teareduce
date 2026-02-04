@@ -1,5 +1,5 @@
 #
-# Copyright 2025 Universidad Complutense de Madrid
+# Copyright 2025-2026 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
@@ -15,7 +15,7 @@ except ModuleNotFoundError as e:
     raise ModuleNotFoundError(
         "The 'teareduce.cleanest' module requires the 'ccdproc' and 'maskfill' packages. "
         "Please install teareduce with the 'cleanest' extra dependencies: "
-        "`pip install teareduce[cleanest]`."
+        '`pip install "teareduce[cleanest]"`.'
     ) from e
 from importlib.metadata import version
 import numpy as np

@@ -15,7 +15,7 @@ except ModuleNotFoundError as e:
     raise ModuleNotFoundError(
         "The 'teareduce.cleanest' module requires the 'ccdproc' and 'maskfill' packages. "
         "Please install teareduce with the 'cleanest' extra dependencies: "
-        "`pip install teareduce[cleanest]`."
+        '`pip install "teareduce[cleanest]"`.'
     ) from e
 import numpy as np
 from rich import print
