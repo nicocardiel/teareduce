@@ -496,7 +496,7 @@ class ReviewCosmicRay(ImageDisplay):
         # --- Interpolation using auxiliary data button
         self.interp_aux_button = tkbutton.new(
             self.button_frame4,
-            text="[a]ux. data",
+            text="[a]uxiliary data",
             command=self.use_auxdata,
             help_text="Use auxiliary data for interpolation of the current cosmic ray.",
         )
