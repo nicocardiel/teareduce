@@ -26,13 +26,13 @@ def get_cookbook_file(file_path, verbose=True):
         Default is True.
     """
 
-    url = f"https://raw.githubusercontent.com/nicocardiel/teareduce-cookbook/main/{file_path}"
-    response = requests.get(url)
     local_filename = os.path.basename(file_path)
     if Path(local_filename).is_file():
         if verbose:
             print(f"File {local_filename} already exists locally. Skipping download.")
         return
+    url = f"https://raw.githubusercontent.com/nicocardiel/teareduce-cookbook/main/{file_path}"
+    response = requests.get(url)
     with open(local_filename, "wb") as f:
         f.write(response.content)
     if verbose:
