@@ -1,5 +1,5 @@
 #
-# Copyright 2023-2025 Universidad Complutense de Madrid
+# Copyright 2023-2026 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
@@ -12,8 +12,9 @@ Includes functions for interpolating over bad pixels,
 applying the L.A.Cosmic algorithm to detect cosmic ray pixels.
 """
 
+from .combine_arrays import combine_arrays
 from .interpolate import interpolate
 from .lacosmicpad import lacosmicpad
 from .mergemasks import merge_peak_tail_masks
 
-__all__ = ["interpolate", "lacosmicpad", "merge_peak_tail_masks"]
+__all__ = ["combine_arrays", "interpolate", "lacosmicpad", "merge_peak_tail_masks"]

@@ -154,7 +154,7 @@ class InterpolationEditor:
             raise ValueError("Length of extension_auxfile_list must match length of auxfile_list.")
         self.extension_auxfile_list = extension_auxfile_list
         if self.naux == 0:
-            self.auxdata_options = ['No auxiliary data available']
+            self.auxdata_options = ["No auxiliary data available"]
         else:
             self.auxdata_options = [
                 f"{os.path.basename(self.auxfile_list[i])}[{self.extension_auxfile_list[i]}]" for i in range(self.naux)

@@ -9,6 +9,8 @@
 
 """Definitions for the cleanest module."""
 
+VALID_ALGORITHMS = ["lacosmic", "pycosmic", "deepcr", "conn"]
+
 VALID_LACOSMIC_CLEANTYPE_VALUES = ["median", "medmask", "meanmask", "idw"]
 VALID_LACOSMIC_FSMODE_VALUES = ["median", "convolve"]
 VALID_LACOSMIC_PSFMODEL_VALUES = ["gauss", "moffat", "gaussx", "gaussy", "gaussxy"]

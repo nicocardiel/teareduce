@@ -25,7 +25,7 @@ from .definitions import VALID_LACOSMIC_PSFMODEL_VALUES
 from .gausskernel2d_elliptical import gausskernel2d_elliptical
 
 
-def lacosmicpad(pad_width, show_arguments=False, display_ccdproc_version=True, **kwargs):
+def lacosmicpad(pad_width, show_arguments=False, display_ccdproc_version=False, **kwargs):
     """Execute LACosmic algorithm on a padded array.
 
     This function pads the input image array before applying the LACosmic
@@ -149,6 +149,9 @@ def lacosmicpad(pad_width, show_arguments=False, display_ccdproc_version=True, *
             raise ValueError("The 'fsmode' keyword argument must be either 'convolve' or 'median'.")
 
     # Apply LACosmic algorithm to the padded array
+    if kwargs["verbose"]:
+        display_ccdproc_version = True
+
     try:
         version_ccdproc = version("ccdproc")
     except Exception:
@@ -156,16 +159,14 @@ def lacosmicpad(pad_width, show_arguments=False, display_ccdproc_version=True, *
     if display_ccdproc_version:
         print(f"Running L.A.Cosmic implementation from ccdproc version {version_ccdproc}")
     if kwargs["verbose"] or show_arguments:
-        end = "\n"
-    else:
-        end = ""
-    print("(please wait...) ", end=end)
+        print("(please wait...)")
     # Show LACosmic arguments if requested
     if show_arguments:
         for key, value in kwargs.items():
             print(f"LACosmic parameter: {key} = {value}")
     cleaned_padded_array, mask_padded_array = cosmicray_lacosmic(ccd=padded_array, **kwargs)
-    print(f"Done!")
+    if kwargs["verbose"] or show_arguments:
+        print(f"Done!")
     # Remove padding
     if pad_width == 0:
         cleaned_array = cleaned_padded_array
