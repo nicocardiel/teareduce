@@ -57,14 +57,13 @@ except ModuleNotFoundError as e:
         '`pip install "teareduce[cleanest]"`.'
     ) from e
 
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import version
 import matplotlib.pyplot as plt
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from scipy import ndimage
 import numpy as np
 import os
-from pathlib import Path
 from rich import print
 
 from .askextension import ask_extension_input_image

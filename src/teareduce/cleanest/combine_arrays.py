@@ -13,11 +13,72 @@ import numpy as np
 
 from .definitions import VALID_ALGORITHMS
 from .lacosmicpad import lacosmicpad
+from .mergemasks import merge_peak_tail_masks
 
 VALID_CLEANING_STRATEGIES = ["local", "median_all", "median_others", "mean_others", "none"]
 
 
-def detect_cosmic_rays(arr, detection_algorithm, **kwargs):
+def split_in_two_dictionaries(kwargs):
+    """Split the input kwargs dictionary into two dictionaries.
+
+    The input dictionary contains the input parameters for a CR detection
+    algorithm. This algorithm can be run once or twice, depending on the
+    value of the parameters. If all the parameters are single values,
+    the algorithm will be run once, but if some parameters are lists or
+    tuples of two values, the algorithm will be run twice, using the first
+    value for the first run and the second value for the second run. 
+    This function splits the input dictionary into two dictionaries, 
+    one for the first run and one for the second run. If all the input
+    parameters are single values, or if all the items in the lists/tuples 
+    are equal, the second dictionary will be identical to the first and the
+    function will return a list containing only the first dictionary.
+
+    Parameters
+    ----------
+    kwargs : dict
+        The input dictionary containing the parameters for the CR detection
+        algorithm.
+
+    Returns
+    -------
+    list_kwargs: list of one or two dictionaries
+        A list containing one or two dictionaries, one for the first run 
+        and one for the second run, if applicable.
+    """
+    # Check kwargs is a dictionary
+    if not isinstance(kwargs, dict):
+        raise ValueError("kwargs must be a dictionary.")
+    
+    # Create two dictionaries for the first and second run
+    kwargs_run1 = {}
+    kwargs_run2 = {}
+
+    # Loop over the input dictionary and split the parameters
+    all_equal = True
+    for key, value in kwargs.items():
+        if isinstance(value, (list, tuple)) and len(value) == 2:
+            kwargs_run1[key] = value[0]
+            kwargs_run2[key] = value[1]
+            if value[0] != value[1]:
+                all_equal = False
+        else:
+            if isinstance(value, (int, float, str, bool)):
+                kwargs_run1[key] = value
+                kwargs_run2[key] = value
+            else:
+                raise ValueError(
+                    f"Invalid value for parameter '{key}'.\n"
+                    "Values must be either single values (int, float, str, bool) or lists/tuples of two values."
+                )
+
+    if all_equal:
+        list_kwargs = [kwargs_run1]
+    else:
+        list_kwargs = [kwargs_run1, kwargs_run2]
+    return list_kwargs
+
+
+def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
     """Detect cosmic rays in the input array
 
     Apply the specified algorithm and parameters.
@@ -32,6 +93,8 @@ def detect_cosmic_rays(arr, detection_algorithm, **kwargs):
         - "pycosmic": Use the PyCosmic algorithm for CR detection.
         - "deepcr": Use the DeepCR algorithm for CR detection.
         - "conn": Use the Cosmic-CoNN algorithm for CR detection.
+    show_progress : bool
+        If True, print show_progress information during the CR detection process.
     **kwargs : dict
         Additional keyword arguments passed to the CR detection algorithm.
 
@@ -63,10 +126,19 @@ def detect_cosmic_rays(arr, detection_algorithm, **kwargs):
                 "It will be created internally using the different arrays\n"
                 "in the 'list_arrays' provided to the combine_arrays function."
             )
-        kwargs["ccd"] = arr
         if "pad_width" not in kwargs:
             raise ValueError("The 'pad_width' parameter must be included in 'kwargs'")
-        cleaned_arr, mask_crfound = lacosmicpad(**kwargs)
+        list_kwargs = split_in_two_dictionaries(kwargs)
+        list_kwargs[0]["ccd"] = arr  # include the input array in the parameters for the first run of the algorithm
+        cleaned_arr, mask_crfound = lacosmicpad(**list_kwargs[0])
+        if len(list_kwargs) == 2:
+            # If there are two sets of parameters, run the algorithm a second time 
+            # with the second set of parameters. Note that the cleaned array from 
+            # the first run is overwritten here
+            list_kwargs[1]["ccd"] = arr  # include the input array in the parameters for the second run of the algorithm
+            cleaned_arr, mask_crfound_2 = lacosmicpad(**list_kwargs[1])
+            # Merge the two masks of detected CRs using the merge_peak_tail_masks function
+            mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress)
     elif detection_algorithm == "pycosmic":
         raise NotImplementedError("PyCosmic detection algorithm is not yet implemented in this function.")
     elif detection_algorithm == "deepcr":
@@ -261,7 +333,7 @@ def combine_arrays(
             print(f"Processing array {i+1}/{len(list_arrays)}...")
 
         # Detect cosmic rays using the specified algorithm and parameters
-        cleaned_arr, mask_crfound = detect_cosmic_rays(arr, detection_algorithm, **kwargs)
+        cleaned_arr, mask_crfound = detect_cosmic_rays(arr, detection_algorithm, show_progress,**kwargs)
 
         # Clean or mask the array based on the cleaning strategy
         if cleaning_strategy == "local":
