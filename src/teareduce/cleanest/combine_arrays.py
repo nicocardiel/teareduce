@@ -206,7 +206,7 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
             # Merge the two masks of detected CRs using the merge_peak_tail_masks function
             if show_progress:
                 print("Merging masks of detected cosmic rays from both runs...")
-            mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress, rich_print=False)
+            mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress)
     elif detection_algorithm == "pycosmic":
         if "data" in kwargs:
             raise ValueError(
@@ -262,7 +262,7 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
             # Merge the two masks of detected CRs using the merge_peak_tail_masks function
             if show_progress:
                 print("Merging masks of detected cosmic rays from both runs...")
-            mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress, rich_print=False)
+            mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress)
     elif detection_algorithm == "deepcr":
         if "img0" in kwargs:
             raise ValueError(
@@ -291,7 +291,7 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
             # Merge the two masks of detected CRs using the merge_peak_tail_masks function
             if show_progress:
                 print("Merging masks of detected cosmic rays from both runs...")
-            mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress, rich_print=False)
+            mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress)
     elif detection_algorithm == "conn":
         if "image" in kwargs:
             raise ValueError(
@@ -334,7 +334,7 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
             # Merge the two masks of detected CRs using the merge_peak_tail_masks function
             if show_progress:
                 print("Merging masks of detected cosmic rays from both runs...")
-            mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress, rich_print=False)
+            mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress)
         # For the 'conn' algorithm, we do not have a cleaned array, but only a mask of detected CRs, so we will return the input array as the cleaned array
         cleaned_arr = arr.copy()
     else:
@@ -555,6 +555,8 @@ def combine_arrays(
     # Loop over each array, detect cosmic rays, and clean or mask them
     for i, arr in enumerate(list_arrays):
         if show_progress:
+            if i > 0:
+                print()  # print a new line before the next progress message
             print(f"Processing array {i+1}/{len(list_arrays)}...")
 
         # Detect cosmic rays using the specified algorithm and parameters
@@ -618,7 +620,7 @@ def combine_arrays(
     else:
         raise ValueError("Invalid combination_method. Must be 'median' or 'mean'.")
     if show_progress:
-        print("Combination complete.")
+        print("\nCombination complete!")
 
     if return_array_mask_lists:
         return combined_array, out_list_arrays, out_list_masks

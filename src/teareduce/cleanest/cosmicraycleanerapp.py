@@ -1118,7 +1118,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 mask_crfound2 = mask_crfound2 & (usefulmask.astype(bool))
                 # Combine results from both runs
                 if np.any(mask_crfound):
-                    mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound2, verbose=True)
+                    mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound2, verbose=True, rich_print=True)
                 # Use the cleandata from the second run
                 cleandata_lacosmic = cleandata_lacosmic2
             # Select the image region to process
@@ -1258,7 +1258,7 @@ class CosmicRayCleanerApp(ImageDisplay):
                 mask_crfound2 = mask_crfound2 & (usefulmask.astype(bool))
                 # Combine results from both runs
                 if np.any(mask_crfound):
-                    mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound2, verbose=True)
+                    mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound2, verbose=True, rich_print=True)
                 # Use the cleandata from the second run
                 cleandata_pycosmic = cleandata_pycosmic2
             # Select the image region to process

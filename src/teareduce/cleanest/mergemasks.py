@@ -14,7 +14,7 @@ from scipy import ndimage
 from rich import print as rprint
 
 
-def merge_peak_tail_masks(mask_peaks, mask_tails, verbose=False, rich_print=True):
+def merge_peak_tail_masks(mask_peaks, mask_tails, verbose=False, rich_print=False):
     """Merge peak and tail masks for cosmic ray cleaning.
 
     Tail pixels are preserved only if they correspond to CR features
