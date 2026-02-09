@@ -118,14 +118,16 @@ deepcr_default_dict = {
     # Model name
     "mask": {"value": "ACS-WFC", "type": str, "valid_values": ["ACS-WFC", "WFC3-UVIS"]},
     # Threshold for CR probability map
-    "threshold": {"value": 0.5, "type": float, "positive": True},
+    "threshold1": {"value": 0.7, "type": float, "positive": True},
+    "threshold2": {"value": 0.3, "type": float, "positive": True},
     "dilation": {"value": 0, "type": int, "positive": True},
 }
 
 # Default parameters for Cosmic-CoNN algorithm
 cosmicconn_default_dict = {
     # Threshold for CR probability map
-    "threshold": {"value": 0.5, "type": float, "positive": True},
+    "threshold1": {"value": 0.7, "type": float, "positive": True},
+    "threshold2": {"value": 0.3, "type": float, "positive": True},
     # Dilation of the mask
     "dilation": {"value": 0, "type": int, "positive": True},
 }

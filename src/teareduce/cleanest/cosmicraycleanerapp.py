@@ -17,6 +17,7 @@ from tkinter import simpledialog
 import sys
 
 from astropy.io import fits
+from more_itertools import only
 
 try:
     import PyCosmic
@@ -1291,25 +1292,57 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Initialize the deepCR model
         mdl = deepCR.deepCR(mask=self.deepcr_params["mask"]["value"])
         # Ask for threshold value and update parameter
-        threshold = simpledialog.askfloat(
+        threshold1 = simpledialog.askfloat(
             "Threshold",
-            "Enter deepCR probability threshold (0.0 - 1.0):",
-            initialvalue=self.deepcr_params["threshold"]["value"],
+            "Enter deepCR probability threshold (0.0 - 1.0) for run 1:",
+            initialvalue=self.deepcr_params["threshold1"]["value"],
             minvalue=0.0,
             maxvalue=1.0,
         )
-        if threshold is None:
+        if threshold1 is None:
             print("Threshold input cancelled. deepCR detection skipped!")
             self.run_deepcr_button.config(state=tk.NORMAL)
             return
-        self.deepcr_params["threshold"]["value"] = threshold
-        print(f"Running deepCR version: {deepCR.__version__}  (please wait...)", end="")
+        threshold2 = simpledialog.askfloat(
+            "Threshold",
+            f"Enter deepCR probability threshold (0.0 - {threshold1}) for run 2:",
+            initialvalue=self.deepcr_params["threshold2"]["value"],
+            minvalue=0.0,
+            maxvalue=threshold1,
+        )
+        self.deepcr_params["threshold1"]["value"] = threshold1
+        self.deepcr_params["threshold2"]["value"] = threshold2
+        if threshold1 == threshold2:
+            nruns = 1
+        else:
+            nruns = 2
+        print(f"Running deepCR version: {deepCR.__version__} run 1/{nruns} (please wait...)")
         self.mask_crfound, self.cleandata_deepcr = mdl.clean(
             self.data,
-            threshold=self.deepcr_params["threshold"]["value"],
+            threshold=self.deepcr_params["threshold1"]["value"],
             inpaint=True,
         )
-        print(" Done!")
+        self.mask_crfound = self.mask_crfound.astype(bool)
+        if nruns == 2:
+            # Run a second time with the second threshold to find fainter CRs
+            print(f"Running deepCR version: {deepCR.__version__} run 2/{nruns} (please wait...)")
+            mask_crfound2, cleandata_deepcr2 = mdl.clean(
+                self.data,
+                threshold=self.deepcr_params["threshold2"]["value"],
+                inpaint=True,
+            )
+            mask_crfound2 = mask_crfound2.astype(bool)
+            # Combine results from both runs
+            if np.any(self.mask_crfound):
+                self.mask_crfound = merge_peak_tail_masks(
+                    self.mask_crfound, mask_crfound2, verbose=True, rich_print=True
+                )
+            else:
+                self.mask_crfound = mask_crfound2
+            # Use the cleandata from the second run (which includes inpainting of fainter CRs)
+            self.cleandata_deepcr = self.data.copy()
+            self.cleandata_deepcr[self.mask_crfound] = cleandata_deepcr2[self.mask_crfound]
+        print("Done!")
         # Process the mask: dilation and labeling
         dilation = simpledialog.askinteger(
             "Dilation",
@@ -1345,24 +1378,44 @@ class CosmicRayCleanerApp(ImageDisplay):
         # Initialize the generic ground-imaging model
         cr_model = cosmic_conn.init_model("ground_imaging")
         # The model outputs a CR probability map
-        print(f"Running Cosmic-CoNN version: {cosmic_conn.__version__}  (please wait...)", end="")
+        print(f"Running Cosmic-CoNN version: {cosmic_conn.__version__} (please wait...)")
         cr_prob = cr_model.detect_cr(self.data.astype(np.float32))
-        print(" Done!")
+        print("Done!")
         # Ask for threshold value and update parameter
-        threshold = simpledialog.askfloat(
+        threshold1 = simpledialog.askfloat(
             "Threshold",
             "Enter Cosmic-CoNN probability threshold (0.0 - 1.0):",
-            initialvalue=self.cosmicconn_params["threshold"]["value"],
+            initialvalue=self.cosmicconn_params["threshold1"]["value"],
             minvalue=0.0,
             maxvalue=1.0,
         )
-        if threshold is None:
+        if threshold1 is None:
             print("Threshold input cancelled. Cosmic-CoNN detection skipped!")
             self.run_cosmiccnn_button.config(state=tk.NORMAL)
             return
-        self.cosmicconn_params["threshold"]["value"] = threshold
+        threshold2 = simpledialog.askfloat(
+            "Threshold",
+            f"Enter Cosmic-CoNN probability threshold (0.0 - {threshold1}) for run 2:",
+            initialvalue=self.cosmicconn_params["threshold2"]["value"],
+            minvalue=0.0,
+            maxvalue=threshold1,
+        )
+        self.cosmicconn_params["threshold1"]["value"] = threshold1
+        self.cosmicconn_params["threshold2"]["value"] = threshold2
+        if threshold1 == threshold2:
+            nruns = 1
+        else:
+            nruns = 2
         # Threshold the probability map to create a binary mask
-        self.mask_crfound = cr_prob > self.cosmicconn_params["threshold"]["value"]
+        self.mask_crfound = cr_prob > self.cosmicconn_params["threshold1"]["value"]
+        if nruns == 2:
+            mask_crfound2 = cr_prob > self.cosmicconn_params["threshold2"]["value"]
+            if np.any(self.mask_crfound):
+                self.mask_crfound = merge_peak_tail_masks(
+                    self.mask_crfound, mask_crfound2, verbose=True, rich_print=True
+                )
+            else:
+                self.mask_crfound = mask_crfound2
         # Process the mask: dilation and labeling
         dilation = simpledialog.askinteger(
             "Dilation", "Enter Dilation (min=0):", initialvalue=self.cosmicconn_params["dilation"]["value"], minvalue=0
