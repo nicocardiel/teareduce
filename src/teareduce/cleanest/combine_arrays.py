@@ -45,7 +45,7 @@ from .definitions import VALID_ALGORITHMS
 from .lacosmicpad import lacosmicpad
 from .mergemasks import merge_peak_tail_masks
 
-VALID_CLEANING_STRATEGIES = ["local", "median_all", "median_others", "mean_others", "none"]
+VALID_CLEANING_STRATEGIES = ["crmethod", "median_all", "median_others", "mean_others", "none"]
 
 
 def split_in_two_dictionaries(kwargs):
@@ -56,10 +56,10 @@ def split_in_two_dictionaries(kwargs):
     value of the parameters. If all the parameters are single values,
     the algorithm will be run once, but if some parameters are lists or
     tuples of two values, the algorithm will be run twice, using the first
-    value for the first run and the second value for the second run. 
-    This function splits the input dictionary into two dictionaries, 
+    value for the first run and the second value for the second run.
+    This function splits the input dictionary into two dictionaries,
     one for the first run and one for the second run. If all the input
-    parameters are single values, or if all the items in the lists/tuples 
+    parameters are single values, or if all the items in the lists/tuples
     are equal, the second dictionary will be identical to the first and the
     function will return a list containing only the first dictionary.
 
@@ -72,13 +72,13 @@ def split_in_two_dictionaries(kwargs):
     Returns
     -------
     list_kwargs: list of one or two dictionaries
-        A list containing one or two dictionaries, one for the first run 
+        A list containing one or two dictionaries, one for the first run
         and one for the second run, if applicable.
     """
     # Check kwargs is a dictionary
     if not isinstance(kwargs, dict):
         raise ValueError("kwargs must be a dictionary.")
-    
+
     # Create two dictionaries for the first and second run
     kwargs_run1 = {}
     kwargs_run2 = {}
@@ -162,8 +162,8 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
         list_kwargs[0]["ccd"] = arr  # include the input array in the parameters for the first run of the algorithm
         cleaned_arr, mask_crfound = lacosmicpad(**list_kwargs[0])
         if len(list_kwargs) == 2:
-            # If there are two sets of parameters, run the algorithm a second time 
-            # with the second set of parameters. Note that the cleaned array from 
+            # If there are two sets of parameters, run the algorithm a second time
+            # with the second set of parameters. Note that the cleaned array from
             # the first run is overwritten here
             list_kwargs[1]["ccd"] = arr  # include the input array in the parameters for the second run of the algorithm
             cleaned_arr, mask_crfound_2 = lacosmicpad(**list_kwargs[1])
@@ -200,10 +200,12 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
         cleaned_arr = out.data
         mask_crfound = out.mask.astype(bool)
         if len(list_kwargs) == 2:
-            # If there are two sets of parameters, run the algorithm a second time 
-            # with the second set of parameters. Note that the cleaned array from 
+            # If there are two sets of parameters, run the algorithm a second time
+            # with the second set of parameters. Note that the cleaned array from
             # the first run is overwritten here
-            list_kwargs[1]["data"] = arr  # include the input array in the parameters for the second run of the algorithm
+            list_kwargs[1][
+                "data"
+            ] = arr  # include the input array in the parameters for the second run of the algorithm
             if fwhm_gauss is not None:
                 list_kwargs[1]["fwhm_gauss"] = fwhm_gauss
             if replace_box is not None:
@@ -220,9 +222,22 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
                 "It will be created internally using the different arrays\n"
                 "in the 'list_arrays' provided to the combine_arrays function."
             )
+        mdl = deepCR.deepCR(mask="ACS-WFC")
         list_kwargs = split_in_two_dictionaries(kwargs)
         list_kwargs[0]["img0"] = arr  # include the input array in the parameters for the first run of the algorithm
-        raise NotImplementedError("DeepCR detection algorithm is not yet implemented in this function.")
+        mask_crfound, cleaned_arr = mdl.clean(**list_kwargs[0])
+        mask_crfound = mask_crfound.astype(bool)
+        if len(list_kwargs) == 2:
+            # If there are two sets of parameters, run the algorithm a second time
+            # with the second set of parameters. Note that the cleaned array from
+            # the first run is overwritten here
+            list_kwargs[1][
+                "img0"
+            ] = arr  # include the input array in the parameters for the second run of the algorithm
+            mask_crfound_2, cleaned_arr = mdl.clean(**list_kwargs[1])
+            mask_crfound_2 = mask_crfound_2.astype(bool)
+            # Merge the two masks of detected CRs using the merge_peak_tail_masks function
+            mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress)
     elif detection_algorithm == "conn":
         if "image" in kwargs:
             raise ValueError(
@@ -230,9 +245,38 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
                 "It will be created internally using the different arrays\n"
                 "in the 'list_arrays' provided to the combine_arrays function."
             )
+        cr_model = cosmic_conn.init_model("ground_imaging")
         list_kwargs = split_in_two_dictionaries(kwargs)
-        list_kwargs[0]["image"] = arr  # include the input array in the parameters for the first run of the algorithm
-        raise NotImplementedError("Cosmic-CoNN detection algorithm is not yet implemented in this function.")
+        list_kwargs[0]["image"] = arr.astype(
+            np.float32
+        )  # include the input array in the parameters for the first run of the algorithm
+        cr_prob = cr_model.detect_cr(list_kwargs[0]["image"])
+        if "threshold" in list_kwargs[0]:
+            threshold = list_kwargs[0]["threshold"]
+        else:
+            raise ValueError(
+                "The 'threshold' parameter must be included in 'kwargs' for the 'conn' detection algorithm."
+            )
+        mask_crfound = cr_prob > threshold
+        if len(list_kwargs) == 2:
+            # If there are two sets of parameters, run the algorithm a second time
+            # with the second set of parameters. Note that the cleaned array from
+            # the first run is overwritten here
+            list_kwargs[1]["image"] = arr.astype(
+                np.float32
+            )  # include the input array in the parameters for the second run of the algorithm
+            cr_prob_2 = cr_model.detect_cr(list_kwargs[1]["image"])
+            if "threshold" in list_kwargs[1]:
+                threshold_2 = list_kwargs[1]["threshold"]
+            else:
+                raise ValueError(
+                    "The 'threshold' parameter must be included in 'kwargs' for the 'conn' detection algorithm."
+                )
+            mask_crfound_2 = cr_prob_2 > threshold_2
+            # Merge the two masks of detected CRs using the merge_peak_tail_masks function
+            mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress)
+        # For the 'conn' algorithm, we do not have a cleaned array, but only a mask of detected CRs, so we will return the input array as the cleaned array
+        cleaned_arr = arr.copy()
     else:
         raise ValueError(f"Invalid detection_algorithm. Must be one of {VALID_ALGORITHMS}.")
 
@@ -278,9 +322,9 @@ def clean_array(arr, mask_crfound, strategy, all_arrays=None, other_arrays=None)
     if strategy not in VALID_CLEANING_STRATEGIES:
         raise ValueError(f"strategy '{strategy}' is not one of {VALID_CLEANING_STRATEGIES}.")
 
-    # Check strategy is not "local" nor "none", since this function is not intended
+    # Check strategy is not "crmethod" nor "none", since this function is not intended
     # to be used for those strategies
-    if strategy in ["local", "none"]:
+    if strategy in ["crmethod", "none"]:
         raise ValueError(
             f"The '{strategy}' strategy should not be used in this function,\n"
             "since it does not use the information from the other arrays\n"
@@ -291,38 +335,47 @@ def clean_array(arr, mask_crfound, strategy, all_arrays=None, other_arrays=None)
     if all_arrays is not None and other_arrays is not None:
         raise ValueError("Only one of 'all_arrays' or 'other_arrays' should be provided, not both.")
 
+    # Check that at least one of all_arrays or other_arrays is provided
+    if all_arrays is None and other_arrays is None:
+        raise ValueError("At least one of 'all_arrays' or 'other_arrays' must be provided.")
+
     # If all_arrays is provided, check it is a list of 2D arrays of the same shape as arr
     if all_arrays is not None:
         if not isinstance(all_arrays, list) or len(all_arrays) == 0:
             raise ValueError("all_arrays must be a non-empty list of 2D numpy arrays.")
-        for a in all_arrays:
+        naux = len(all_arrays)
+        image3d = np.zeros((naux, *arr.shape))
+        for i, a in enumerate(all_arrays):
             if not isinstance(a, np.ndarray) or a.ndim != 2:
                 raise ValueError("All elements in all_arrays must be 2D numpy arrays.")
             if a.shape != arr.shape:
                 raise ValueError("All arrays in all_arrays must have the same shape as arr.")
+            image3d[i] = a
 
     # If other_arrays is provided, check it is a list of 2D arrays of the same shape as arr
     if other_arrays is not None:
         if not isinstance(other_arrays, list) or len(other_arrays) == 0:
             raise ValueError("other_arrays must be a non-empty list of 2D numpy arrays.")
-        for a in other_arrays:
+        naux = len(other_arrays)
+        image3d = np.zeros((naux, *arr.shape))
+        for i, a in enumerate(other_arrays):
             if not isinstance(a, np.ndarray) or a.ndim != 2:
                 raise ValueError("All elements in other_arrays must be 2D numpy arrays.")
             if a.shape != arr.shape:
                 raise ValueError("All arrays in other_arrays must have the same shape as arr.")
+            image3d[i] = a
 
     # Clean the array based on the specified strategy
-    if strategy == "median_all":
+    if strategy in ["median_all", "median_others"]:
         cleaned_arr = np.copy(arr)
-        cleaned_arr[mask_crfound] = np.median([a[mask_crfound] for a in all_arrays], axis=0)
-    elif strategy == "median_others":
-        cleaned_arr = np.copy(arr)
-        cleaned_arr[mask_crfound] = np.median([a[mask_crfound] for a in other_arrays], axis=0)
+        cleaned_arr[mask_crfound] = np.median(image3d, axis=0)[mask_crfound]
     elif strategy == "mean_others":
         cleaned_arr = np.copy(arr)
-        cleaned_arr[mask_crfound] = np.mean([a[mask_crfound] for a in other_arrays], axis=0)
+        cleaned_arr[mask_crfound] = np.mean(image3d, axis=0)[mask_crfound]
     else:
         raise ValueError(f"Invalid strategy '{strategy}'.")
+
+    return cleaned_arr
 
 
 def combine_arrays(
@@ -347,7 +400,7 @@ def combine_arrays(
         - "conn": Use the Cosmic-CoNN algorithm for CR detection.
     cleaning_strategy : str
         The strategy used for cleaning the arrays. Supported strategies are:
-        - "local": replace the cosmic ray pixels in each array with the values
+        - "crmethod": replace the cosmic ray pixels in each array with the values
           obtained by applying the specified detection algorithm to that array
           alone. Note that this strategy does not use the information from the
           other arrays in `list_arrays` to clean the cosmic ray pixels,
@@ -402,12 +455,12 @@ def combine_arrays(
     if combination_method not in ["median", "mean"]:
         raise ValueError("combination_method must be either 'median' or 'mean'.")
 
-    # When using the "local" cleaning strategy, check that the detection
+    # When using the "crmethod" cleaning strategy, check that the detection
     # algorithm is not "conn", since this algorithm
     # do not provide a cleaned array, but only a mask of detected CRs
-    if cleaning_strategy == "local" and detection_algorithm == "conn":
+    if cleaning_strategy == "crmethod" and detection_algorithm == "conn":
         raise ValueError(
-            "The 'local' cleaning strategy is not compatible with the 'conn'\n"
+            "The 'crmethod' cleaning strategy is not compatible with the 'conn'\n"
             "detection algorithm, since it does not provide a cleaned array,\n"
             "but only a mask of detected CRs."
         )
@@ -421,11 +474,11 @@ def combine_arrays(
             print(f"Processing array {i+1}/{len(list_arrays)}...")
 
         # Detect cosmic rays using the specified algorithm and parameters
-        cleaned_arr, mask_crfound = detect_cosmic_rays(arr, detection_algorithm, show_progress,**kwargs)
+        cleaned_arr, mask_crfound = detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs)
 
         # Clean or mask the array based on the cleaning strategy
-        if cleaning_strategy == "local":
-            # For the "local" strategy, we keep the cleaned array as is,
+        if cleaning_strategy == "crmethod":
+            # For the "crmethod" strategy, we keep the cleaned array as is,
             # without using the information from the other arrays
             pass
         elif cleaning_strategy == "median_all":
