@@ -11,6 +11,36 @@
 
 import numpy as np
 
+try:
+    import PyCosmic
+
+    PYCOSMIC_AVAILABLE = True
+except ModuleNotFoundError as e:
+    print(
+        "The 'teareduce.cleanest' module requires the 'PyCosmic' package.\n"
+        "Please install this module using:\n"
+        "`pip install git+https://github.com/nicocardiel/PyCosmic.git@test`"
+    )
+    PYCOSMIC_AVAILABLE = False
+
+try:
+    import deepCR
+except ModuleNotFoundError as e:
+    raise ModuleNotFoundError(
+        "The 'teareduce.cleanest' module requires the 'deepCR' package. "
+        "Please install teareduce with the 'cleanest' extra dependencies: "
+        '`pip install "teareduce[cleanest]"`.'
+    ) from e
+
+try:
+    import cosmic_conn
+except ModuleNotFoundError as e:
+    raise ModuleNotFoundError(
+        "The 'teareduce.cleanest' module requires the 'cosmic-conn' package. "
+        "Please install teareduce with the 'cleanest' extra dependencies: "
+        '`pip install "teareduce[cleanest]"`.'
+    ) from e
+
 from .definitions import VALID_ALGORITHMS
 from .lacosmicpad import lacosmicpad
 from .mergemasks import merge_peak_tail_masks
@@ -140,10 +170,68 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
             # Merge the two masks of detected CRs using the merge_peak_tail_masks function
             mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress)
     elif detection_algorithm == "pycosmic":
-        raise NotImplementedError("PyCosmic detection algorithm is not yet implemented in this function.")
+        if "data" in kwargs:
+            raise ValueError(
+                "The 'data' parameter should not be included here.\n"
+                "It will be created internally using the different arrays\n"
+                "in the 'list_arrays' provided to the combine_arrays function."
+            )
+        if "fwhm_gauss" in kwargs:
+            # Since this parameter is already a list, we will not split it in two,
+            # but we will use the same value for both runs of the algorithm
+            fwhm_gauss = kwargs["fwhm_gauss"]
+            del kwargs["fwhm_gauss"]
+        else:
+            fwhm_gauss = None
+        if "replace_box" in kwargs:
+            # Since this parameter is already a list, we will not split it in two,
+            # but we will use the same value for both runs of the algorithm
+            replace_box = kwargs["replace_box"]
+            del kwargs["replace_box"]
+        else:
+            replace_box = None
+        list_kwargs = split_in_two_dictionaries(kwargs)
+        list_kwargs[0]["data"] = arr  # include the input array in the parameters for the first run of the algorithm
+        if fwhm_gauss is not None:
+            list_kwargs[0]["fwhm_gauss"] = fwhm_gauss
+        if replace_box is not None:
+            list_kwargs[0]["replace_box"] = replace_box
+        out = PyCosmic.det_cosmics(**list_kwargs[0])
+        cleaned_arr = out.data
+        mask_crfound = out.mask.astype(bool)
+        if len(list_kwargs) == 2:
+            # If there are two sets of parameters, run the algorithm a second time 
+            # with the second set of parameters. Note that the cleaned array from 
+            # the first run is overwritten here
+            list_kwargs[1]["data"] = arr  # include the input array in the parameters for the second run of the algorithm
+            if fwhm_gauss is not None:
+                list_kwargs[1]["fwhm_gauss"] = fwhm_gauss
+            if replace_box is not None:
+                list_kwargs[1]["replace_box"] = replace_box
+            out_2 = PyCosmic.det_cosmics(**list_kwargs[1])
+            cleaned_arr = out_2.data
+            mask_crfound_2 = out_2.mask.astype(bool)
+            # Merge the two masks of detected CRs using the merge_peak_tail_masks function
+            mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress)
     elif detection_algorithm == "deepcr":
+        if "img0" in kwargs:
+            raise ValueError(
+                "The 'img0' parameter should not be included here.\n"
+                "It will be created internally using the different arrays\n"
+                "in the 'list_arrays' provided to the combine_arrays function."
+            )
+        list_kwargs = split_in_two_dictionaries(kwargs)
+        list_kwargs[0]["img0"] = arr  # include the input array in the parameters for the first run of the algorithm
         raise NotImplementedError("DeepCR detection algorithm is not yet implemented in this function.")
     elif detection_algorithm == "conn":
+        if "image" in kwargs:
+            raise ValueError(
+                "The 'image' parameter should not be included here.\n"
+                "It will be created internally using the different arrays\n"
+                "in the 'list_arrays' provided to the combine_arrays function."
+            )
+        list_kwargs = split_in_two_dictionaries(kwargs)
+        list_kwargs[0]["image"] = arr  # include the input array in the parameters for the first run of the algorithm
         raise NotImplementedError("Cosmic-CoNN detection algorithm is not yet implemented in this function.")
     else:
         raise ValueError(f"Invalid detection_algorithm. Must be one of {VALID_ALGORITHMS}.")
@@ -384,5 +472,7 @@ def combine_arrays(
         combined_array = np.ma.mean(cleaned_arrays, axis=0).filled(np.nan)
     else:
         raise ValueError("Invalid combination_method. Must be 'median' or 'mean'.")
+    if show_progress:
+        print("Combination complete.")
 
     return combined_array
