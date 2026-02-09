@@ -108,6 +108,38 @@ def split_in_two_dictionaries(kwargs):
     return list_kwargs
 
 
+def check_double_2element_list(value):
+    """Check if the input value is a list of a double list of two elements.
+
+    This is used to check if the input parameters for the CR detection
+    algorithm is a single list of two numbers (integer or float) or a list
+    of two lists of two numbers, which would indicate that the algorithm should
+    be run twice, using the first list for the first run and the second list
+    for the second run.
+
+    Parameters
+    ----------
+    value : any
+        The input value to be checked.
+
+    Returns
+    -------
+    is_double_2element_list : bool
+        True if the input value is a list of a double list of two elements,
+        False otherwise.
+    """
+    if isinstance(value, (list, tuple)) and len(value) == 2:
+        if all(isinstance(v, (int, float)) for v in value):
+            return False
+        elif all(
+            isinstance(v, (list, tuple)) and len(v) == 2 and all(isinstance(n, (int, float)) for n in v) for v in value
+        ):
+            return True
+    raise ValueError(
+        f"Invalid value: {value}. Value must be either a list of two numbers (int or float) or a list of two lists of two numbers."
+    )
+
+
 def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
     """Detect cosmic rays in the input array
 
@@ -183,25 +215,29 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
                 "in the 'list_arrays' provided to the combine_arrays function."
             )
         if "fwhm_gauss" in kwargs:
-            # Since this parameter is already a list, we will not split it in two,
-            # but we will use the same value for both runs of the algorithm
             fwhm_gauss = kwargs["fwhm_gauss"]
+            if not check_double_2element_list(fwhm_gauss):
+                list_fwhm_gauss = [fwhm_gauss, fwhm_gauss]
+            else:
+                list_fwhm_gauss = fwhm_gauss
             del kwargs["fwhm_gauss"]
         else:
             fwhm_gauss = None
         if "replace_box" in kwargs:
-            # Since this parameter is already a list, we will not split it in two,
-            # but we will use the same value for both runs of the algorithm
             replace_box = kwargs["replace_box"]
+            if not check_double_2element_list(replace_box):
+                list_replace_box = [replace_box, replace_box]
+            else:
+                list_replace_box = replace_box
             del kwargs["replace_box"]
         else:
             replace_box = None
         list_kwargs = split_in_two_dictionaries(kwargs)
         list_kwargs[0]["data"] = arr  # include the input array in the parameters for the first run of the algorithm
         if fwhm_gauss is not None:
-            list_kwargs[0]["fwhm_gauss"] = fwhm_gauss
+            list_kwargs[0]["fwhm_gauss"] = list_fwhm_gauss[0]
         if replace_box is not None:
-            list_kwargs[0]["replace_box"] = replace_box
+            list_kwargs[0]["replace_box"] = list_replace_box[0]
         if show_progress:
             print(f"Running PyCosmic algorithm (run 1/{len(list_kwargs)})...")
         out = PyCosmic.det_cosmics(**list_kwargs[0])
@@ -215,9 +251,9 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
                 "data"
             ] = arr  # include the input array in the parameters for the second run of the algorithm
             if fwhm_gauss is not None:
-                list_kwargs[1]["fwhm_gauss"] = fwhm_gauss
+                list_kwargs[1]["fwhm_gauss"] = list_fwhm_gauss[1]
             if replace_box is not None:
-                list_kwargs[1]["replace_box"] = replace_box
+                list_kwargs[1]["replace_box"] = list_replace_box[1]
             if show_progress:
                 print(f"Running PyCosmic algorithm (run 2/{len(list_kwargs)})...")
             out_2 = PyCosmic.det_cosmics(**list_kwargs[1])
@@ -403,7 +439,13 @@ def clean_array(arr, mask_crfound, strategy, all_arrays=None, other_arrays=None)
 
 
 def combine_arrays(
-    list_arrays, detection_algorithm, cleaning_strategy, combination_method, show_progress=False, return_array_mask_lists=False, **kwargs
+    list_arrays,
+    detection_algorithm,
+    cleaning_strategy,
+    combination_method,
+    show_progress=False,
+    return_array_mask_lists=False,
+    **kwargs,
 ):
     """Combine arrays with different interpolation methods.
 
@@ -456,10 +498,10 @@ def combine_arrays(
         The resulting array after combining the input arrays using
         the specified methods.
     out_list_arrays: list of 2D numpy.ndarray, optional
-        If return_list_arrays_masks is True, a list of the individually 
+        If return_list_arrays_masks is True, a list of the individually
         cleaned arrays.
     out_list_masks: list of 2D numpy.ndarray of bool, optional
-        If return_list_arrays_masks is True, a list of the corresponding 
+        If return_list_arrays_masks is True, a list of the corresponding
         masks of detected CRs for each array.
     """
 
@@ -504,7 +546,7 @@ def combine_arrays(
     # Define a 3D masked array to hold the cleaned or masked arrays
     cleaned_arrays = np.ma.masked_array(np.zeros((len(list_arrays), *array_shape)), mask=False)
 
-    # If return_array_mask_lists is True, define lists to hold the individually 
+    # If return_array_mask_lists is True, define lists to hold the individually
     # cleaned arrays and their corresponding masks
     if return_array_mask_lists:
         out_list_arrays = []
@@ -549,16 +591,16 @@ def combine_arrays(
             cleaned_arr = arr.copy()
         else:
             raise ValueError(f"Invalid cleaning_strategy '{cleaning_strategy}'.")
-        
-        # If return_array_mask_lists is True, store the cleaned array and 
+
+        # If return_array_mask_lists is True, store the cleaned array and
         # its corresponding mask in the output lists
         if return_array_mask_lists:
             out_list_arrays.append(cleaned_arr)
             out_list_masks.append(mask_crfound)
 
-        # For the "none" cleaning strategy, we will keep the mask of detected CRs 
-        # to combine the arrays using the masked version of the specified 
-        # combination method, but for the other strategies, after cleaning, 
+        # For the "none" cleaning strategy, we will keep the mask of detected CRs
+        # to combine the arrays using the masked version of the specified
+        # combination method, but for the other strategies, after cleaning,
         # no pixels should remain masked, so we will set the mask to False for all pixels
         if cleaning_strategy != "none":
             mask_crfound = np.zeros_like(arr, dtype=bool)
