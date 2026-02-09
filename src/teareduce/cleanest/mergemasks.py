@@ -1,5 +1,5 @@
 #
-# Copyright 2025 Universidad Complutense de Madrid
+# Copyright 2025-2026 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
@@ -11,10 +11,10 @@
 
 import numpy as np
 from scipy import ndimage
-from rich import print
+from rich import print as rprint
 
 
-def merge_peak_tail_masks(mask_peaks, mask_tails, verbose=False):
+def merge_peak_tail_masks(mask_peaks, mask_tails, verbose=False, rich_print=True):
     """Merge peak and tail masks for cosmic ray cleaning.
 
     Tail pixels are preserved only if they correspond to CR features
@@ -28,6 +28,8 @@ def merge_peak_tail_masks(mask_peaks, mask_tails, verbose=False):
         Boolean array indicating the pixels identified as cosmic ray tails.
     verbose: bool
         If True, print additional information during processing.
+    rich_print: bool
+        If True, use rich print for better formatting of output.
 
     Returns
     -------
@@ -44,10 +46,15 @@ def merge_peak_tail_masks(mask_peaks, mask_tails, verbose=False):
     if mask_peaks.dtype != bool or mask_tails.dtype != bool:
         raise TypeError("Input masks must be boolean arrays.")
 
+    if rich_print:
+        _print = rprint
+    else:
+        _print = print
+
     if verbose:
         ndigits = np.max([len(str(np.sum(mask_peaks))), len(str(np.sum(mask_tails)))])
-        print(f"Number of cosmic ray pixels (peaks)...............: {np.sum(mask_peaks):{ndigits}d}")
-        print(f"Number of cosmic ray pixels (tails)...............: {np.sum(mask_tails):{ndigits}d}")
+        _print(f"Number of cosmic ray pixels (peaks)...............: {np.sum(mask_peaks):{ndigits}d}")
+        _print(f"Number of cosmic ray pixels (tails)...............: {np.sum(mask_tails):{ndigits}d}")
     # find structures in tail mask
     structure = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
     cr_labels_tails, num_crs_tails = ndimage.label(mask_tails, structure=structure)
@@ -63,6 +70,6 @@ def merge_peak_tail_masks(mask_peaks, mask_tails, verbose=False):
             merged_mask[cr_labels_tails == icr] = True
 
     if verbose:
-        print(f"Number of cosmic ray pixels (merged peaks & tails): {np.sum(merged_mask):{ndigits}d}")
+        _print(f"Number of cosmic ray pixels (merged peaks & tails): {np.sum(merged_mask):{ndigits}d}")
 
     return merged_mask
