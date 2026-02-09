@@ -160,14 +160,20 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
             raise ValueError("The 'pad_width' parameter must be included in 'kwargs'")
         list_kwargs = split_in_two_dictionaries(kwargs)
         list_kwargs[0]["ccd"] = arr  # include the input array in the parameters for the first run of the algorithm
+        if show_progress:
+            print(f"Running L.A.Cosmic algorithm (run 1/{len(list_kwargs)})...")
         cleaned_arr, mask_crfound = lacosmicpad(**list_kwargs[0])
         if len(list_kwargs) == 2:
             # If there are two sets of parameters, run the algorithm a second time
             # with the second set of parameters. Note that the cleaned array from
             # the first run is overwritten here
             list_kwargs[1]["ccd"] = arr  # include the input array in the parameters for the second run of the algorithm
+            if show_progress:
+                print(f"Running L.A.Cosmic algorithm (run 2/{len(list_kwargs)})...")
             cleaned_arr, mask_crfound_2 = lacosmicpad(**list_kwargs[1])
             # Merge the two masks of detected CRs using the merge_peak_tail_masks function
+            if show_progress:
+                print("Merging masks of detected cosmic rays from both runs...")
             mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress)
     elif detection_algorithm == "pycosmic":
         if "data" in kwargs:
@@ -196,6 +202,8 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
             list_kwargs[0]["fwhm_gauss"] = fwhm_gauss
         if replace_box is not None:
             list_kwargs[0]["replace_box"] = replace_box
+        if show_progress:
+            print(f"Running PyCosmic algorithm (run 1/{len(list_kwargs)})...")
         out = PyCosmic.det_cosmics(**list_kwargs[0])
         cleaned_arr = out.data
         mask_crfound = out.mask.astype(bool)
@@ -210,10 +218,14 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
                 list_kwargs[1]["fwhm_gauss"] = fwhm_gauss
             if replace_box is not None:
                 list_kwargs[1]["replace_box"] = replace_box
+            if show_progress:
+                print(f"Running PyCosmic algorithm (run 2/{len(list_kwargs)})...")
             out_2 = PyCosmic.det_cosmics(**list_kwargs[1])
             cleaned_arr = out_2.data
             mask_crfound_2 = out_2.mask.astype(bool)
             # Merge the two masks of detected CRs using the merge_peak_tail_masks function
+            if show_progress:
+                print("Merging masks of detected cosmic rays from both runs...")
             mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress)
     elif detection_algorithm == "deepcr":
         if "img0" in kwargs:
@@ -225,6 +237,8 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
         mdl = deepCR.deepCR(mask="ACS-WFC")
         list_kwargs = split_in_two_dictionaries(kwargs)
         list_kwargs[0]["img0"] = arr  # include the input array in the parameters for the first run of the algorithm
+        if show_progress:
+            print(f"Running DeepCR algorithm (run 1/{len(list_kwargs)})...")
         mask_crfound, cleaned_arr = mdl.clean(**list_kwargs[0])
         mask_crfound = mask_crfound.astype(bool)
         if len(list_kwargs) == 2:
@@ -234,9 +248,13 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
             list_kwargs[1][
                 "img0"
             ] = arr  # include the input array in the parameters for the second run of the algorithm
+            if show_progress:
+                print(f"Running DeepCR algorithm (run 2/{len(list_kwargs)})...")
             mask_crfound_2, cleaned_arr = mdl.clean(**list_kwargs[1])
             mask_crfound_2 = mask_crfound_2.astype(bool)
             # Merge the two masks of detected CRs using the merge_peak_tail_masks function
+            if show_progress:
+                print("Merging masks of detected cosmic rays from both runs...")
             mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress)
     elif detection_algorithm == "conn":
         if "image" in kwargs:
@@ -250,6 +268,8 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
         list_kwargs[0]["image"] = arr.astype(
             np.float32
         )  # include the input array in the parameters for the first run of the algorithm
+        if show_progress:
+            print(f"Running Cosmic-CoNN algorithm (run 1/{len(list_kwargs)})...")
         cr_prob = cr_model.detect_cr(list_kwargs[0]["image"])
         if "threshold" in list_kwargs[0]:
             threshold = list_kwargs[0]["threshold"]
@@ -265,6 +285,8 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
             list_kwargs[1]["image"] = arr.astype(
                 np.float32
             )  # include the input array in the parameters for the second run of the algorithm
+            if show_progress:
+                print(f"Running Cosmic-CoNN algorithm (run 2/{len(list_kwargs)})...")
             cr_prob_2 = cr_model.detect_cr(list_kwargs[1]["image"])
             if "threshold" in list_kwargs[1]:
                 threshold_2 = list_kwargs[1]["threshold"]
@@ -274,6 +296,8 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
                 )
             mask_crfound_2 = cr_prob_2 > threshold_2
             # Merge the two masks of detected CRs using the merge_peak_tail_masks function
+            if show_progress:
+                print("Merging masks of detected cosmic rays from both runs...")
             mask_crfound = merge_peak_tail_masks(mask_crfound, mask_crfound_2, verbose=show_progress)
         # For the 'conn' algorithm, we do not have a cleaned array, but only a mask of detected CRs, so we will return the input array as the cleaned array
         cleaned_arr = arr.copy()
@@ -379,7 +403,7 @@ def clean_array(arr, mask_crfound, strategy, all_arrays=None, other_arrays=None)
 
 
 def combine_arrays(
-    list_arrays, detection_algorithm, cleaning_strategy, combination_method, show_progress=False, **kwargs
+    list_arrays, detection_algorithm, cleaning_strategy, combination_method, show_progress=False, return_array_mask_lists=False, **kwargs
 ):
     """Combine arrays with different interpolation methods.
 
@@ -420,13 +444,23 @@ def combine_arrays(
         - "mean": mean of the individually cleaned or masked arrays.
     show_progress : bool, optional
         If True, print show_progress information during the combination process.
+    return_array_mask_lists : bool, optional
+        If True, return a list of the individually cleaned arrays and another
+        list with the corresponding masks.
     **kwargs : dict
         Additional keyword arguments passed to the CR detection algorithm.
 
     Returns
     -------
     combined_array : 2D numpy.ndarray
-        The resulting array after combining the input arrays using the specified methods.
+        The resulting array after combining the input arrays using
+        the specified methods.
+    out_list_arrays: list of 2D numpy.ndarray, optional
+        If return_list_arrays_masks is True, a list of the individually 
+        cleaned arrays.
+    out_list_masks: list of 2D numpy.ndarray of bool, optional
+        If return_list_arrays_masks is True, a list of the corresponding 
+        masks of detected CRs for each array.
     """
 
     # Check list_arrays is a list of 2D arrays of the same shape
@@ -438,6 +472,8 @@ def combine_arrays(
             raise ValueError("All elements in list_arrays must be 2D numpy arrays.")
         if arr.shape != array_shape:
             raise ValueError("All arrays in list_arrays must have the same shape.")
+    if len(list_arrays) < 2:
+        raise ValueError("list_arrays must contain at least two arrays to combine.")
 
     # Check combination_method is valid
     if combination_method not in ["median", "mean"]:
@@ -468,6 +504,12 @@ def combine_arrays(
     # Define a 3D masked array to hold the cleaned or masked arrays
     cleaned_arrays = np.ma.masked_array(np.zeros((len(list_arrays), *array_shape)), mask=False)
 
+    # If return_array_mask_lists is True, define lists to hold the individually 
+    # cleaned arrays and their corresponding masks
+    if return_array_mask_lists:
+        out_list_arrays = []
+        out_list_masks = []
+
     # Loop over each array, detect cosmic rays, and clean or mask them
     for i, arr in enumerate(list_arrays):
         if show_progress:
@@ -485,8 +527,6 @@ def combine_arrays(
             # Overwrite the cleaned_arr with the median of all arrays
             # in list_arrays at the positions of the detected CRs
             cleaned_arr = clean_array(arr, mask_crfound, strategy="median_all", all_arrays=list_arrays)
-            # After cleaning with median_all, no pixels should remain masked
-            mask_crfound = np.zeros_like(arr, dtype=bool)
         elif cleaning_strategy == "median_others":
             # Overwrite the cleaned_arr with the median of all arrays
             # in list_arrays except the one being cleaned
@@ -496,22 +536,32 @@ def combine_arrays(
                 strategy="median_others",
                 other_arrays=[a for j, a in enumerate(list_arrays) if j != i],
             )
-            # After cleaning with median_others, no pixels should remain masked
-            mask_crfound = np.zeros_like(arr, dtype=bool)
         elif cleaning_strategy == "mean_others":
             # Overwrite the cleaned_arr with the mean of all arrays
             # in list_arrays except the one being cleaned
             cleaned_arr = clean_array(
                 arr, mask_crfound, strategy="mean_others", other_arrays=[a for j, a in enumerate(list_arrays) if j != i]
             )
-            # After cleaning with mean_others, no pixels should remain masked
-            mask_crfound = np.zeros_like(arr, dtype=bool)
+
         elif cleaning_strategy == "none":
             # For the "none" strategy, we do not attempt to clean the array,
             # but we will use the mask of detected CRs to combine the arrays
             cleaned_arr = arr.copy()
         else:
             raise ValueError(f"Invalid cleaning_strategy '{cleaning_strategy}'.")
+        
+        # If return_array_mask_lists is True, store the cleaned array and 
+        # its corresponding mask in the output lists
+        if return_array_mask_lists:
+            out_list_arrays.append(cleaned_arr)
+            out_list_masks.append(mask_crfound)
+
+        # For the "none" cleaning strategy, we will keep the mask of detected CRs 
+        # to combine the arrays using the masked version of the specified 
+        # combination method, but for the other strategies, after cleaning, 
+        # no pixels should remain masked, so we will set the mask to False for all pixels
+        if cleaning_strategy != "none":
+            mask_crfound = np.zeros_like(arr, dtype=bool)
 
         # Store the cleaned array and its corresponding mask in the 3D masked array
         cleaned_arrays[i] = np.ma.masked_array(cleaned_arr, mask=mask_crfound)
@@ -528,4 +578,7 @@ def combine_arrays(
     if show_progress:
         print("Combination complete.")
 
-    return combined_array
+    if return_array_mask_lists:
+        return combined_array, out_list_arrays, out_list_masks
+    else:
+        return combined_array
