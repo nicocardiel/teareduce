@@ -16,30 +16,21 @@ try:
 
     PYCOSMIC_AVAILABLE = True
 except ModuleNotFoundError as e:
-    print(
-        "The 'teareduce.cleanest' module requires the 'PyCosmic' package.\n"
-        "Please install this module using:\n"
-        "`pip install git+https://github.com/nicocardiel/PyCosmic.git@test`"
-    )
     PYCOSMIC_AVAILABLE = False
 
 try:
     import deepCR
+
+    DEEPCR_AVAILABLE = True
 except ModuleNotFoundError as e:
-    raise ModuleNotFoundError(
-        "The 'teareduce.cleanest' module requires the 'deepCR' package. "
-        "Please install teareduce with the 'cleanest' extra dependencies: "
-        '`pip install "teareduce[cleanest]"`.'
-    ) from e
+    DEEPCR_AVAILABLE = False
 
 try:
     import cosmic_conn
+
+    COSMIC_CONN_AVAILABLE = True
 except ModuleNotFoundError as e:
-    raise ModuleNotFoundError(
-        "The 'teareduce.cleanest' module requires the 'cosmic-conn' package. "
-        "Please install teareduce with the 'cleanest' extra dependencies: "
-        '`pip install "teareduce[cleanest]"`.'
-    ) from e
+    COSMIC_CONN_AVAILABLE = False
 
 from .definitions import VALID_ALGORITHMS
 from .lacosmicpad import lacosmicpad
@@ -168,6 +159,27 @@ def detect_cosmic_rays(arr, detection_algorithm, show_progress, **kwargs):
         A boolean mask array indicating which pixels are flagged as
         cosmic rays (True = CR pixel).
     """
+    if not PYCOSMIC_AVAILABLE and detection_algorithm == "pycosmic":
+        raise ValueError(
+            "The 'teareduce.cleanest' module requires the 'PyCosmic' package.\n"
+            "Please install this module using:\n"
+            "`pip install git+https://github.com/nicocardiel/PyCosmic.git@test`"
+        )
+
+    if not DEEPCR_AVAILABLE and detection_algorithm == "deepcr":
+        raise ValueError(
+            "The 'teareduce.cleanest' module requires the 'deepCR' package. "
+            "Please install teareduce with the 'cleanest' extra dependencies: "
+            '`pip install "teareduce[cleanest]"`.'
+        )
+
+    if not COSMIC_CONN_AVAILABLE and detection_algorithm == "conn":
+        raise ValueError(
+            "The 'teareduce.cleanest' module requires the 'cosmic-conn' package. "
+            "Please install teareduce with the 'cleanest' extra dependencies: "
+            '`pip install "teareduce[cleanest]"`.'
+        )
+
     # Check input array is a valid numpy 2D array
     if not isinstance(arr, np.ndarray) or arr.ndim != 2:
         raise ValueError("Input array must be a 2D numpy array.")
