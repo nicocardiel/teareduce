@@ -11,12 +11,10 @@
 
 try:
     from maskfill import maskfill
+
+    MASKFILL_AVAILABLE = True
 except ModuleNotFoundError as e:
-    raise ModuleNotFoundError(
-        "The 'teareduce.cleanest' module requires the 'ccdproc' and 'maskfill' packages. "
-        "Please install teareduce with the 'cleanest' extra dependencies: "
-        '`pip install "teareduce[cleanest]"`.'
-    ) from e
+    MASKFILL_AVAILABLE = False
 import numpy as np
 from rich import print
 from scipy import ndimage
@@ -119,6 +117,12 @@ def interpolate(data, mask_crfound, dilation=0, interp_method=None, npoints=None
     # Fix cosmic rays using the specified interpolation method
     cleaned_data = data.copy()
     if interp_method == "k":
+        if not MASKFILL_AVAILABLE:
+            raise ValueError(
+                "The 'teareduce.cleanest' module requires the 'ccdproc' and 'maskfill' packages. "
+                "Please install teareduce with the 'cleanest' extra dependencies: "
+                '`pip install "teareduce[cleanest]"`.'
+            )
         smoothed_output, _ = maskfill(input_image=data, mask=mask_crfound, size=3, operator="median", smooth=True)
         cleaned_data[mask_crfound] = smoothed_output[mask_crfound]
         mask_fixed[mask_crfound] = True
