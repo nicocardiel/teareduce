@@ -1451,7 +1451,7 @@ class TeaWaveCalibration:
         old_x_borders_fits = np.arange(naxis1 + 1) + 0.5  # FITS convention
 
         for k in tqdm(
-            range(naxis2), desc="Applying wavelength calibration", disable=disable_tqdm, file=sys.stdout, ncols=80
+            range(naxis2), desc="Wavelength calibration", disable=disable_tqdm, file=sys.stdout, ncols=80
         ):
             poly = Polynomial(self._array_poly_wav[k])
             old_wl_borders = poly(old_x_borders_fits) * self.peak_wavelengths.unit
