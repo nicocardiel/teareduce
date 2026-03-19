@@ -7,6 +7,7 @@
 # License-Filename: LICENSE.txt
 #
 
+
 def avoid_astropy_warnings(avoid_warnings):
     """Auxiliary function to help disable astropy warnings
 
@@ -19,7 +20,9 @@ def avoid_astropy_warnings(avoid_warnings):
 
     if avoid_warnings:
         import warnings
+
         warnings.resetwarnings()
-        warnings.filterwarnings('ignore', category=UserWarning, append=True)
+        warnings.filterwarnings("ignore", category=UserWarning, append=True)
         from astropy.utils.exceptions import AstropyWarning
-        warnings.simplefilter('ignore', AstropyWarning)
+
+        warnings.simplefilter("ignore", AstropyWarning)

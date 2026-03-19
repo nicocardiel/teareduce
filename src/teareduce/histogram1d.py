@@ -12,7 +12,7 @@
 import numpy as np
 
 
-def plot_hist_step(ax, bins, h, color='C0', alpha=1.0, fill_color=None, fill_alpha=0.4):
+def plot_hist_step(ax, bins, h, color="C0", alpha=1.0, fill_color=None, fill_alpha=0.4):
     """Plot histogram already computed.
 
     Parameters
@@ -34,18 +34,22 @@ def plot_hist_step(ax, bins, h, color='C0', alpha=1.0, fill_color=None, fill_alp
     """
     # bin centers
     xdum = (bins[:-1] + bins[1:]) / 2
-    ax.step(xdum, h, where='mid')
+    ax.step(xdum, h, where="mid")
     # draw vertical lines at the edges
-    ax.plot([bins[0], bins[0], xdum[0]], [0, h[0], h[0]], alpha=alpha, color=f'{color}', linestyle='-')
-    ax.plot([xdum[-1], bins[-1], bins[-1]], [h[-1], h[-1], 0], alpha=alpha, color=f'{color}', linestyle='-')
+    ax.plot([bins[0], bins[0], xdum[0]], [0, h[0], h[0]], alpha=alpha, color=f"{color}", linestyle="-")
+    ax.plot([xdum[-1], bins[-1], bins[-1]], [h[-1], h[-1], 0], alpha=alpha, color=f"{color}", linestyle="-")
     # fill area under the histogram
     if fill_color is not None:
-        ax.fill_between(np.concatenate((np.array([bins[0]]), xdum, np.array([bins[-1]]))),
-                        np.concatenate((np.array([h[0]]), h, np.array([h[-1]]))),
-                        step='mid', alpha=fill_alpha, color=f'{fill_color}')
+        ax.fill_between(
+            np.concatenate((np.array([bins[0]]), xdum, np.array([bins[-1]]))),
+            np.concatenate((np.array([h[0]]), h, np.array([h[-1]]))),
+            step="mid",
+            alpha=fill_alpha,
+            color=f"{fill_color}",
+        )
 
 
-def hist_step(ax, data, bins, color='C0', alpha=1.0, fill_color=None, fill_alpha=0.4):
+def hist_step(ax, data, bins, color="C0", alpha=1.0, fill_color=None, fill_alpha=0.4):
     """Compute and plot histogram of data.
 
     Parameters
@@ -78,7 +82,7 @@ def hist_step(ax, data, bins, color='C0', alpha=1.0, fill_color=None, fill_alpha
     elif isinstance(bins, np.ndarray):
         pass
     else:
-        raise ValueError(f'Unexpected {bins=}')
+        raise ValueError(f"Unexpected {bins=}")
     h, edges = np.histogram(data, bins=bins)
     plot_hist_step(ax, bins, h, color=color, alpha=alpha, fill_color=fill_color, fill_alpha=fill_alpha)
 

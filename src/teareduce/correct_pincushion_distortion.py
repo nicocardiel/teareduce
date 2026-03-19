@@ -39,7 +39,7 @@ def correct_pincushion_distortion(coeff_filename, data):
     # check dimensions
     naxis2, naxis1 = data.shape
     if naxis1 != len(table):
-        raise ValueError(f'Incompatible dimensions: naxis1:{naxis1} != len(table): {len(table)}')
+        raise ValueError(f"Incompatible dimensions: naxis1:{naxis1} != len(table): {len(table)}")
 
     # rectify image
     accum_flux = np.zeros((naxis2 + 1, naxis1))
@@ -49,11 +49,7 @@ def correct_pincushion_distortion(coeff_filename, data):
     for i in range(naxis1):
         poly = Polynomial(coef=table[i])
         flux_borders = np.interp(
-            x=new_y_borders,
-            xp=poly(new_y_borders),
-            fp=accum_flux[:, i],
-            left=0,
-            right=accum_flux[-1, i]
+            x=new_y_borders, xp=poly(new_y_borders), fp=accum_flux[:, i], left=0, right=accum_flux[-1, i]
         )
         data_rectified[:, i] = flux_borders[1:] - flux_borders[:-1]
 

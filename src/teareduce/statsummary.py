@@ -43,9 +43,19 @@ def statsummary(x=None, rm_nan=False, show=True):
 
     # protections
     if x is None:
-        return ['npoints', 'minimum', 'maximum',
-                'mean', 'median', 'std', 'robust_std',
-                'percentile16', 'percentile25', 'percentile75', 'percentile84']
+        return [
+            "npoints",
+            "minimum",
+            "maximum",
+            "mean",
+            "median",
+            "std",
+            "robust_std",
+            "percentile16",
+            "percentile25",
+            "percentile75",
+            "percentile84",
+        ]
 
     if isinstance(x, np.ndarray):
         xx = np.copy(x.flatten())
@@ -53,7 +63,7 @@ def statsummary(x=None, rm_nan=False, show=True):
         if isinstance(x, list):
             xx = np.array(x)
         else:
-            raise ValueError('x=' + str(x) + ' must be a numpy.ndarray')
+            raise ValueError("x=" + str(x) + " must be a numpy.ndarray")
 
     # filter out NaN's
     if rm_nan:
@@ -63,36 +73,36 @@ def statsummary(x=None, rm_nan=False, show=True):
     npoints = len(xx)
     ok = npoints > 0
     result = {
-        'npoints': npoints,
-        'minimum': np.min(xx) if ok else 0,
-        'percentile25': np.percentile(xx, 25) if ok else 0,
-        'median': np.percentile(xx, 50) if ok else 0,
-        'mean': np.mean(xx) if ok else 0,
-        'percentile75': np.percentile(xx, 75) if ok else 0,
-        'maximum': np.max(xx) if ok else 0,
-        'std': np.std(xx) if ok else 0,
-        'robust_std': robust_std(xx) if ok else 0,
-        'percentile16': np.percentile(xx, 15.86553) if ok else 0,
-        'percentile84': np.percentile(xx, 84.13447) if ok else 0
+        "npoints": npoints,
+        "minimum": np.min(xx) if ok else 0,
+        "percentile25": np.percentile(xx, 25) if ok else 0,
+        "median": np.percentile(xx, 50) if ok else 0,
+        "mean": np.mean(xx) if ok else 0,
+        "percentile75": np.percentile(xx, 75) if ok else 0,
+        "maximum": np.max(xx) if ok else 0,
+        "std": np.std(xx) if ok else 0,
+        "robust_std": robust_std(xx) if ok else 0,
+        "percentile16": np.percentile(xx, 15.86553) if ok else 0,
+        "percentile84": np.percentile(xx, 84.13447) if ok else 0,
     }
 
     if show:
-        print('>>> =============================================')
-        print('>>> STATISTICAL SUMMARY:')
-        print('>>> ---------------------------------------------')
-        print('>>> Number of points.........:', result['npoints'])
-        print('>>> Minimum..................:', result['minimum'])
-        print('>>> 1st Quartile.............:', result['percentile25'])
-        print('>>> Median...................:', result['median'])
-        print('>>> Mean.....................:', result['mean'])
-        print('>>> 3rd Quartile.............:', result['percentile75'])
-        print('>>> Maximum..................:', result['maximum'])
-        print('>>> ---------------------------------------------')
-        print('>>> Standard deviation.......:', result['std'])
-        print('>>> Robust standard deviation:', result['robust_std'])
-        print('>>> 0.1586553 percentile.....:', result['percentile16'])
-        print('>>> 0.8413447 percentile.....:', result['percentile84'])
-        print('>>> =============================================')
+        print(">>> =============================================")
+        print(">>> STATISTICAL SUMMARY:")
+        print(">>> ---------------------------------------------")
+        print(">>> Number of points.........:", result["npoints"])
+        print(">>> Minimum..................:", result["minimum"])
+        print(">>> 1st Quartile.............:", result["percentile25"])
+        print(">>> Median...................:", result["median"])
+        print(">>> Mean.....................:", result["mean"])
+        print(">>> 3rd Quartile.............:", result["percentile75"])
+        print(">>> Maximum..................:", result["maximum"])
+        print(">>> ---------------------------------------------")
+        print(">>> Standard deviation.......:", result["std"])
+        print(">>> Robust standard deviation:", result["robust_std"])
+        print(">>> 0.1586553 percentile.....:", result["percentile16"])
+        print(">>> 0.8413447 percentile.....:", result["percentile84"])
+        print(">>> =============================================")
 
     return result
 
@@ -119,7 +129,7 @@ def ifc_statsummary(ifc, directory, region=None):
 
     if region is not None:
         if not isinstance(region, SliceRegion2D):
-            msg = f'region: {region} must be a SliceRegion2D instance'
+            msg = f"region: {region} must be a SliceRegion2D instance"
             raise ValueError(msg)
 
     summary = ifc.summary.copy()
@@ -129,24 +139,22 @@ def ifc_statsummary(ifc, directory, region=None):
         if colname in summary.columns:
             summary.remove_column(colname)
         # create column (initialise to 0)
-        if colname == 'npoints':
+        if colname == "npoints":
             summary[colname] = np.zeros(len(summary), dtype=int)
-            summary[colname].info.format = 'd'
+            summary[colname].info.format = "d"
         else:
             summary[colname] = np.zeros(len(summary))
-            summary[colname].info.format = '.3f'
+            summary[colname].info.format = ".3f"
 
-    for i, filename in enumerate(tqdm(summary['file'], file=sys.stdout, ncols=80, desc='Statistical summary')):
+    for i, filename in enumerate(tqdm(summary["file"], file=sys.stdout, ncols=80, desc="Statistical summary")):
         data = fits.getdata(directory / Path(filename).name)
         naxis2, naxis1 = data.shape
-        region_fullframe = SliceRegion2D(np.s_[0:naxis2, 0:naxis1],
-                                         mode='python')
+        region_fullframe = SliceRegion2D(np.s_[0:naxis2, 0:naxis1], mode="python")
         if region is None:
             region = region_fullframe
         else:
             if not region.within(region_fullframe):
-                msg = f'Region {region!r} outside full frame ' \
-                      f'{region_fullframe!r}'
+                msg = f"Region {region!r} outside full frame " f"{region_fullframe!r}"
                 raise ValueError(msg)
         result = statsummary(data[region.python], show=False)
         for key, value in result.items():

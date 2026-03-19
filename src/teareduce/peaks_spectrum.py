@@ -47,22 +47,21 @@ def find_peaks_spectrum(sx, nwinwidth, deltaflux=0, threshold=0, debugplot=False
         raise ValueError("sx.ndim=" + str(sx.ndim) + " must be 1")
 
     sx_shape = sx.shape
-    nmed = nwinwidth//2
+    nmed = nwinwidth // 2
 
     if debugplot:
-        print('find_peaks_spectrum> sx shape......:', sx_shape)
-        print('find_peaks_spectrum> nwinwidth.....:', nwinwidth)
-        print('find_peaks_spectrum> nmed..........:', nmed)
-        print('find_peaks_spectrum> data_threshold:', threshold)
-        print('find_peaks_spectrum> the first and last', nmed,
-              'pixels will be ignored')
+        print("find_peaks_spectrum> sx shape......:", sx_shape)
+        print("find_peaks_spectrum> nwinwidth.....:", nwinwidth)
+        print("find_peaks_spectrum> nmed..........:", nmed)
+        print("find_peaks_spectrum> data_threshold:", threshold)
+        print("find_peaks_spectrum> the first and last", nmed, "pixels will be ignored")
 
     xpeaks = []  # list to store the peaks
 
     if sx_shape[0] < nwinwidth:
-        print('find_peaks_spectrum> sx shape......:', sx_shape)
-        print('find_peaks_spectrum> nwinwidth.....:', nwinwidth)
-        raise ValueError('sx.shape < nwinwidth')
+        print("find_peaks_spectrum> sx shape......:", sx_shape)
+        print("find_peaks_spectrum> nwinwidth.....:", nwinwidth)
+        raise ValueError("sx.shape < nwinwidth")
 
     i = nmed
     while i < sx_shape[0] - nmed:
@@ -84,7 +83,7 @@ def find_peaks_spectrum(sx, nwinwidth, deltaflux=0, threshold=0, debugplot=False
                     j += 1
                     loop = (j < nwinwidth) and peak_ok
             if peak_ok:
-                if sx[i] - np.min(sx[i-nmed:(i+nmed+1)]) > deltaflux:
+                if sx[i] - np.min(sx[i - nmed : (i + nmed + 1)]) > deltaflux:
                     xpeaks.append(i)
                     i += nwinwidth - 1
                 else:
@@ -97,14 +96,15 @@ def find_peaks_spectrum(sx, nwinwidth, deltaflux=0, threshold=0, debugplot=False
     ixpeaks = np.array(xpeaks)
 
     if debugplot:
-        print('find_peaks_spectrum> number of peaks found:', len(ixpeaks))
+        print("find_peaks_spectrum> number of peaks found:", len(ixpeaks))
         print(ixpeaks)
 
     return ixpeaks
 
 
-def refine_peaks_spectrum(sx, ixpeaks, nwinwidth, method=None,
-                          plots=False, title=None, pdf_output=None, pdf_only=False):
+def refine_peaks_spectrum(
+    sx, ixpeaks, nwinwidth, method=None, plots=False, title=None, pdf_output=None, pdf_only=False
+):
     """Refine line peaks in spectrum.
 
     Parameters
@@ -139,7 +139,7 @@ def refine_peaks_spectrum(sx, ixpeaks, nwinwidth, method=None,
 
     """
 
-    nmed = nwinwidth//2
+    nmed = nwinwidth // 2
 
     numpeaks = len(ixpeaks)
 
@@ -151,18 +151,17 @@ def refine_peaks_spectrum(sx, ixpeaks, nwinwidth, method=None,
         nrows = int(numpeaks / npprow)
         if numpeaks % npprow != 0:
             nrows += 1
-        fig, axarr = plt.subplots(nrows=nrows, ncols=npprow,
-                                  figsize=(15, 4*nrows))
+        fig, axarr = plt.subplots(nrows=nrows, ncols=npprow, figsize=(15, 4 * nrows))
         axarr = axarr.flatten()
         for ax in axarr:
-            ax.axis('off')
+            ax.axis("off")
     else:
         fig = None
         axarr = None
 
     for iline in range(numpeaks):
         jmax = ixpeaks[iline]
-        x_fit = np.arange(-nmed, nmed+1, dtype=float)
+        x_fit = np.arange(-nmed, nmed + 1, dtype=float)
         # prevent possible problem when fitting a line too near to any
         # of the borders of the spectrum
         j1 = jmax - nmed
@@ -171,14 +170,12 @@ def refine_peaks_spectrum(sx, ixpeaks, nwinwidth, method=None,
             j1 = 0
             j2 = 2 * nmed + 1
             if j2 >= len(sx):
-                raise ValueError("Unexpected j2=" + str(j2) +
-                                 " value when len(sx)=" + str(len(sx)))
+                raise ValueError("Unexpected j2=" + str(j2) + " value when len(sx)=" + str(len(sx)))
         if j2 >= len(sx):
             j2 = len(sx)
             j1 = j2 - (2 * nmed + 1)
             if j1 < 0:
-                raise ValueError("Unexpected j1=" + str(j1) +
-                                 " value when len(sx)=" + str(len(sx)))
+                raise ValueError("Unexpected j1=" + str(j1) + " value when len(sx)=" + str(len(sx)))
         # it is important to create a copy in the next instruction in
         # order to avoid modifying the original array when normalizing
         # the data to be fitted
@@ -191,8 +188,7 @@ def refine_peaks_spectrum(sx, ixpeaks, nwinwidth, method=None,
             # check that there are no negative or null values
             if min(y_fit) <= 0:
                 if plots:
-                    print("WARNING: negative or null value encountered" +
-                          " in refine_peaks_spectrum with gaussian.")
+                    print("WARNING: negative or null value encountered" + " in refine_peaks_spectrum with gaussian.")
                     print("         Using poly2 method instead.")
                 final_method = "poly2"
             else:
@@ -206,7 +202,7 @@ def refine_peaks_spectrum(sx, ixpeaks, nwinwidth, method=None,
             coef = poly_funct.coef
             if len(coef) == 3:
                 if coef[2] != 0:
-                    refined_peak = -coef[1]/(2.0*coef[2]) + jmax
+                    refined_peak = -coef[1] / (2.0 * coef[2]) + jmax
                 else:
                     refined_peak = float(jmax)
             else:
@@ -217,7 +213,7 @@ def refine_peaks_spectrum(sx, ixpeaks, nwinwidth, method=None,
             coef = poly_funct.coef
             if len(coef) == 3:
                 if coef[2] != 0:
-                    refined_peak = -coef[1]/(2.0*coef[2]) + jmax
+                    refined_peak = -coef[1] / (2.0 * coef[2]) + jmax
                 else:
                     refined_peak = 0.0 + jmax
                 if coef[2] >= 0:
@@ -234,17 +230,16 @@ def refine_peaks_spectrum(sx, ixpeaks, nwinwidth, method=None,
 
         if plots:
             ax = axarr[iline]
-            ax.axis('on')
-            xmin = min(x_fit)-1
-            xmax = max(x_fit)+1
+            ax.axis("on")
+            xmin = min(x_fit) - 1
+            xmax = max(x_fit) + 1
             ymin = 0
-            ymax = max(y_fit)*1.10
+            ymax = max(y_fit) * 1.10
             ax.set_xlim([xmin, xmax])
             ax.set_ylim([ymin, ymax])
-            ax.set_xlabel('index around initial integer peak')
-            ax.set_ylabel('Normalized number of counts')
-            ax.set_title(f'Fit at array index {jmax}\n'
-                         f'Refined peak location: {refined_peak:.2f}')
+            ax.set_xlabel("index around initial integer peak")
+            ax.set_ylabel("Normalized number of counts")
+            ax.set_title(f"Fit at array index {jmax}\n" f"Refined peak location: {refined_peak:.2f}")
             ax.plot(x_fit, y_fit, "bo")
             x_plot = np.linspace(start=-nmed, stop=nmed, num=1000, dtype=float)
             if final_method == "poly2":
@@ -253,30 +248,29 @@ def refine_peaks_spectrum(sx, ixpeaks, nwinwidth, method=None,
                 amp = np.exp(coef[0] - coef[1] * coef[1] / (4 * coef[2]))
                 x0 = -coef[1] / (2.0 * coef[2])
                 sigma = np.sqrt(-1 / (2.0 * coef[2]))
-                y_plot = amp * np.exp(-(x_plot - x0)**2 / (2 * sigma**2))
+                y_plot = amp * np.exp(-((x_plot - x0) ** 2) / (2 * sigma**2))
             else:
-                raise ValueError("Invalid method=" + str(final_method) +
-                                 " value")
+                raise ValueError("Invalid method=" + str(final_method) + " value")
             ax.plot(x_plot, y_plot, color="red")
-            for ipix in range(-nmed, nmed+2):
-                ax.axvline(ipix-0.5, linestyle='--', color='gray')
-            ax.text((xmin+xmax)/2, ymin + (ymax-ymin)/15,
-                    f'(method={method})',
-                    ha='center', backgroundcolor='white')
+            for ipix in range(-nmed, nmed + 2):
+                ax.axvline(ipix - 0.5, linestyle="--", color="gray")
+            ax.text(
+                (xmin + xmax) / 2, ymin + (ymax - ymin) / 15, f"(method={method})", ha="center", backgroundcolor="white"
+            )
 
     if plots:
         if title is not None:
-            plt.suptitle(f'{title}\n', fontsize=16)
+            plt.suptitle(f"{title}\n", fontsize=16)
         plt.tight_layout()
         if pdf_output is None:
             if pdf_only:
-                raise ValueError('Unexpected pdf_only=True when pdf_output=None')
+                raise ValueError("Unexpected pdf_only=True when pdf_output=None")
             plt.show()
         else:
             parent = Path(pdf_output).parents[0]
             stem = Path(pdf_output).stem
-            fname = parent / f'{stem}_fitpeak.pdf'
-            print(f'--> Saving PDF file: {fname}')
+            fname = parent / f"{stem}_fitpeak.pdf"
+            print(f"--> Saving PDF file: {fname}")
             plt.savefig(fname)
             if pdf_only:
                 plt.close(fig)
@@ -284,6 +278,6 @@ def refine_peaks_spectrum(sx, ixpeaks, nwinwidth, method=None,
                 plt.show()
     else:
         if pdf_output is not None:
-            raise ValueError('You must set plots=True to make use of pdf_output')
+            raise ValueError("You must set plots=True to make use of pdf_output")
 
     return fxpeaks, sxpeaks

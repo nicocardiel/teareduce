@@ -63,31 +63,39 @@ class TeaWaveCalibration:
 
     """
 
-    fits_keyword_list = ['ns_window', 'threshold', 'sigma_smooth',
-                         'nx_window', 'delta_flux', 'method',
-                         'degree_cdistortion', 'degree_wavecalib']
+    fits_keyword_list = [
+        "ns_window",
+        "threshold",
+        "sigma_smooth",
+        "nx_window",
+        "delta_flux",
+        "method",
+        "degree_cdistortion",
+        "degree_wavecalib",
+    ]
 
-    def __init__(self,
-                 ns_window=11,
-                 threshold=0,
-                 sigma_smooth=0,
-                 nx_window=5,
-                 delta_flux=0,
-                 method='gaussian',
-                 degree_cdistortion=1,
-                 degree_wavecalib=1,
-                 peak_wavelengths=None
-                 ):
+    def __init__(
+        self,
+        ns_window=11,
+        threshold=0,
+        sigma_smooth=0,
+        nx_window=5,
+        delta_flux=0,
+        method="gaussian",
+        degree_cdistortion=1,
+        degree_wavecalib=1,
+        peak_wavelengths=None,
+    ):
         if ns_window < 1:
-            raise ValueError(f'ns_window={ns_window} must be >= 1')
+            raise ValueError(f"ns_window={ns_window} must be >= 1")
         if ns_window % 2 != 1:
-            raise ValueError(f'ns_window={ns_window} must be an odd number')
+            raise ValueError(f"ns_window={ns_window} must be an odd number")
         if nx_window < 3:
-            raise ValueError(f'nx_window={nx_window} must be >= 3')
+            raise ValueError(f"nx_window={nx_window} must be >= 3")
         if nx_window % 2 != 1:
-            raise ValueError(f'nx_window={nx_window} must be an odd number')
+            raise ValueError(f"nx_window={nx_window} must be an odd number")
         if sigma_smooth < 0:
-            raise ValueError(f'sigma_smooth={sigma_smooth} must be >= 0')
+            raise ValueError(f"sigma_smooth={sigma_smooth} must be >= 0")
 
         self.ns_window = ns_window
         self.threshold = threshold
@@ -141,43 +149,45 @@ class TeaWaveCalibration:
             key = keyword[:8].upper()
             kwargs[keyword] = header[key]
         wavecalib = cls(**kwargs)
-        wavecalib._naxis1 = header['_NAXIS1']
-        wavecalib._naxis2 = header['_NAXIS2']
-        wavecalib._nlines_reference = header['_NLINES']
-        wavecalib.peak_wavelengths = np.zeros(wavecalib._nlines_reference) * u.Unit(header['WPEAKUNI'])
+        wavecalib._naxis1 = header["_NAXIS1"]
+        wavecalib._naxis2 = header["_NAXIS2"]
+        wavecalib._nlines_reference = header["_NLINES"]
+        wavecalib.peak_wavelengths = np.zeros(wavecalib._nlines_reference) * u.Unit(header["WPEAKUNI"])
         for i in range(wavecalib._nlines_reference):
-            wavecalib.peak_wavelengths[i] = header[f'WPEAK{i+1:03d}'] * u.Unit(header['WPEAKUNI'])
+            wavecalib.peak_wavelengths[i] = header[f"WPEAK{i+1:03d}"] * u.Unit(header["WPEAKUNI"])
 
         # read primary data
         data = fits.getdata(filename)
         naxis2, naxis1 = data.shape
         if naxis1 != wavecalib.degree_wavecalib + 1:
-            raise ValueError(f'Number of coefficients: {naxis1} does not match '
-                             f'expected value degree_wavecalib + 1: {wavecalib.degree_wavecalib+1}')
+            raise ValueError(
+                f"Number of coefficients: {naxis1} does not match "
+                f"expected value degree_wavecalib + 1: {wavecalib.degree_wavecalib+1}"
+            )
         if naxis2 != wavecalib._naxis2:
-            raise ValueError(f'Unexpected inconsistency: NAXIS2: {naxis2} != _NAXIS2: {wavecalib._naxis2}')
+            raise ValueError(f"Unexpected inconsistency: NAXIS2: {naxis2} != _NAXIS2: {wavecalib._naxis2}")
         wavecalib._array_poly_wav = data
 
         # read INV_POLY extension
-        wavecalib._array_poly_pix = fits.getdata(filename, extname='INV_POLY')
+        wavecalib._array_poly_pix = fits.getdata(filename, extname="INV_POLY")
 
         # read CDISTOR extension
-        cdistor_array = fits.getdata(filename, extname='CDISTOR')
+        cdistor_array = fits.getdata(filename, extname="CDISTOR")
         wavecalib._list_poly_cdistortion = []
         for i in range(wavecalib._nlines_reference):
             wavecalib._list_poly_cdistortion.append(Polynomial(cdistor_array[i, :]))
 
         # read COEFF extension
-        tbl_header = fits.getheader(filename, extname='COEFF')
-        tbl_data = fits.getdata(filename, extname='COEFF')
-        wavecalib._array_residual_std_wav = tbl_data.residual_std_wav * u.Unit(tbl_header['TUNIT1'])
-        wavecalib._array_residual_std_pix = tbl_data.residual_std_pix * u.Unit(tbl_header['TUNIT2'])
-        wavecalib._array_crval1_linear = tbl_data.crval1_linear * u.Unit(tbl_header['TUNIT3'])
-        wavecalib._array_cdelt1_linear = tbl_data.cdelt1_linear * u.Unit(tbl_header['TUNIT4'])
-        wavecalib._array_crmax1_linear = tbl_data.crmax1_linear * u.Unit(tbl_header['TUNIT5'])
+        tbl_header = fits.getheader(filename, extname="COEFF")
+        tbl_data = fits.getdata(filename, extname="COEFF")
+        wavecalib._array_residual_std_wav = tbl_data.residual_std_wav * u.Unit(tbl_header["TUNIT1"])
+        wavecalib._array_residual_std_pix = tbl_data.residual_std_pix * u.Unit(tbl_header["TUNIT2"])
+        wavecalib._array_crval1_linear = tbl_data.crval1_linear * u.Unit(tbl_header["TUNIT3"])
+        wavecalib._array_cdelt1_linear = tbl_data.cdelt1_linear * u.Unit(tbl_header["TUNIT4"])
+        wavecalib._array_crmax1_linear = tbl_data.crmax1_linear * u.Unit(tbl_header["TUNIT5"])
 
         if not silent_mode:
-            print(f'>>> Reading file.........: {filename}')
+            print(f">>> Reading file.........: {filename}")
 
         # estimate crval1, cdelt1
         wavecalib.estimate_crval1_cdelt1(silent_mode=silent_mode)
@@ -186,21 +196,20 @@ class TeaWaveCalibration:
             wavecalib._plot_wavecoef(pdf_output=pdf_output, pdf_only=pdf_only)
         else:
             if pdf_output is not None:
-                raise ValueError('You must set plots=True to make use of pdf_output')
+                raise ValueError("You must set plots=True to make use of pdf_output")
 
         return wavecalib
 
     def __repr__(self):
-        output = f'{self.__class__.__name__}('
+        output = f"{self.__class__.__name__}("
         for i, item in enumerate(self.__dict__):
             if i != 0:
-                output += ','
-            output += f'\n    {item}={self.__dict__[item]!r}'
-        output += '\n)'
+                output += ","
+            output += f"\n    {item}={self.__dict__[item]!r}"
+        output += "\n)"
         return output
 
-    def _find_peaks_scan(self, data, ns1, ns2, plot_peaks, title=None,
-                         pdf_output=None, pdf_only=False):
+    def _find_peaks_scan(self, data, ns1, ns2, plot_peaks, title=None, pdf_output=None, pdf_only=False):
         """Compute location of line peaks in (median) averaged spectrum.
 
         Parameters
@@ -234,7 +243,7 @@ class TeaWaveCalibration:
 
         """
 
-        sp_median = np.median(data[(ns1-1):ns2, :], axis=0)
+        sp_median = np.median(data[(ns1 - 1) : ns2, :], axis=0)
 
         if self.sigma_smooth > 0:
             sp_median_smooth = gaussian_filter1d(input=sp_median, sigma=self.sigma_smooth)
@@ -242,10 +251,7 @@ class TeaWaveCalibration:
             sp_median_smooth = sp_median
 
         ixpeaks = find_peaks_spectrum(
-            sx=sp_median_smooth,
-            nwinwidth=self.nx_window,
-            deltaflux=self.delta_flux,
-            threshold=self.threshold
+            sx=sp_median_smooth, nwinwidth=self.nx_window, deltaflux=self.delta_flux, threshold=self.threshold
         )
 
         if not plot_peaks:
@@ -260,24 +266,26 @@ class TeaWaveCalibration:
             plots=plot_peaks,
             title=title,
             pdf_output=pdf_output_,
-            pdf_only=pdf_only
+            pdf_only=pdf_only,
         )
 
         return xpeaks, ixpeaks, sp_median_smooth
 
-    def compute_xpeaks_reference(self,
-                                 data,
-                                 ns_range=None,
-                                 threshold=None,
-                                 sigma_smooth=None,
-                                 nx_window=None,
-                                 delta_flux=None,
-                                 method=None,
-                                 plot_spectrum=False,
-                                 plot_peaks=False,
-                                 title=None,
-                                 pdf_output=None,
-                                 pdf_only=False):
+    def compute_xpeaks_reference(
+        self,
+        data,
+        ns_range=None,
+        threshold=None,
+        sigma_smooth=None,
+        nx_window=None,
+        delta_flux=None,
+        method=None,
+        plot_spectrum=False,
+        plot_peaks=False,
+        title=None,
+        pdf_output=None,
+        pdf_only=False,
+    ):
         """Compute location of line peaks in reference spectrum.
 
         Parameters
@@ -343,67 +351,61 @@ class TeaWaveCalibration:
             self._naxis1 = naxis1
         else:
             if naxis1 != self._naxis1:
-                raise ValueError(f'Unexpected naxis1: {naxis1}')
+                raise ValueError(f"Unexpected naxis1: {naxis1}")
 
         if self._naxis2 is None:
             self._naxis2 = naxis2
         else:
             if naxis2 != self._naxis2:
-                raise ValueError(f'Unexpected naxis1: {naxis2}')
+                raise ValueError(f"Unexpected naxis1: {naxis2}")
 
-        valid_ns_range = SliceRegion1D(np.s_[1:naxis2], mode='fits')
+        valid_ns_range = SliceRegion1D(np.s_[1:naxis2], mode="fits")
         if ns_range is None:
             ns_range = valid_ns_range
 
         if ns_range.within(valid_ns_range):
             pass
         else:
-            raise ValueError(f'{ns_range} outside {valid_ns_range}]')
+            raise ValueError(f"{ns_range} outside {valid_ns_range}]")
 
         ns1, ns2 = ns_range.fits.start, ns_range.fits.stop
 
         # initial median spectrum
         xpeaks, ixpeaks, sp_median_smooth = self._find_peaks_scan(
-            data=data,
-            ns1=ns1,
-            ns2=ns2,
-            plot_peaks=plot_peaks,
-            title=title,
-            pdf_output=pdf_output,
-            pdf_only=pdf_only
+            data=data, ns1=ns1, ns2=ns2, plot_peaks=plot_peaks, title=title, pdf_output=pdf_output, pdf_only=pdf_only
         )
 
         if plot_spectrum:
             sp_minimum = sp_median_smooth.min()
             if sp_minimum <= 0:
                 yplot = sp_median_smooth + sp_minimum + 1
-                ylabel = f'Number of counts (+{sp_minimum+1:.2f})'
+                ylabel = f"Number of counts (+{sp_minimum+1:.2f})"
             else:
                 yplot = sp_median_smooth
-                ylabel = 'Number of counts'
+                ylabel = "Number of counts"
             fig, ax = plt.subplots(figsize=(15, 5))
             xplot = np.arange(naxis1)
             ax.plot(xplot, yplot, lw=1)
-            ax.set_xlabel('X axis (array index)')
+            ax.set_xlabel("X axis (array index)")
             ax.set_ylabel(ylabel)
-            ax.set_yscale('log')
-            ax.set_title(f'Median spectrum (from scans {ns1} to {ns2})')
+            ax.set_yscale("log")
+            ax.set_title(f"Median spectrum (from scans {ns1} to {ns2})")
             if self.threshold > 0:
-                ax.axhline(self.threshold, ls='--', color='C1')
-            ax.plot(xpeaks, yplot[ixpeaks], 'ro')
+                ax.axhline(self.threshold, ls="--", color="C1")
+            ax.plot(xpeaks, yplot[ixpeaks], "ro")
             ymin, ymax = ax.get_ylim()
             dy = (np.log10(ymax) - np.log10(ymin)) / 40
             for ip, (xp, yp) in enumerate(zip(xpeaks, yplot[ixpeaks])):
-                ax.text(xp, yp*10**dy, ip+1, ha='center')
+                ax.text(xp, yp * 10**dy, ip + 1, ha="center")
             if title is not None:
                 plt.suptitle(title, fontsize=16)
             plt.tight_layout()
             if pdf_output is None:
                 if pdf_only:
-                    raise ValueError('Unexpected pdf_only=True when pdf_output=None')
+                    raise ValueError("Unexpected pdf_only=True when pdf_output=None")
                 plt.show()
             else:
-                print(f'--> Saving PDF file: {pdf_output}')
+                print(f"--> Saving PDF file: {pdf_output}")
                 plt.savefig(pdf_output)
                 if pdf_only:
                     plt.close(fig)
@@ -411,27 +413,29 @@ class TeaWaveCalibration:
                     plt.show()
         else:
             if pdf_output is not None:
-                raise ValueError('You must set plot_spectrum=True to make use of pdf_output')
+                raise ValueError("You must set plot_spectrum=True to make use of pdf_output")
 
         return xpeaks * u.pixel, ixpeaks * u.pixel, sp_median_smooth
 
     @u.quantity_input(xpeaks_reference=u.pixel)
-    def compute_xpeaks_image(self,
-                             data,
-                             xpeaks_reference=None,
-                             ns_range=None,
-                             direction='up',
-                             ns_window=None,
-                             threshold=None,
-                             sigma_smooth=None,
-                             nx_window=None,
-                             delta_flux=None,
-                             method=None,
-                             plots=False,
-                             title=None,
-                             pdf_output=None,
-                             pdf_only=False,
-                             disable_tqdm=True):
+    def compute_xpeaks_image(
+        self,
+        data,
+        xpeaks_reference=None,
+        ns_range=None,
+        direction="up",
+        ns_window=None,
+        threshold=None,
+        sigma_smooth=None,
+        nx_window=None,
+        delta_flux=None,
+        method=None,
+        plots=False,
+        title=None,
+        pdf_output=None,
+        pdf_only=False,
+        disable_tqdm=True,
+    ):
         """Compute location of line peaks.
 
         Parameters
@@ -480,7 +484,7 @@ class TeaWaveCalibration:
         """
 
         if xpeaks_reference is None:
-            raise ValueError('You must provide a valid xpeaks_reference array')
+            raise ValueError("You must provide a valid xpeaks_reference array")
 
         if ns_window is not None:
             self.ns_window = ns_window
@@ -506,26 +510,28 @@ class TeaWaveCalibration:
             self._valid_scans = np.array([False] * naxis2)
         else:
             if self._nlines_reference != len(xpeaks_reference):
-                raise ValueError(f'Number of peaks in {xpeaks_reference} '
-                                 f'is different than the expected value: {self._nlines_reference}')
+                raise ValueError(
+                    f"Number of peaks in {xpeaks_reference} "
+                    f"is different than the expected value: {self._nlines_reference}"
+                )
             if self._naxis1 != naxis1:
-                raise ValueError(f'Unexpected naxis1={naxis1} (expected value={self._naxis1}')
+                raise ValueError(f"Unexpected naxis1={naxis1} (expected value={self._naxis1}")
             if self._naxis2 != naxis2:
-                raise ValueError(f'Unexpected naxis1={naxis2} (expected value={self._naxis2}')
+                raise ValueError(f"Unexpected naxis1={naxis2} (expected value={self._naxis2}")
 
-        valid_ns_range = SliceRegion1D(np.s_[1:naxis2], mode='fits')
+        valid_ns_range = SliceRegion1D(np.s_[1:naxis2], mode="fits")
         if ns_range is None:
             ns_range = valid_ns_range
 
         if ns_range.within(valid_ns_range):
             pass
         else:
-            raise ValueError(f'{ns_range} outside {valid_ns_range}]')
+            raise ValueError(f"{ns_range} outside {valid_ns_range}]")
 
         ns_min_fits_, ns_max_fits_ = ns_range.fits.start, ns_range.fits.stop
 
-        if direction in ['up', 'down']:
-            if direction == 'up':
+        if direction in ["up", "down"]:
+            if direction == "up":
                 ns_step = 1
                 ns_min_fits = ns_min_fits_
                 ns_max_fits = ns_max_fits_
@@ -534,37 +540,38 @@ class TeaWaveCalibration:
                 ns_min_fits = ns_max_fits_
                 ns_max_fits = ns_min_fits_
         else:
-            raise ValueError(f'Unexpected direction value: {direction}')
+            raise ValueError(f"Unexpected direction value: {direction}")
 
         # display previously found peaks
         if plots:
-            color_previous = ['blue', 'cyan']
-            fig, ax = plt.subplots(figsize=(15, 15*naxis2/naxis1))
+            color_previous = ["blue", "cyan"]
+            fig, ax = plt.subplots(figsize=(15, 15 * naxis2 / naxis1))
             vmin, vmax = np.percentile(data, [5, 95])
-            imshow(fig, ax, data, vmin=vmin, vmax=vmax, cmap='gray', title=title, aspect='auto')
+            imshow(fig, ax, data, vmin=vmin, vmax=vmax, cmap="gray", title=title, aspect="auto")
             # display previously identified lines
             yplot = np.arange(naxis2)[self._valid_scans]
             for i in range(self._nlines_reference):
                 xplot = self._xpeaks_all_lines_array[self._valid_scans, i]
-                ax.scatter(xplot, yplot, s=2, c=color_previous[i % 2], marker=',', alpha=0.2)
+                ax.scatter(xplot, yplot, s=2, c=color_previous[i % 2], marker=",", alpha=0.2)
         else:
             fig = None
             ax = None
 
         # search for peaks in the 2D image
         dict_xpeaks = dict()
-        for ns in tqdm(range(ns_min_fits, ns_max_fits + ns_step, ns_step),
-                       desc='Finding peaks', disable=disable_tqdm, file=sys.stdout, ncols=80):
+        for ns in tqdm(
+            range(ns_min_fits, ns_max_fits + ns_step, ns_step),
+            desc="Finding peaks",
+            disable=disable_tqdm,
+            file=sys.stdout,
+            ncols=80,
+        ):
             ns1 = ns - self.ns_window // 2
             ns1 = max([ns1, min(ns_min_fits, ns_max_fits)])
             ns2 = ns + self.ns_window // 2
             ns2 = min([ns2, max(ns_min_fits, ns_max_fits)])
             xpeaks, ixpeaks, sp_median_smooth = self._find_peaks_scan(
-                data=data,
-                ns1=ns1,
-                ns2=ns2,
-                plot_peaks=False,
-                pdf_output=None
+                data=data, ns1=ns1, ns2=ns2, plot_peaks=False, pdf_output=None
             )
             dict_xpeaks[ns] = xpeaks
 
@@ -582,7 +589,7 @@ class TeaWaveCalibration:
                     ns2 = ns - 1
                     ns1 = ns2 - self.ns_window + 1
                     ns1 = max([ns1, ns_min_fits])
-                xpeaks_predicted = np.median(self._xpeaks_all_lines_array[(ns1-1):ns2, :], axis=0)
+                xpeaks_predicted = np.median(self._xpeaks_all_lines_array[(ns1 - 1) : ns2, :], axis=0)
             for i in range(self._nlines_reference):
                 value = xpeaks_predicted[i]
                 # if there is no peak near to the expected location
@@ -592,23 +599,23 @@ class TeaWaveCalibration:
                 if min(np.abs(xpeaks - value)) < self.nx_window:
                     # use new peak location
                     imin = (np.abs(xpeaks - value)).argmin()
-                    self._xpeaks_all_lines_array[ns-1, i] = xpeaks[imin]
+                    self._xpeaks_all_lines_array[ns - 1, i] = xpeaks[imin]
                 else:
                     # use predicted location
-                    self._xpeaks_all_lines_array[ns-1, i] = value
-            self._valid_scans[ns-1] = True
+                    self._xpeaks_all_lines_array[ns - 1, i] = value
+            self._valid_scans[ns - 1] = True
 
         if plots:
-            color_new = ['red', 'magenta']
+            color_new = ["red", "magenta"]
             # display starting spectrum
             xplot = []
             yplot = []
             ccolor = []
-            marker = {'up': '^', 'down': 'v'}
+            marker = {"up": "^", "down": "v"}
             ns = ns_min_fits
             for i in range(self._nlines_reference):
-                xplot.append(self._xpeaks_all_lines_array[ns-1, i])
-                yplot.append(ns-1)
+                xplot.append(self._xpeaks_all_lines_array[ns - 1, i])
+                yplot.append(ns - 1)
                 ccolor.append(color_new[i % 2])
             ax.scatter(xplot, yplot, s=200, c=ccolor, marker=marker[direction], alpha=1.0)
             # display all peaks found
@@ -617,22 +624,22 @@ class TeaWaveCalibration:
             for ns in dict_xpeaks:
                 xplot += dict_xpeaks[ns].tolist()
                 nlines_found = len(dict_xpeaks[ns])
-                yplot += [ns-1] * nlines_found
-            ax.scatter(xplot, yplot, s=2, c='green', marker=',', alpha=0.2)
+                yplot += [ns - 1] * nlines_found
+            ax.scatter(xplot, yplot, s=2, c="green", marker=",", alpha=0.2)
             # display new identified lines
             for i in range(self._nlines_reference):
                 xplot = []
                 yplot = []
                 for ns in dict_xpeaks:
-                    xplot.append(self._xpeaks_all_lines_array[ns-1, i])
-                    yplot.append(ns-1)
-                ax.scatter(xplot, yplot, s=2, c=color_new[i % 2], marker=',', alpha=0.2)
+                    xplot.append(self._xpeaks_all_lines_array[ns - 1, i])
+                    yplot.append(ns - 1)
+                ax.scatter(xplot, yplot, s=2, c=color_new[i % 2], marker=",", alpha=0.2)
             if pdf_output is None:
                 if pdf_only:
-                    raise ValueError('Unexpected pdf_only=True when pdf_output=None')
+                    raise ValueError("Unexpected pdf_only=True when pdf_output=None")
                 plt.show()
             else:
-                print(f'--> Saving PDF file: {pdf_output}')
+                print(f"--> Saving PDF file: {pdf_output}")
                 plt.savefig(pdf_output)
                 if pdf_only:
                     plt.close(fig)
@@ -640,7 +647,7 @@ class TeaWaveCalibration:
                     plt.show()
         else:
             if pdf_output is not None:
-                raise ValueError('You must set plots=True to make use of pdf_output')
+                raise ValueError("You must set plots=True to make use of pdf_output")
 
     @u.quantity_input(xpeaks=u.pixel, wavelengths=u.m)
     def define_peak_wavelengths(self, xpeaks, wavelengths):
@@ -656,14 +663,13 @@ class TeaWaveCalibration:
         """
 
         if len(xpeaks) != len(wavelengths):
-            raise ValueError(f'Number of peaks: {len(xpeaks)} != '
-                             f'number of wavelengths: {len(wavelengths)}')
+            raise ValueError(f"Number of peaks: {len(xpeaks)} != " f"number of wavelengths: {len(wavelengths)}")
         self.peak_wavelengths = wavelengths
 
     @u.quantity_input(xpeaks=u.pixel)
-    def overplot_identified_lines(self, xpeaks, spectrum,
-                                  title=None, fontsize_title=16, fontsize_wave=10,
-                                  pdf_output=None, pdf_only=False):
+    def overplot_identified_lines(
+        self, xpeaks, spectrum, title=None, fontsize_title=16, fontsize_wave=10, pdf_output=None, pdf_only=False
+    ):
         """Overplot identified lines
 
         Parameters
@@ -686,7 +692,7 @@ class TeaWaveCalibration:
         """
 
         if self.peak_wavelengths is None:
-            raise ValueError('You must execute define_peak_wavelengths first!')
+            raise ValueError("You must execute define_peak_wavelengths first!")
 
         fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(15, 15))
 
@@ -694,12 +700,12 @@ class TeaWaveCalibration:
         xplot = np.arange(self._naxis1)
         ax1.plot(xplot, spectrum, lw=1)
         ixpeaks = np.asarray(xpeaks.value + 0.5, dtype=int)
-        ax1.plot(xpeaks.value, spectrum[ixpeaks], 'o', color='C0')
+        ax1.plot(xpeaks.value, spectrum[ixpeaks], "o", color="C0")
         ymin, ymax = ax1.get_ylim()
         for ip, (xp, yp) in enumerate(zip(xpeaks.value, spectrum[ixpeaks])):
-            ax1.text(xp, yp + (ymax - ymin)/50, ip + 1, color='C0', ha='center', fontsize=fontsize_wave)
-        ax1.set_xlabel('X axis (array index)')
-        ax1.set_ylabel('Number of counts')
+            ax1.text(xp, yp + (ymax - ymin) / 50, ip + 1, color="C0", ha="center", fontsize=fontsize_wave)
+        ax1.set_xlabel("X axis (array index)")
+        ax1.set_ylabel("Number of counts")
         if title is not None:
             ax1.set_title(title, fontsize=fontsize_title)
 
@@ -707,16 +713,16 @@ class TeaWaveCalibration:
         sp_minimum = spectrum.min()
         if sp_minimum <= 0:
             yplot = spectrum + sp_minimum + 1
-            ylabel = f'Number of counts (+{sp_minimum+1:.2f})'
+            ylabel = f"Number of counts (+{sp_minimum+1:.2f})"
         else:
             yplot = spectrum
-            ylabel = 'Number of counts'
+            ylabel = "Number of counts"
         ax2.plot(xplot, yplot, lw=1)
-        ax2.set_xlabel('X axis (array index)')
+        ax2.set_xlabel("X axis (array index)")
         ax2.set_ylabel(ylabel)
         ixpeaks = np.asarray(xpeaks.value + 0.5, dtype=int)
-        ax2.plot(xpeaks.value, yplot[ixpeaks], 'o', color='C0')
-        ax2.set_yscale('log')
+        ax2.plot(xpeaks.value, yplot[ixpeaks], "o", color="C0")
+        ax2.set_yscale("log")
         # extra room for labels in the vertical direction
         ymin, ymax = ax2.get_ylim()
         dy = (np.log10(ymax) - np.log10(ymin)) / 6
@@ -737,28 +743,35 @@ class TeaWaveCalibration:
                     xoffset = 0
             else:
                 xoffset = 0
-            ax2.plot([xp, xp+xoffset], [yp*10**(0.3*dy), yp*10**(0.7*dy)], '-', lw=1, color='gray')
-            ax2.text(xp+xoffset, yp*10**dy, self.peak_wavelengths[ip].value,
-                     ha='center', va='bottom', rotation=90, fontsize=fontsize_wave)
-            ax2.text(xp, ymin*10**(0.3*dy), ip + 1, color='C0', ha='center', fontsize=fontsize_wave)
+            ax2.plot([xp, xp + xoffset], [yp * 10 ** (0.3 * dy), yp * 10 ** (0.7 * dy)], "-", lw=1, color="gray")
+            ax2.text(
+                xp + xoffset,
+                yp * 10**dy,
+                self.peak_wavelengths[ip].value,
+                ha="center",
+                va="bottom",
+                rotation=90,
+                fontsize=fontsize_wave,
+            )
+            ax2.text(xp, ymin * 10 ** (0.3 * dy), ip + 1, color="C0", ha="center", fontsize=fontsize_wave)
             xp_last = xp
             yp_last = yp
         plt.tight_layout()
         if pdf_output is None:
             if pdf_only:
-                raise ValueError('Unexpected pdf_only=True when pdf_output=None')
+                raise ValueError("Unexpected pdf_only=True when pdf_output=None")
             plt.show()
         else:
-            print(f'--> Saving PDF file: {pdf_output}')
+            print(f"--> Saving PDF file: {pdf_output}")
             plt.savefig(pdf_output)
             if pdf_only:
                 plt.close(fig)
             else:
                 plt.show()
 
-    def fit_cdistortion(self, degree_cdistortion=None,
-                        plots=False, title=None, pdf_output=None, pdf_only=False,
-                        disable_tqdm=True):
+    def fit_cdistortion(
+        self, degree_cdistortion=None, plots=False, title=None, pdf_output=None, pdf_only=False, disable_tqdm=True
+    ):
         """Fit C distortion.
 
         Parameters
@@ -779,7 +792,7 @@ class TeaWaveCalibration:
         """
 
         if self._valid_scans is None:
-            raise ValueError('You must execute compute_xpeaks_image first')
+            raise ValueError("You must execute compute_xpeaks_image first")
 
         if degree_cdistortion is not None:
             self.degree_cdistortion = degree_cdistortion
@@ -789,14 +802,13 @@ class TeaWaveCalibration:
         list_reject = []
         xfit = np.arange(self._naxis2)[self._valid_scans]
         if len(xfit) <= self.degree_cdistortion:
-            raise ValueError(f'Insufficient number of points to fit a polynomial of degree {self.degree_cdistortion}')
-        for i in tqdm(range(self._nlines_reference), file=sys.stdout, ncols=80, desc='Fitting C distortion', disable=disable_tqdm):
+            raise ValueError(f"Insufficient number of points to fit a polynomial of degree {self.degree_cdistortion}")
+        for i in tqdm(
+            range(self._nlines_reference), file=sys.stdout, ncols=80, desc="Fitting C distortion", disable=disable_tqdm
+        ):
             yfit = self._xpeaks_all_lines_array[self._valid_scans, i]
             poly, yres, reject = polfit_residuals_with_sigma_rejection(
-                x=xfit,
-                y=yfit,
-                deg=self.degree_cdistortion,
-                times_sigma_reject=3.0
+                x=xfit, y=yfit, deg=self.degree_cdistortion, times_sigma_reject=3.0
             )
             self._list_poly_cdistortion.append(poly)
             list_yfit.append(yfit)
@@ -807,40 +819,41 @@ class TeaWaveCalibration:
             nrows = int(self._nlines_reference / npprow)
             if self._nlines_reference % npprow != 0:
                 nrows += 1
-            fig, axarr = plt.subplots(nrows=nrows, ncols=npprow, figsize=(15, 3.75*nrows))
+            fig, axarr = plt.subplots(nrows=nrows, ncols=npprow, figsize=(15, 3.75 * nrows))
             axarr = axarr.flatten()
             for ax in axarr:
-                ax.axis('off')
+                ax.axis("off")
             for i in range(self._nlines_reference):
                 ax = axarr[i]
-                ax.axis('on')
+                ax.axis("on")
                 yfit = list_yfit[i]
                 reject = list_reject[i]
                 poly = self._list_poly_cdistortion[i]
-                ax.plot(yfit, xfit, 'o', label='peak location')
-                ax.plot(yfit[reject], xfit[reject], 'rx', label='rejected points')
-                ax.plot(poly(xfit), xfit, '-', label='polynomial fit')
-                ax.set_xlabel('X axis (array index)')
-                ax.set_ylabel('Y axis (array index)')
-                ax.set_title(f'C distortion: line #{i+1}/{self._nlines_reference} '
-                             f'(deg.: {self.degree_cdistortion})')
+                ax.plot(yfit, xfit, "o", label="peak location")
+                ax.plot(yfit[reject], xfit[reject], "rx", label="rejected points")
+                ax.plot(poly(xfit), xfit, "-", label="polynomial fit")
+                ax.set_xlabel("X axis (array index)")
+                ax.set_ylabel("Y axis (array index)")
+                ax.set_title(
+                    f"C distortion: line #{i+1}/{self._nlines_reference} " f"(deg.: {self.degree_cdistortion})"
+                )
                 xmin = yfit[np.logical_not(reject)].min()
                 xmax = yfit[np.logical_not(reject)].max()
                 if (xmax - xmin) < self.nx_window:
                     xmin_ = (xmin + xmax) / 2 - self.nx_window / 2
                     xmax_ = (xmin + xmax) / 2 + self.nx_window / 2
                     ax.set_xlim([xmin_, xmax_])
-                ax.set_ylim([0, self._naxis2-1])
+                ax.set_ylim([0, self._naxis2 - 1])
                 ax.legend()
             if title is not None:
-                fig.suptitle(f'{title}\n', fontsize=16)
+                fig.suptitle(f"{title}\n", fontsize=16)
             plt.tight_layout()
             if pdf_output is None:
                 if pdf_only:
-                    raise ValueError('Unexpected pdf_only=True when pdf_output=None')
+                    raise ValueError("Unexpected pdf_only=True when pdf_output=None")
                 plt.show()
             else:
-                print(f'--> Saving PDF file: {pdf_output}')
+                print(f"--> Saving PDF file: {pdf_output}")
                 plt.savefig(pdf_output)
                 if pdf_only:
                     plt.close(fig)
@@ -848,7 +861,7 @@ class TeaWaveCalibration:
                     plt.show()
         else:
             if pdf_output is not None:
-                raise ValueError('You must set plots=True to make use of pdf_output')
+                raise ValueError("You must set plots=True to make use of pdf_output")
 
     def plot_cdistortion(self, data, title=None, pdf_output=None, pdf_only=False):
         """Plot current C distortion fit.
@@ -868,7 +881,7 @@ class TeaWaveCalibration:
         """
 
         if self._nlines_reference is None:
-            raise ValueError('You must execute compute_xpeaks_image first.')
+            raise ValueError("You must execute compute_xpeaks_image first.")
 
         npprow = 4
         nrows = int(self._nlines_reference / npprow)
@@ -877,12 +890,12 @@ class TeaWaveCalibration:
         fig, axarr = plt.subplots(nrows=nrows, ncols=npprow, figsize=(15, 3.75 * nrows))
         axarr = axarr.flatten()
         for ax in axarr:
-            ax.axis('off')
+            ax.axis("off")
 
         xplot = np.arange(0, self._naxis2)
         for i in range(self._nlines_reference):
             ax = axarr[i]
-            ax.axis('on')
+            ax.axis("on")
             poly = self._list_poly_cdistortion[i]
             yplot = poly(xplot)
             xmin = yplot.min()
@@ -895,29 +908,28 @@ class TeaWaveCalibration:
             ax.set_xlim([xmin_, xmax_])
             i1 = int(xmin_ + 0.5)
             i2 = int(xmax_ + 0.5)
-            vmin, vmax = np.percentile(data[:, i1:(i2 + 1)], [5, 95])
-            img = ax.imshow(data, vmin=vmin, vmax=vmax, origin='lower', aspect='auto', interpolation='nearest')
-            ax.set_xlabel('X axis (array index)')
-            ax.set_ylabel('Y axis (array index)')
-            ax.set_title(f'C distortion: line #{i + 1}/{self._nlines_reference} '
-                         f'(deg.: {self.degree_cdistortion})')
+            vmin, vmax = np.percentile(data[:, i1 : (i2 + 1)], [5, 95])
+            img = ax.imshow(data, vmin=vmin, vmax=vmax, origin="lower", aspect="auto", interpolation="nearest")
+            ax.set_xlabel("X axis (array index)")
+            ax.set_ylabel("Y axis (array index)")
+            ax.set_title(f"C distortion: line #{i + 1}/{self._nlines_reference} " f"(deg.: {self.degree_cdistortion})")
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
-            fig.colorbar(img, cax=cax, label='Number of counts')
-            colormarker = np.array(['gray'] * self._naxis2)
-            colormarker[self._valid_scans] = 'red'
+            fig.colorbar(img, cax=cax, label="Number of counts")
+            colormarker = np.array(["gray"] * self._naxis2)
+            colormarker[self._valid_scans] = "red"
             sizemarker = np.array([1] * self._naxis2)
             sizemarker[self._valid_scans] = 3
-            ax.scatter(yplot, xplot, marker='.', c=colormarker, s=sizemarker)
+            ax.scatter(yplot, xplot, marker=".", c=colormarker, s=sizemarker)
         if title is not None:
-            fig.suptitle(f'{title}\n', fontsize=16)
+            fig.suptitle(f"{title}\n", fontsize=16)
         plt.tight_layout()
         if pdf_output is None:
             if pdf_only:
-                raise ValueError('Unexpected pdf_only=True when pdf_output=None')
+                raise ValueError("Unexpected pdf_only=True when pdf_output=None")
             plt.show()
         else:
-            print(f'--> Saving PDF file: {pdf_output}')
+            print(f"--> Saving PDF file: {pdf_output}")
             plt.savefig(pdf_output)
             if pdf_only:
                 plt.close(fig)
@@ -941,20 +953,19 @@ class TeaWaveCalibration:
         """
 
         if self._list_poly_cdistortion is None:
-            raise ValueError('You must execute fit_cdistortion first')
+            raise ValueError("You must execute fit_cdistortion first")
 
         xpeaks_predicted = np.zeros(self._nlines_reference)
         for i in range(self._nlines_reference):
             poly = self._list_poly_cdistortion[i]
-            xpeaks_predicted[i] = poly(ns_fits-1)
+            xpeaks_predicted[i] = poly(ns_fits - 1)
 
         return xpeaks_predicted * u.pixel
 
     @u.quantity_input(xpeaks=u.pixel)
-    def fit_xpeaks_wavelengths(self, xpeaks, degree_wavecalib=None,
-                               plots=False, title=None,
-                               pdf_output=None, pdf_only=False,
-                               debug=False):
+    def fit_xpeaks_wavelengths(
+        self, xpeaks, degree_wavecalib=None, plots=False, title=None, pdf_output=None, pdf_only=False, debug=False
+    ):
         """Compute wavelength calibration polynomial for particular xpeaks.
 
         Note that although the initial fit is a function of the form
@@ -1009,25 +1020,26 @@ class TeaWaveCalibration:
             self.degree_wavecalib = degree_wavecalib
 
         if self.peak_wavelengths is None:
-            raise ValueError('You must use define_peak_wavelengths first')
+            raise ValueError("You must use define_peak_wavelengths first")
 
         # check wavelengths are sorted
         if np.all(np.diff(self.peak_wavelengths) >= 0):
             pass
         else:
-            raise ValueError(f'peak_wavelengths array is not sorted: {self.peak_wavelengths}')
+            raise ValueError(f"peak_wavelengths array is not sorted: {self.peak_wavelengths}")
 
         # the number of wavelengths must match the number of peaks
         nwaves = len(self.peak_wavelengths)
         npeaks = len(xpeaks)
         if nwaves != npeaks:
-            raise ValueError(f'Number of wavelengths: {nwaves} is different '
-                             f'from the number of detected peaks: {npeaks}')
+            raise ValueError(
+                f"Number of wavelengths: {nwaves} is different " f"from the number of detected peaks: {npeaks}"
+            )
 
         xfit = xpeaks.value + 1  # FITS convention
         yfit = self.peak_wavelengths.value
         if len(xfit) <= self.degree_wavecalib:
-            raise ValueError(f'Insufficient number of points to fit a polynomial of degree {self.degree_wavecalib}')
+            raise ValueError(f"Insufficient number of points to fit a polynomial of degree {self.degree_wavecalib}")
         # initial fit: pixel(wavelength)
         poly_fits_xy, stats_list_xy = Polynomial.fit(x=yfit, y=xfit, deg=self.degree_wavecalib, full=True)
         poly_fits_xy = Polynomial.cast(poly_fits_xy)
@@ -1047,13 +1059,13 @@ class TeaWaveCalibration:
         crmax1_linear = crval1_linear.value + (self._naxis1 - 1) * cdelt1_linear.value
         crmax1_linear *= self.peak_wavelengths.unit
         if debug:
-            print(f'>>> CRPIX1.............: {crpix1}')
-            print(f'>>> CRVAL1 linear scale: {ctext(crval1_linear, rev=True)}')
-            print(f'>>> CDELT1 linear scale: {ctext(cdelt1_linear, rev=True)}')
-            print(f'>>> CRMAX1 linear scale: {crmax1_linear}')
+            print(f">>> CRPIX1.............: {crpix1}")
+            print(f">>> CRVAL1 linear scale: {ctext(crval1_linear, rev=True)}")
+            print(f">>> CDELT1 linear scale: {ctext(cdelt1_linear, rev=True)}")
+            print(f">>> CRMAX1 linear scale: {crmax1_linear}")
 
         if npeaks > self.degree_wavecalib + 1:
-            residual_std_xy = np.sqrt(stats_list_xy[0]/(npeaks - self.degree_wavecalib - 1))[0]
+            residual_std_xy = np.sqrt(stats_list_xy[0] / (npeaks - self.degree_wavecalib - 1))[0]
         else:
             residual_std_xy = 0.0
         residual_std_xy *= u.pixel
@@ -1061,10 +1073,10 @@ class TeaWaveCalibration:
         residual_std_yx = residual_std_xy * cdelt1_linear
 
         if debug:
-            print('\n>>> Fitted coefficients pixel(wavelength):\n', poly_fits_xy.coef)
-            print(f'>>> Residual std.........................: {residual_std_xy}')
-            print('\n>>> Fitted coefficients wavelength(pixel):\n', poly_fits_yx.coef)
-            print(f'>>> Residual std.........................: {residual_std_yx}')
+            print("\n>>> Fitted coefficients pixel(wavelength):\n", poly_fits_xy.coef)
+            print(f">>> Residual std.........................: {residual_std_xy}")
+            print("\n>>> Fitted coefficients wavelength(pixel):\n", poly_fits_yx.coef)
+            print(f">>> Residual std.........................: {residual_std_yx}")
 
         if plots:
             # polynomial fit pixel(wavelength)
@@ -1072,26 +1084,26 @@ class TeaWaveCalibration:
             ypol = poly_fits_xy(xpol) - np.linspace(1, self._naxis1, self._naxis1)
             # arc lines
             xp = np.copy(yfit)
-            yp = xfit - (crpix1.value + (xp - crval1_linear.value)/cdelt1_linear.value)
+            yp = xfit - (crpix1.value + (xp - crval1_linear.value) / cdelt1_linear.value)
             yres = xfit - poly_fits_xy(xp)
             # residuals plot
             fig = plt.figure(figsize=(10, 10))
             ax2 = fig.add_subplot(2, 1, 2)
-            ax2.set_xlabel(f'Wavelength ({self.peak_wavelengths.unit})')
-            ax2.set_ylabel('Residuals (pixel)')
-            ax2.plot(xp, yres, 'o', color='C0')
+            ax2.set_xlabel(f"Wavelength ({self.peak_wavelengths.unit})")
+            ax2.set_ylabel("Residuals (pixel)")
+            ax2.plot(xp, yres, "o", color="C0")
             ax2.axhline(y=0.0, color="black", linestyle="dashed")
             ymin, ymax = ax2.get_ylim()
             for ip, (xtext, ytext) in enumerate(zip(xp, yres)):
-                ax2.text(xtext, ytext + (ymax - ymin)/40, str(ip+1), ha='center', color='C0')
+                ax2.text(xtext, ytext + (ymax - ymin) / 40, str(ip + 1), ha="center", color="C0")
 
             # plot with differences between linear fit and fitted polynomial
             ax = fig.add_subplot(2, 1, 1, sharex=ax2)
-            ax.set_xlabel(f'Wavelength ({self.peak_wavelengths.unit})')
-            ax.set_ylabel('Differences with\nlinear solution (pixel)')
-            ax.plot(xp, yp, 'o', color='C0', label="identified line")
+            ax.set_xlabel(f"Wavelength ({self.peak_wavelengths.unit})")
+            ax.set_ylabel("Differences with\nlinear solution (pixel)")
+            ax.plot(xp, yp, "o", color="C0", label="identified line")
             # polynomial fit
-            ax.plot(xpol, ypol, '-', color='C1', label="polynomial fit")
+            ax.plot(xpol, ypol, "-", color="C1", label="polynomial fit")
             ymin = np.min(yp)
             ymax = np.max(yp)
             dy = ymax - ymin
@@ -1099,20 +1111,20 @@ class TeaWaveCalibration:
             ymax += dy / 10
             ax.set_ylim(ymin, ymax)
             for ip, (xtext, ytext) in enumerate(zip(xp, yp)):
-                ax.text(xtext, ytext + dy/30, str(ip+1), ha='center', color='C0')
+                ax.text(xtext, ytext + dy / 30, str(ip + 1), ha="center", color="C0")
             ax.legend()
             if title is not None:
-                title_ = f'{title}\n'
+                title_ = f"{title}\n"
             else:
-                title_ = ''
+                title_ = ""
             plt.title(f"{title_}Wavelength calibration (polynomial degree: {self.degree_wavecalib})")
             plt.tight_layout()
             if pdf_output is None:
                 if pdf_only:
-                    raise ValueError('Unexpected pdf_only=True when pdf_output=None')
+                    raise ValueError("Unexpected pdf_only=True when pdf_output=None")
                 plt.show()
             else:
-                print(f'--> Saving PDF file: {pdf_output}')
+                print(f"--> Saving PDF file: {pdf_output}")
                 plt.savefig(pdf_output)
                 if pdf_only:
                     plt.close(fig)
@@ -1120,17 +1132,22 @@ class TeaWaveCalibration:
                     plt.show()
         else:
             if pdf_output is not None:
-                raise ValueError('You must set plots=True to make use of pdf_output')
+                raise ValueError("You must set plots=True to make use of pdf_output")
 
-        return poly_fits_yx, residual_std_yx, \
-            poly_fits_xy, residual_std_xy, \
-            crval1_linear, cdelt1_linear, crmax1_linear
+        return poly_fits_yx, residual_std_yx, poly_fits_xy, residual_std_xy, crval1_linear, cdelt1_linear, crmax1_linear
 
-    def fit_wavelengths(self, degree_wavecalib=None,
-                        output_filename=None, history_list=None,
-                        plots=False, title=None,
-                        pdf_output=None, pdf_only=False,
-                        silent_mode=False, disable_tqdm=True):
+    def fit_wavelengths(
+        self,
+        degree_wavecalib=None,
+        output_filename=None,
+        history_list=None,
+        plots=False,
+        title=None,
+        pdf_output=None,
+        pdf_only=False,
+        silent_mode=False,
+        disable_tqdm=True,
+    ):
         """Wavelength calibration of the whole image.
 
         Use the prediction of the fitted C-distortion to determine the
@@ -1167,7 +1184,7 @@ class TeaWaveCalibration:
             self.degree_wavecalib = degree_wavecalib
 
         if output_filename is None:
-            raise ValueError(f'Invalid output_filename={output_filename}')
+            raise ValueError(f"Invalid output_filename={output_filename}")
 
         self._array_poly_wav = np.zeros((self._naxis2, self.degree_wavecalib + 1))
         self._array_poly_pix = np.zeros((self._naxis2, self.degree_wavecalib + 1))
@@ -1176,13 +1193,16 @@ class TeaWaveCalibration:
         self._array_crval1_linear = np.zeros(self._naxis2) * self.peak_wavelengths.unit
         self._array_cdelt1_linear = np.zeros(self._naxis2) * self.peak_wavelengths.unit / u.pixel
         self._array_crmax1_linear = np.zeros(self._naxis2) * self.peak_wavelengths.unit
-        for k in tqdm(range(self._naxis2), desc='Wavelength calibration', file=sys.stdout, ncols=80, disable=disable_tqdm):
+        for k in tqdm(
+            range(self._naxis2), desc="Wavelength calibration", file=sys.stdout, ncols=80, disable=disable_tqdm
+        ):
             xpeaks = np.zeros(self._nlines_reference) * u.pixel
             for i in range(self._nlines_reference):
                 poly_cdistortion = self._list_poly_cdistortion[i]
                 xpeaks[i] = poly_cdistortion(k) * u.pixel
-            poly1_fits, residual1_std, poly2_fits, residual2_std, crval1_linear, cdelt1_linear, crmax1_linear = \
+            poly1_fits, residual1_std, poly2_fits, residual2_std, crval1_linear, cdelt1_linear, crmax1_linear = (
                 self.fit_xpeaks_wavelengths(xpeaks=xpeaks)
+            )
             self._array_poly_wav[k, :] = poly1_fits.coef
             self._array_poly_pix[k, :] = poly2_fits.coef
             self._array_residual_std_wav[k] = residual1_std
@@ -1206,83 +1226,76 @@ class TeaWaveCalibration:
         for keyword in self.__class__.fits_keyword_list:
             key = keyword[:8].upper()
             header[key] = (self.__dict__[keyword], keyword)
-        header['_NAXIS1'] = (self._naxis1, 'original NAXIS1 in 2D spectroscopic image')
-        header['_NAXIS2'] = (self._naxis2, 'original NAXIS2 in 2D spectroscopic image')
-        header['_NLINES'] = (self._nlines_reference, 'number of lines employed for calibration')
+        header["_NAXIS1"] = (self._naxis1, "original NAXIS1 in 2D spectroscopic image")
+        header["_NAXIS2"] = (self._naxis2, "original NAXIS2 in 2D spectroscopic image")
+        header["_NLINES"] = (self._nlines_reference, "number of lines employed for calibration")
         for i in range(self._nlines_reference):
-            header[f'WPEAK{i+1:03d}'] = (
+            header[f"WPEAK{i+1:03d}"] = (
                 self.peak_wavelengths[i].value,
-                f'wavelength of line #{i+1} ({self.peak_wavelengths.unit})'
+                f"wavelength of line #{i+1} ({self.peak_wavelengths.unit})",
             )
-        header['WPEAKUNI'] = self.peak_wavelengths.unit.to_string()
-        header['LCRVAL1A'] = (
-            np.min(self._array_crval1_linear.value),
-            'minimum crval1_linear (Angstrom)'
-        )
-        header['LCRVAL1M'] = (
-            np.median(self._array_crval1_linear.value),
-            'median crval1_linear (Angstrom)'
-        )
-        header['LCRVAL1Z'] = (
-            np.max(self._array_crval1_linear.value),
-            'maximum crval1_linear (Angstrom)'
-        )
-        header['LCDELT1M'] = (
-            np.median(self._array_cdelt1_linear.value),
-            'median cdelt1_linear (Angstrom/pixel)'
-        )
-        header['FILENAME'] = f'{Path(output_filename).name}'
+        header["WPEAKUNI"] = self.peak_wavelengths.unit.to_string()
+        header["LCRVAL1A"] = (np.min(self._array_crval1_linear.value), "minimum crval1_linear (Angstrom)")
+        header["LCRVAL1M"] = (np.median(self._array_crval1_linear.value), "median crval1_linear (Angstrom)")
+        header["LCRVAL1Z"] = (np.max(self._array_crval1_linear.value), "maximum crval1_linear (Angstrom)")
+        header["LCDELT1M"] = (np.median(self._array_cdelt1_linear.value), "median cdelt1_linear (Angstrom/pixel)")
+        header["FILENAME"] = f"{Path(output_filename).name}"
 
         primary_hdu = fits.PrimaryHDU(header=header, data=self._array_poly_wav)
 
         inv_poly_hdr = fits.Header()
-        inv_poly_hdr['HISTORY'] = 'Coefficients of polynomial pixel(wavelength)'
-        inv_poly_hdu = fits.ImageHDU(header=inv_poly_hdr, data=self._array_poly_pix, name='INV_POLY')
+        inv_poly_hdr["HISTORY"] = "Coefficients of polynomial pixel(wavelength)"
+        inv_poly_hdu = fits.ImageHDU(header=inv_poly_hdr, data=self._array_poly_pix, name="INV_POLY")
 
         cdistor_hdr = fits.Header()
-        cdistor_hdr['HISTORY'] = 'C-distortion polynomial coefficients'
+        cdistor_hdr["HISTORY"] = "C-distortion polynomial coefficients"
         cdistor_array = np.zeros((self._nlines_reference, self.degree_cdistortion + 1))
         for i in range(self._nlines_reference):
             cdistor_array[i, :] = self._list_poly_cdistortion[i].coef
-        cdistor_hdu = fits.ImageHDU(header=cdistor_hdr, data=cdistor_array, name='CDISTOR')
+        cdistor_hdu = fits.ImageHDU(header=cdistor_hdr, data=cdistor_array, name="CDISTOR")
 
-        col1 = fits.Column(name='residual_std_wav',
-                           format='D',
-                           array=self._array_residual_std_wav.value,
-                           unit=self._array_residual_std_wav.unit.to_string()
-                           )
-        col2 = fits.Column(name='residual_std_pix',
-                           format='D',
-                           array=self._array_residual_std_pix.value,
-                           unit=self._array_residual_std_pix.unit.to_string()
-                           )
-        col3 = fits.Column(name='crval1_linear',
-                           format='D',
-                           array=self._array_crval1_linear.value,
-                           unit=self._array_crval1_linear.unit.to_string()
-                           )
-        col4 = fits.Column(name='cdelt1_linear',
-                           format='D',
-                           array=self._array_cdelt1_linear.value,
-                           unit=self._array_cdelt1_linear.unit.to_string()
-                           )
-        col5 = fits.Column(name='crmax1_linear',
-                           format='D',
-                           array=self._array_crmax1_linear.value,
-                           unit=self._array_crmax1_linear.unit.to_string()
-                           )
-        coef_hdu = fits.BinTableHDU.from_columns([col1, col2, col3, col4, col5], name='COEFF')
+        col1 = fits.Column(
+            name="residual_std_wav",
+            format="D",
+            array=self._array_residual_std_wav.value,
+            unit=self._array_residual_std_wav.unit.to_string(),
+        )
+        col2 = fits.Column(
+            name="residual_std_pix",
+            format="D",
+            array=self._array_residual_std_pix.value,
+            unit=self._array_residual_std_pix.unit.to_string(),
+        )
+        col3 = fits.Column(
+            name="crval1_linear",
+            format="D",
+            array=self._array_crval1_linear.value,
+            unit=self._array_crval1_linear.unit.to_string(),
+        )
+        col4 = fits.Column(
+            name="cdelt1_linear",
+            format="D",
+            array=self._array_cdelt1_linear.value,
+            unit=self._array_cdelt1_linear.unit.to_string(),
+        )
+        col5 = fits.Column(
+            name="crmax1_linear",
+            format="D",
+            array=self._array_crmax1_linear.value,
+            unit=self._array_crmax1_linear.unit.to_string(),
+        )
+        coef_hdu = fits.BinTableHDU.from_columns([col1, col2, col3, col4, col5], name="COEFF")
 
         hdul = fits.HDUList([primary_hdu, inv_poly_hdu, cdistor_hdu, coef_hdu])
         hdul.writeto(output_filename, overwrite=True)
 
-        print(f'--> Saving result in FITS file: {output_filename}')
+        print(f"--> Saving result in FITS file: {output_filename}")
 
         if plots:
             self._plot_wavecoef(title, pdf_output, pdf_only)
         else:
             if pdf_output is not None:
-                raise ValueError('You must set plots=True to make use of pdf_output')
+                raise ValueError("You must set plots=True to make use of pdf_output")
 
     def estimate_crval1_cdelt1(self, silent_mode=False):
         """Compute mean CDELT1 to cover min_crval1 and max_crmax1.
@@ -1298,9 +1311,9 @@ class TeaWaveCalibration:
         max_crmax1 = self._array_crmax1_linear.max()
         cdelt1 = (max_crmax1 - min_crval1) / (self._naxis1 - 1)
         if not silent_mode:
-            print(f'>>> minimum CRVAL1 linear: {min_crval1}')
-            print(f'>>> maximum CRMAX1 linear: {max_crmax1}')
-            print(f'>>> mean CDELT1..........: {cdelt1}')
+            print(f">>> minimum CRVAL1 linear: {min_crval1}")
+            print(f">>> maximum CRMAX1 linear: {max_crmax1}")
+            print(f">>> mean CDELT1..........: {cdelt1}")
 
     def _plot_wavecoef(self, title=None, pdf_output=None, pdf_only=False):
         """Plot wavelength calibration parameters and coefficients
@@ -1319,27 +1332,31 @@ class TeaWaveCalibration:
         # crval1, cdelt1, crmax1, residual_std
         fig, axarr = plt.subplots(nrows=1, ncols=5, figsize=(15, 3))
         axarr = axarr.flatten()
-        for i, item in enumerate(['_array_crval1_linear',
-                                  '_array_cdelt1_linear',
-                                  '_array_crmax1_linear',
-                                  '_array_residual_std_wav',
-                                  '_array_residual_std_pix']):
+        for i, item in enumerate(
+            [
+                "_array_crval1_linear",
+                "_array_cdelt1_linear",
+                "_array_crmax1_linear",
+                "_array_residual_std_wav",
+                "_array_residual_std_pix",
+            ]
+        ):
             ax = axarr[i]
             ax.plot(self.__dict__[item])
-            ax.set_xlabel('Y axis (array index)')
+            ax.set_xlabel("Y axis (array index)")
             ax.set_ylabel(item)
         if title is not None:
-            fig.suptitle(f'{title}', fontsize=16)
+            fig.suptitle(f"{title}", fontsize=16)
         plt.tight_layout()
         if pdf_output is None:
             if pdf_only:
-                raise ValueError('Unexpected pdf_only=True when pdf_output=None')
+                raise ValueError("Unexpected pdf_only=True when pdf_output=None")
             plt.show()
         else:
             parent = Path(pdf_output).parents[0]
             stem = Path(pdf_output).stem
-            fname = parent / f'{stem}_p1.pdf'
-            print(f'--> Saving PDF file: {fname}')
+            fname = parent / f"{stem}_p1.pdf"
+            print(f"--> Saving PDF file: {fname}")
             plt.savefig(fname)
             if pdf_only:
                 plt.close(fig)
@@ -1356,35 +1373,35 @@ class TeaWaveCalibration:
         nrows = int(ncoeff / npprow)
         if ncoeff % npprow != 0:
             nrows += 1
-        fig, axarr = plt.subplots(nrows=nrows, ncols=npprow, figsize=(figwidth, 3*nrows))
+        fig, axarr = plt.subplots(nrows=nrows, ncols=npprow, figsize=(figwidth, 3 * nrows))
         axarr = axarr.flatten()
         for ax in axarr:
-            ax.axis('off')
+            ax.axis("off")
         for k in range(ncoeff):
             ax = axarr[k]
-            ax.axis('on')
+            ax.axis("on")
             ax.plot(self._array_poly_wav[:, k])
-            ax.set_xlabel('Y axis (array index)')
-            ax.set_ylabel(f'Coeff #{k}')
+            ax.set_xlabel("Y axis (array index)")
+            ax.set_ylabel(f"Coeff #{k}")
         if title is not None:
-            fig.suptitle(f'{title}', fontsize=16)
+            fig.suptitle(f"{title}", fontsize=16)
         plt.tight_layout()
         if pdf_output is None:
             if pdf_only:
-                raise ValueError('Unexpected pdf_only=True when pdf_output=None')
+                raise ValueError("Unexpected pdf_only=True when pdf_output=None")
             plt.show()
         else:
             parent = Path(pdf_output).parents[0]
             stem = Path(pdf_output).stem
-            fname = parent / f'{stem}_p2.pdf'
-            print(f'--> Saving PDF file: {fname}')
+            fname = parent / f"{stem}_p2.pdf"
+            print(f"--> Saving PDF file: {fname}")
             plt.savefig(fname)
             if pdf_only:
                 plt.close(fig)
             else:
                 plt.show()
 
-    @u.quantity_input(crval1=u.Angstrom, cdelt1=u.Angstrom/u.pixel)
+    @u.quantity_input(crval1=u.Angstrom, cdelt1=u.Angstrom / u.pixel)
     def apply(self, data, crval1, cdelt1, silent_mode=False, disable_tqdm=True):
         """Apply wavelength calibration to data array.
 
@@ -1412,18 +1429,18 @@ class TeaWaveCalibration:
         """
 
         if self._array_poly_wav is None:
-            raise ValueError('Wavelength calibration is not available yet')
+            raise ValueError("Wavelength calibration is not available yet")
 
         naxis2, naxis1 = data.shape
         if naxis1 != self._naxis1:
-            raise ValueError(f'Unexpected NAXIS1: {naxis1} != _NAXIS1: {self._naxis1}')
+            raise ValueError(f"Unexpected NAXIS1: {naxis1} != _NAXIS1: {self._naxis1}")
         if naxis2 != self._naxis2:
-            raise ValueError(f'Unexpected NAXIS2: {naxis2} != _NAXIS2: {self._naxis2}')
+            raise ValueError(f"Unexpected NAXIS2: {naxis2} != _NAXIS2: {self._naxis2}")
 
         if not silent_mode:
-            print(f'>>> Using CDELT1: 1 {u.pixel}')
-            print(f'>>> Using CRVAL1: {crval1}')
-            print(f'>>> Using CDELT1: {cdelt1}')
+            print(f">>> Using CDELT1: 1 {u.pixel}")
+            print(f">>> Using CRVAL1: {crval1}")
+            print(f">>> Using CDELT1: {cdelt1}")
 
         accum_flux = np.zeros((naxis2, naxis1 + 1))
         accum_flux[:, 1:] = np.cumsum(data, axis=1)
@@ -1433,26 +1450,19 @@ class TeaWaveCalibration:
 
         old_x_borders_fits = np.arange(naxis1 + 1) + 0.5  # FITS convention
 
-        for k in tqdm(range(naxis2),
-                      desc='Applying wavelength calibration',
-                      disable=disable_tqdm, file=sys.stdout, ncols=80):
+        for k in tqdm(
+            range(naxis2), desc="Applying wavelength calibration", disable=disable_tqdm, file=sys.stdout, ncols=80
+        ):
             poly = Polynomial(self._array_poly_wav[k])
             old_wl_borders = poly(old_x_borders_fits) * self.peak_wavelengths.unit
             flux_borders = np.interp(
-                x=new_wl_borders,
-                xp=old_wl_borders,
-                fp=accum_flux[k, :],
-                left=0,
-                right=accum_flux[k, -1]
+                x=new_wl_borders, xp=old_wl_borders, fp=accum_flux[k, :], left=0, right=accum_flux[k, -1]
             )
             data_wavecal[k, :] = flux_borders[1:] - flux_borders[:-1]
 
         return data_wavecal
 
-    def plot_data_comparison(self, data_before, data_after,
-                             crval1, cdelt1,
-                             title=None,
-                             semi_window=None):
+    def plot_data_comparison(self, data_before, data_after, crval1, cdelt1, title=None, semi_window=None):
         """Plot data array before and after correction.
 
         Parameters
@@ -1484,7 +1494,7 @@ class TeaWaveCalibration:
 
         # approximate peak location (computed at the central spectrum)
         ns_center = self._naxis2 / 2
-        xpeaks = [self._list_poly_cdistortion[k](ns_center-1) for k in range(self._nlines_reference)]
+        xpeaks = [self._list_poly_cdistortion[k](ns_center - 1) for k in range(self._nlines_reference)]
 
         # display region around each line (before / after wavelength calibration)
         for iline, xpeak in enumerate(xpeaks):
@@ -1497,7 +1507,7 @@ class TeaWaveCalibration:
             if i2 > self._naxis1 - 1:
                 i2 = self._naxis1 - 1
             # limits after calibration
-            cdelt1_prior = self._array_cdelt1_linear[self._naxis2//2].value
+            cdelt1_prior = self._array_cdelt1_linear[self._naxis2 // 2].value
             w1 = self.peak_wavelengths[iline].value - semi_window * cdelt1_prior
             w2 = self.peak_wavelengths[iline].value + semi_window * cdelt1_prior
             ii1 = int((w1 - crval1.value) / cdelt1.value + 0.5)
@@ -1507,36 +1517,41 @@ class TeaWaveCalibration:
             if ii2 > self._naxis1 - 1:
                 ii2 = self._naxis1 - 1
             # display comparison
-            vmin, vmax = np.percentile(data_before[:, i1:(i2 + 1)], [5, 95])
-            for iplot, (data_, when) in enumerate(zip([data_before, data_after],
-                                                      ['before', 'after'])):
+            vmin, vmax = np.percentile(data_before[:, i1 : (i2 + 1)], [5, 95])
+            for iplot, (data_, when) in enumerate(zip([data_before, data_after], ["before", "after"])):
                 ax = axarr[iplot]
-                img = ax.imshow(data_, vmin=vmin, vmax=vmax, origin='lower',
-                                aspect='auto', interpolation='nearest')
+                img = ax.imshow(data_, vmin=vmin, vmax=vmax, origin="lower", aspect="auto", interpolation="nearest")
                 if iplot == 0:
                     ax.set_xlim(i1, i2)
                 else:
                     ax.set_xlim(ii1, ii2)
-                ax.set_xlabel('X axis (array index)')
-                ax.set_ylabel('Y axis (array index)')
-                ax.set_title(f'Line #{iline + 1}/{self._nlines_reference} '
-                             f'({when} WL correction)\n'
-                             f'Wavelength={self.peak_wavelengths[iline]}')
+                ax.set_xlabel("X axis (array index)")
+                ax.set_ylabel("Y axis (array index)")
+                ax.set_title(
+                    f"Line #{iline + 1}/{self._nlines_reference} "
+                    f"({when} WL correction)\n"
+                    f"Wavelength={self.peak_wavelengths[iline]}"
+                )
                 divider = make_axes_locatable(ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
-                fig.colorbar(img, cax=cax, label='Number of counts')
+                fig.colorbar(img, cax=cax, label="Number of counts")
             if title is not None:
-                fig.suptitle(f'{title}\n', fontsize=16)
+                fig.suptitle(f"{title}\n", fontsize=16)
             plt.tight_layout()
             plt.show()
 
 
-def apply_wavecal_ccddata(infile, wcalibfile, outfile,
-                          crval1, cdelt1,
-                          ctype1_info=('AWAV', 'air wavelength'),
-                          silent_mode=True,
-                          plot_data_comparison=0,
-                          title=None):
+def apply_wavecal_ccddata(
+    infile,
+    wcalibfile,
+    outfile,
+    crval1,
+    cdelt1,
+    ctype1_info=("AWAV", "air wavelength"),
+    silent_mode=True,
+    plot_data_comparison=0,
+    title=None,
+):
     """Apply wavelength calibration to FITS file storing CCDData.
 
     The FITS file must contain:
@@ -1577,14 +1592,14 @@ def apply_wavecal_ccddata(infile, wcalibfile, outfile,
     """
 
     if plot_data_comparison not in [0, 1, 2]:
-        raise ValueError(f'Unexpected plot_data_comparison_value: {plot_data_comparison}')
+        raise ValueError(f"Unexpected plot_data_comparison_value: {plot_data_comparison}")
 
     # read wavelength calibration from file
     wavecalib = TeaWaveCalibration.read(wcalibfile, silent_mode=silent_mode)
 
     # read image to be calibrated
     if not silent_mode:
-        print(f'\n>>> Reading file.........: {infile}')
+        print(f"\n>>> Reading file.........: {infile}")
     ccdimage = CCDData.read(infile)
 
     # duplicate input CCDData object to store result
@@ -1592,87 +1607,82 @@ def apply_wavecal_ccddata(infile, wcalibfile, outfile,
 
     # apply C-distortion correction and wavelength calibration to PRIMARY extension
     if not silent_mode:
-        print('\nApplying calibration to primary HDU')
+        print("\nApplying calibration to primary HDU")
     ccdimage_wavecalib.data = wavecalib.apply(
-        data=ccdimage.data,
-        crval1=crval1,
-        cdelt1=cdelt1,
-        silent_mode=silent_mode,
-        disable_tqdm=silent_mode
+        data=ccdimage.data, crval1=crval1, cdelt1=cdelt1, silent_mode=silent_mode, disable_tqdm=silent_mode
     )
 
     # apply C-distortion correction and wavelength calibration to MASK extension
     if not silent_mode:
-        print('\nApplying calibration to MASK extension')
-    ccdimage_wavecalib.mask = wavecalib.apply(
-        data=ccdimage.mask.astype(float),
-        crval1=crval1,
-        cdelt1=cdelt1,
-        silent_mode=silent_mode,
-        disable_tqdm=silent_mode
-    ) > 0
+        print("\nApplying calibration to MASK extension")
+    ccdimage_wavecalib.mask = (
+        wavecalib.apply(
+            data=ccdimage.mask.astype(float),
+            crval1=crval1,
+            cdelt1=cdelt1,
+            silent_mode=silent_mode,
+            disable_tqdm=silent_mode,
+        )
+        > 0
+    )
 
     # apply C-distortion correction and wavelength calibration to UNCERT extension
     if not silent_mode:
-        print('\nApplying calibration to UNCERT extension')
+        print("\nApplying calibration to UNCERT extension")
     ccdimage_wavecalib.uncertainty.array = wavecalib.apply(
-        data=ccdimage.uncertainty.array,
-        crval1=crval1,
-        cdelt1=cdelt1,
-        silent_mode=silent_mode,
-        disable_tqdm=silent_mode
+        data=ccdimage.uncertainty.array, crval1=crval1, cdelt1=cdelt1, silent_mode=silent_mode, disable_tqdm=silent_mode
     )
 
     # include wavelength calibration parameters in FITS header
     wl_header = fits.Header()
-    wl_header['CRPIX1'] = (1, f'{u.pixel}')
-    wl_header['CRVAL1'] = (crval1.value, f'{crval1.unit}')
-    wl_header['CDELT1'] = (cdelt1.value, f'{cdelt1.unit}')
-    wl_header['CUNIT1'] = (f'{crval1.unit}', 'wavelength unit')
-    wl_header['CTYPE1'] = ctype1_info
+    wl_header["CRPIX1"] = (1, f"{u.pixel}")
+    wl_header["CRVAL1"] = (crval1.value, f"{crval1.unit}")
+    wl_header["CDELT1"] = (cdelt1.value, f"{cdelt1.unit}")
+    wl_header["CUNIT1"] = (f"{crval1.unit}", "wavelength unit")
+    wl_header["CTYPE1"] = ctype1_info
     ccdimage_wavecalib.wcs = wcs.WCS(wl_header)
 
     # update FILENAME keyword with output file name
-    ccdimage_wavecalib.header['FILENAME'] = f'{Path(outfile).name}'
+    ccdimage_wavecalib.header["FILENAME"] = f"{Path(outfile).name}"
     # update HISTORY in header
-    ccdimage_wavecalib.header['HISTORY'] = '-------------------'
-    ccdimage_wavecalib.header['HISTORY'] = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-    ccdimage_wavecalib.header['HISTORY'] = 'using tea_wavecal'
-    ccdimage_wavecalib.header['HISTORY'] = f'calibration file: {Path(wcalibfile).name}'
+    ccdimage_wavecalib.header["HISTORY"] = "-------------------"
+    ccdimage_wavecalib.header["HISTORY"] = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    ccdimage_wavecalib.header["HISTORY"] = "using tea_wavecal"
+    ccdimage_wavecalib.header["HISTORY"] = f"calibration file: {Path(wcalibfile).name}"
 
     # save result
-    ccdimage_wavecalib.write(outfile, overwrite='yes')
+    ccdimage_wavecalib.write(outfile, overwrite="yes")
     if not silent_mode:
-        print(f'--> Output FITS file.....: {outfile}')
+        print(f"--> Output FITS file.....: {outfile}")
 
     # plot comparison before / after the calibration
     if title is not None:
-        title_ = f'{title}\n'
+        title_ = f"{title}\n"
     else:
-        title_ = ''
+        title_ = ""
     if plot_data_comparison in [1, 2]:
-        print('* Comparing primary HDU data before / after calibration')
+        print("* Comparing primary HDU data before / after calibration")
         wavecalib.plot_data_comparison(
             data_before=ccdimage.data,
             data_after=ccdimage_wavecalib.data,
             crval1=crval1,
             cdelt1=cdelt1,
-            title=f'{title_}(Primary HDU)'
+            title=f"{title_}(Primary HDU)",
         )
     if plot_data_comparison == 2:
-        print('* Comparing MASK extension array before / after calibration')
+        print("* Comparing MASK extension array before / after calibration")
         wavecalib.plot_data_comparison(
             data_before=ccdimage.mask.astype(float),
             data_after=ccdimage_wavecalib.mask.astype(float),
             crval1=crval1,
             cdelt1=cdelt1,
-            title=f'{title_}(MASK extension)'
+            title=f"{title_}(MASK extension)",
         )
-        print('* Comparing UNCERT extension array before / after calibration')
+        print("* Comparing UNCERT extension array before / after calibration")
         wavecalib.plot_data_comparison(
             data_before=ccdimage.uncertainty.array,
             data_after=ccdimage_wavecalib.uncertainty.array,
             crval1=crval1,
             cdelt1=cdelt1,
-            title=f'{title_}(UNCERT extension)'
+            title=f"{title_}(UNCERT extension)",
         )

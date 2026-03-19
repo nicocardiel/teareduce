@@ -34,7 +34,7 @@ def zscale(image, factor=0.25):
 
     # protections
     if not isinstance(image, np.ndarray):
-        raise ValueError('image must be a numpy.ndarray')
+        raise ValueError("image must be a numpy.ndarray")
 
     npixels = image.size
 
@@ -43,10 +43,10 @@ def zscale(image, factor=0.25):
         z2 = np.max(image)
     else:
         q000, q375, q500, q625, q1000 = np.percentile(image, [00.0, 37.5, 50.0, 62.5, 100.0])
-        zslope = (q625-q375)/(0.25*npixels)
-        z1 = q500-(zslope*npixels/2)/factor
+        zslope = (q625 - q375) / (0.25 * npixels)
+        z1 = q500 - (zslope * npixels / 2) / factor
         z1 = max(z1, q000)
-        z2 = q500+(zslope*npixels/2)/factor
+        z2 = q500 + (zslope * npixels / 2) / factor
         z2 = min(z2, q1000)
 
     return z1, z2

@@ -34,6 +34,7 @@ class ImageParameter:
     dtype : type
         Expected type of the parameter value.
     """
+
     def __init__(self, name, quantity, expected_unit, expected_type):
         """Initialize the class attributes.
 
@@ -121,14 +122,14 @@ class SimulatedCCDResult:
         self.seed = seed
 
     def __repr__(self):
-        output = f'{self.__class__.__name__}(\n'
-        output += f'    data={self.data!r},\n'
-        output += f'    unit={self.unit!r},\n'
-        output += f'    imgtype={self.imgtype!r},\n'
-        output += f'    method={self.method!r},\n'
-        output += f'    origin={self.origin!r},\n'
-        output += f'    seed={self.seed!r},\n'
-        output += ')'
+        output = f"{self.__class__.__name__}(\n"
+        output += f"    data={self.data!r},\n"
+        output += f"    unit={self.unit!r},\n"
+        output += f"    imgtype={self.imgtype!r},\n"
+        output += f"    method={self.method!r},\n"
+        output += f"    origin={self.origin!r},\n"
+        output += f"    seed={self.seed!r},\n"
+        output += ")"
         return output
 
     def imshowme(self, **kwargs):
@@ -164,25 +165,26 @@ class SimulatedCCDResult:
         hdu_data.header["METHOD"] = self.method
 
         if save_params:
-            hdu_bias = fits.ImageHDU(self.origin.bias.data, name='BIAS')
+            hdu_bias = fits.ImageHDU(self.origin.bias.data, name="BIAS")
             hdu_bias.header["UNIT"] = str(self.origin.bias.unit)
 
-            hdu_gain = fits.ImageHDU(self.origin.gain.data, name='GAIN')
+            hdu_gain = fits.ImageHDU(self.origin.gain.data, name="GAIN")
             hdu_gain.header["UNIT"] = str(self.origin.gain.unit)
 
-            hdu_readout_noise = fits.ImageHDU(self.origin.readout_noise.data, name='RNOISE')
+            hdu_readout_noise = fits.ImageHDU(self.origin.readout_noise.data, name="RNOISE")
             hdu_readout_noise.header["UNIT"] = str(self.origin.readout_noise.unit)
 
-            hdu_dark = fits.ImageHDU(self.origin.dark.data, name='DARK')
+            hdu_dark = fits.ImageHDU(self.origin.dark.data, name="DARK")
             hdu_dark.header["UNIT"] = str(self.origin.dark.unit)
 
-            hdu_flatfield = fits.ImageHDU(self.origin.flatfield.data, name='FLATFIELD')
+            hdu_flatfield = fits.ImageHDU(self.origin.flatfield.data, name="FLATFIELD")
 
-            hdu_data_model = fits.ImageHDU(self.origin.data_model.data, name='DATAMODEL')
+            hdu_data_model = fits.ImageHDU(self.origin.data_model.data, name="DATAMODEL")
             hdu_data_model.header["UNIT"] = str(self.origin.data_model.unit)
 
-            hdul = fits.HDUList([hdu_data, hdu_bias, hdu_gain, hdu_readout_noise,
-                                 hdu_dark, hdu_flatfield, hdu_data_model])
+            hdul = fits.HDUList(
+                [hdu_data, hdu_bias, hdu_gain, hdu_readout_noise, hdu_dark, hdu_flatfield, hdu_data_model]
+            )
         else:
             hdul = fits.HDUList([hdu_data])
 
@@ -258,17 +260,19 @@ class SimulateCCDExposure:
 
     """
 
-    def __init__(self,
-                 naxis1=None,
-                 naxis2=None,
-                 bitpix=None,
-                 bias=np.nan * Unit('adu'),
-                 gain=np.nan * Unit('electron') / Unit('adu'),
-                 readout_noise=np.nan * Unit('adu'),
-                 dark=np.nan * Unit('adu'),
-                 flatfield=np.nan,
-                 data_model=np.nan * Unit('adu'),
-                 seed=None,):
+    def __init__(
+        self,
+        naxis1=None,
+        naxis2=None,
+        bitpix=None,
+        bias=np.nan * Unit("adu"),
+        gain=np.nan * Unit("electron") / Unit("adu"),
+        readout_noise=np.nan * Unit("adu"),
+        dark=np.nan * Unit("adu"),
+        flatfield=np.nan,
+        data_model=np.nan * Unit("adu"),
+        seed=None,
+    ):
         """Initialize the class attributes.
 
         The simulated array dimensions are mandatory. If any additional
@@ -338,36 +342,16 @@ class SimulateCCDExposure:
 
         # check that each input parameter is a Quantity with the expected units,
         parameter_list = [
+            ImageParameter(name="bias", quantity=bias, expected_unit=Unit("adu"), expected_type=int),
             ImageParameter(
-                name="bias",
-                quantity=bias,
-                expected_unit=Unit('adu'),
-                expected_type=int),
+                name="gain", quantity=gain, expected_unit=Unit("electron") / Unit("adu"), expected_type=float
+            ),
             ImageParameter(
-                name="gain",
-                quantity=gain,
-                expected_unit=Unit('electron') / Unit('adu'),
-                expected_type=float),
-            ImageParameter(
-                name="readout_noise",
-                quantity=readout_noise,
-                expected_unit=Unit('adu'),
-                expected_type=float),
-            ImageParameter(
-                name="dark",
-                quantity=dark,
-                expected_unit=Unit('adu'),
-                expected_type=float),
-            ImageParameter(
-                name="flatfield",
-                quantity=flatfield,
-                expected_unit=None,
-                expected_type=float),
-            ImageParameter(
-                name="data_model",
-                quantity=data_model,
-                expected_unit=Unit('adu'),
-                expected_type=float),
+                name="readout_noise", quantity=readout_noise, expected_unit=Unit("adu"), expected_type=float
+            ),
+            ImageParameter(name="dark", quantity=dark, expected_unit=Unit("adu"), expected_type=float),
+            ImageParameter(name="flatfield", quantity=flatfield, expected_unit=None, expected_type=float),
+            ImageParameter(name="data_model", quantity=data_model, expected_unit=Unit("adu"), expected_type=float),
         ]
         # check that the parameter values are defined either as a
         # single number (integer or float) or as a numpy.array with
@@ -392,21 +376,23 @@ class SimulateCCDExposure:
                     else:
                         setattr(self, p.name, p.value * p.unit)
                 else:
-                    msg = (f"Parameter {p.name}: NAXIS1={naxis1_}, NAXIS2={naxis2_} "
-                           f"are not compatible with expected values NAXIS1={naxis1}, NAXIS2={naxis2}")
+                    msg = (
+                        f"Parameter {p.name}: NAXIS1={naxis1_}, NAXIS2={naxis2_} "
+                        f"are not compatible with expected values NAXIS1={naxis1}, NAXIS2={naxis2}"
+                    )
                     raise ValueError(msg)
             else:
                 raise ValueError(f"Unexpected {p.name=} with {type(p.value)=}")
 
     def __repr__(self):
-        output = f'{self.__class__.__name__}(\n'
-        output += f'    naxis1={self.naxis1},\n'
-        output += f'    naxis2={self.naxis2},\n'
-        output += f'    bitpix={self.bitpix},\n'
+        output = f"{self.__class__.__name__}(\n"
+        output += f"    naxis1={self.naxis1},\n"
+        output += f"    naxis2={self.naxis2},\n"
+        output += f"    bitpix={self.bitpix},\n"
         for parameter in VALID_PARAMETERS:
-            output += f'    {parameter}={getattr(self, parameter)!r},\n'
-        output += f'    seed={self.seed},\n'
-        output += ')'
+            output += f"    {parameter}={getattr(self, parameter)!r},\n"
+        output += f"    seed={self.seed},\n"
+        output += ")"
         return output
 
     def _precheck_set_function(self, parameter, quantity, region):
@@ -431,7 +417,7 @@ class SimulateCCDExposure:
             Updated region in which to define de parameter. When the input
             value is None, the returned region will be the full frame.
         """
-        full_frame = SliceRegion2D(f"[1:{self.naxis1}, 1:{self.naxis2}]", mode='fits')
+        full_frame = SliceRegion2D(f"[1:{self.naxis1}, 1:{self.naxis2}]", mode="fits")
         # protections
         if parameter not in VALID_PARAMETERS:
             raise RuntimeError(f"Invalid {parameter=}\n{VALID_PARAMETERS=}")
@@ -446,11 +432,11 @@ class SimulateCCDExposure:
                 raise TypeError(f"The parameter {region=} must be an instance of SliceRegion2D")
 
         if parameter == "gain":
-            expected_units = Unit('electron') / Unit('adu')
+            expected_units = Unit("electron") / Unit("adu")
         elif parameter == "flatfield":
             expected_units = None
         else:
-            expected_units = Unit('adu')
+            expected_units = Unit("adu")
         if expected_units is not None:
             if not isinstance(quantity, Quantity):
                 raise TypeError(f"{parameter} must be a Quantity: {expected_units=}")
@@ -567,32 +553,22 @@ class SimulateCCDExposure:
         imgtype = imgtype.lower()
         method = method.lower()
         if imgtype not in VALID_IMAGE_TYPES:
-            raise ValueError(f'Unexpected {imgtype=}.\nValid image types: {VALID_IMAGE_TYPES}')
+            raise ValueError(f"Unexpected {imgtype=}.\nValid image types: {VALID_IMAGE_TYPES}")
         if method not in VALID_METHODS:
-            raise ValueError(f'Unexpected {method=}.\nValid methods: {VALID_METHODS}')
+            raise ValueError(f"Unexpected {method=}.\nValid methods: {VALID_METHODS}")
 
         if seed is not None:
             self._rng = np.random.default_rng(seed)
 
         # initialize result instance
-        result = SimulatedCCDResult(
-            data=None,
-            unit=Unit('adu'),
-            imgtype=imgtype,
-            method=method,
-            origin=self,
-            seed=seed
-        )
+        result = SimulatedCCDResult(data=None, unit=Unit("adu"), imgtype=imgtype, method=method, origin=self, seed=seed)
 
         # BIAS and Readout Noise
         if np.isnan(self.bias.value).any():
             raise ValueError("The parameter 'bias' contains NaN")
         if np.isnan(self.readout_noise.value).any():
             raise ValueError("The parameter 'readout_noise' contains NaN")
-        image2d = self._rng.normal(
-            loc=self.bias.value,
-            scale=self.readout_noise.value
-        )
+        image2d = self._rng.normal(loc=self.bias.value, scale=self.readout_noise.value)
         if imgtype == "bias":
             result.data = image2d
             return result
@@ -616,13 +592,10 @@ class SimulateCCDExposure:
             # transform data_model from ADU to electrons,
             # generate Poisson distribution
             # and transform back from electrons to ADU
-            image2d += self.flatfield * self._rng.poisson(
-                self.data_model.value * self.gain.value
-            ) / self.gain.value
+            image2d += self.flatfield * self._rng.poisson(self.data_model.value * self.gain.value) / self.gain.value
         elif method.lower() == "gaussian":
             image2d += self.flatfield * self._rng.normal(
-                loc=self.data_model.value,
-                scale=np.sqrt(self.data_model.value/self.gain.value)
+                loc=self.data_model.value, scale=np.sqrt(self.data_model.value / self.gain.value)
             )
         else:
             raise RuntimeError(f"Unknown method: {method}")

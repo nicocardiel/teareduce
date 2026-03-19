@@ -36,8 +36,8 @@ def robust_std(x, debug=False):
     sigmag = 0.7413 * (q75 - q25)
 
     if debug:
-        print('debug|robust_std -> q25......................:', q25)
-        print('debug|robust_std -> q75......................:', q75)
-        print('debug|robust_std -> Robust standard deviation:', sigmag)
+        print("debug|robust_std -> q25......................:", q25)
+        print("debug|robust_std -> q75......................:", q75)
+        print("debug|robust_std -> Robust standard deviation:", sigmag)
 
     return sigmag

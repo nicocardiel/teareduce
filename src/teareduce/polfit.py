@@ -14,12 +14,20 @@ from numpy.polynomial import Polynomial
 
 
 def polfit_residuals(
-        x, y, deg, reject=None,
-        color='b', size=75,
-        xlim=None, ylim=None,
-        xlabel=None, ylabel=None, title=None,
-        show=True,
-        debugplot=False):
+    x,
+    y,
+    deg,
+    reject=None,
+    color="b",
+    size=75,
+    xlim=None,
+    ylim=None,
+    xlabel=None,
+    ylabel=None,
+    title=None,
+    show=True,
+    debugplot=False,
+):
     """Polynomial fit with display of residuals.
 
     Parameters
@@ -91,8 +99,7 @@ def polfit_residuals(
         if npoints != reject.size:
             raise ValueError("x.size != reject.size")
     if type(deg) not in [int, np.int64]:
-        raise ValueError("deg=" + str(deg) +
-                         " is not a valid integer")
+        raise ValueError("deg=" + str(deg) + " is not a valid integer")
 
     # select points for fit
     if reject is None:
@@ -112,8 +119,7 @@ def polfit_residuals(
         nrejected = sum(reject)
 
     if deg > nfitted - 1:
-        raise ValueError("Insufficient nfitted=" + str(nfitted) +
-                         " for deg=" + str(deg))
+        raise ValueError("Insufficient nfitted=" + str(nfitted) + " for deg=" + str(deg))
 
     # fit with requested degree (and raw polynomials)
     if deg == 0 and len(xfitted) == 1:  # constant (avoid fitting error)
@@ -135,21 +141,19 @@ def polfit_residuals(
         if np.array(color).size == 1:
             mycolor = np.array([color] * npoints)
             if reject is not None:
-                mycolor[reject] = 'r'
+                mycolor[reject] = "r"
         elif np.array(color).size == npoints:
             mycolor = np.copy(np.array(color))
         elif np.array(color).shape[0] == npoints:  # assume rgb color
             mycolor = np.copy(np.array(color))
         else:
-            raise ValueError("color=" + str(color) +
-                             " doesn't have the expected dimension")
+            raise ValueError("color=" + str(color) + " doesn't have the expected dimension")
         if np.array(size).size == 1:
             mysize = np.repeat([size], npoints)
         elif np.array(size).size == npoints:
             mysize = np.copy(np.array(size))
         else:
-            raise ValueError("size=" + str(size) +
-                             " doesn't have the expected dimension")
+            raise ValueError("size=" + str(size) + " doesn't have the expected dimension")
 
         if reject is None:
             cfitted = np.copy(mycolor)
@@ -167,17 +171,17 @@ def polfit_residuals(
         # residuals
         ax2 = fig.add_subplot(2, 1, 2)
         if xlabel is None:
-            ax2.set_xlabel('x')
+            ax2.set_xlabel("x")
         else:
             ax2.set_xlabel(xlabel)
-        ax2.set_ylabel('residuals')
+        ax2.set_ylabel("residuals")
         if xlim is None:
             xmin = min(x)
             xmax = max(x)
             dx = xmax - xmin
             if dx > 0:
-                xmin -= dx/20
-                xmax += dx/20
+                xmin -= dx / 20
+                xmax += dx / 20
             else:
                 xmin -= 0.5
                 xmax += 0.5
@@ -188,25 +192,21 @@ def polfit_residuals(
         ymax = max(yres_fitted)
         dy = ymax - ymin
         if dy > 0:
-            ymin -= dy/20
-            ymax += dy/20
+            ymin -= dy / 20
+            ymax += dy / 20
         else:
             ymin -= 0.5
             ymax += 0.5
         ax2.set_ylim(ymin, ymax)
         ax2.axhline(y=0.0, color="black", linestyle="dashed")
-        ax2.scatter(xfitted, yres_fitted, color=cfitted,
-                    marker='o',
-                    edgecolor='k', s=sfitted)
+        ax2.scatter(xfitted, yres_fitted, color=cfitted, marker="o", edgecolor="k", s=sfitted)
         if nrejected > 0:
-            ax2.scatter(xrejected, yres_rejected,
-                        marker='x', s=srejected,
-                        color=crejected)
+            ax2.scatter(xrejected, yres_rejected, marker="x", s=srejected, color=crejected)
 
         # original data and polynomial fit
         ax = fig.add_subplot(2, 1, 1, sharex=ax2)
         if ylabel is None:
-            ax.set_ylabel('y')
+            ax.set_ylabel("y")
         else:
             ax.set_ylabel(ylabel)
         ax.set_xlim(xmin, xmax)
@@ -215,24 +215,20 @@ def polfit_residuals(
             ymax = max(y)
             dy = ymax - ymin
             if dy > 0:
-                ymin -= dy/20
-                ymax += dy/20
+                ymin -= dy / 20
+                ymax += dy / 20
             else:
                 ymin -= 0.5
                 ymax += 0.5
         else:
             ymin, ymax = ylim
         ax.set_ylim(ymin, ymax)
-        ax.scatter(xfitted, yfitted,
-                   color=cfitted, marker='o', edgecolor='k',
-                   s=sfitted, label="fitted data")
+        ax.scatter(xfitted, yfitted, color=cfitted, marker="o", edgecolor="k", s=sfitted, label="fitted data")
         xpol = np.linspace(start=xmin, stop=xmax, num=1000)
         ypol = poly(xpol)
-        ax.plot(xpol, ypol, 'c-', label="fit")
+        ax.plot(xpol, ypol, "c-", label="fit")
         if nrejected > 0:
-            ax.scatter(xrejected, yrejected,
-                       marker='x', s=srejected, color=crejected,
-                       label="rejected")
+            ax.scatter(xrejected, yrejected, marker="x", s=srejected, color=crejected, label="rejected")
 
         # put a legend
         ax.legend(numpoints=1)
@@ -250,11 +246,19 @@ def polfit_residuals(
 
 
 def polfit_residuals_with_sigma_rejection(
-        x, y, deg, times_sigma_reject,
-        color='b', size=75,
-        xlim=None, ylim=None,
-        xlabel=None, ylabel=None, title=None,
-        debugplot=False):
+    x,
+    y,
+    deg,
+    times_sigma_reject,
+    color="b",
+    size=75,
+    xlim=None,
+    ylim=None,
+    xlabel=None,
+    ylabel=None,
+    title=None,
+    debugplot=False,
+):
     """Polynomial fit with iterative rejection of points.
 
     This function makes use of function polfit_residuals for display
@@ -323,11 +327,9 @@ def polfit_residuals_with_sigma_rejection(
     if npoints != y.size:
         raise ValueError("x.size != y.size")
     if type(deg) not in [int, np.int64]:
-        raise ValueError("deg=" + str(deg) +
-                         " is not a valid integer")
+        raise ValueError("deg=" + str(deg) + " is not a valid integer")
     if deg >= npoints:
-        raise ValueError("Polynomial degree=" + str(deg) +
-                         " can't be fitted with npoints=" + str(npoints))
+        raise ValueError("Polynomial degree=" + str(deg) + " can't be fitted with npoints=" + str(npoints))
 
     # initialize boolean rejection array
     reject = np.zeros(npoints, dtype=bool)
@@ -335,12 +337,20 @@ def polfit_residuals_with_sigma_rejection(
     # if there is no room to remove any point, compute a fit without
     # rejection
     if deg == npoints - 1:
-        poly, yres = polfit_residuals(x=x, y=y, deg=deg, reject=None,
-                                      color=color, size=size,
-                                      xlim=xlim, ylim=ylim,
-                                      xlabel=xlabel, ylabel=ylabel,
-                                      title=title,
-                                      debugplot=debugplot)
+        poly, yres = polfit_residuals(
+            x=x,
+            y=y,
+            deg=deg,
+            reject=None,
+            color=color,
+            size=size,
+            xlim=xlim,
+            ylim=ylim,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            title=title,
+            debugplot=debugplot,
+        )
         return poly, yres, reject
 
     # main loop to reject points iteratively
@@ -375,22 +385,22 @@ def polfit_residuals_with_sigma_rejection(
                     if np.abs(yres[i]) > times_sigma_reject * rms:
                         index_to_remove.append(i)
                         if debugplot:
-                            print('--> suspicious point #', i + 1)
+                            print("--> suspicious point #", i + 1)
             if len(index_to_remove) == 0:
                 if debugplot:
-                    print('==> no need to remove any point')
+                    print("==> no need to remove any point")
                 loop_to_reject_points = False
             else:
                 imax = np.argmax(np.abs(yres[index_to_remove]))
                 reject[index_to_remove[imax]] = True
                 if debugplot:
-                    print('==> removing point #', index_to_remove[imax] + 1)
+                    print("==> removing point #", index_to_remove[imax] + 1)
         else:
             loop_to_reject_points = False
 
     # plot final fit in case it has not been already shown
     if debugplot:
-        print(' ')
+        print(" ")
 
     # return result
     return poly, yres, reject

@@ -9,12 +9,12 @@
 #
 """Module to define the version of the teareduce package."""
 
-VERSION = '0.7.4'
+VERSION = "0.7.4"
 
 
 def main():
     """Prints the version of the teareduce package."""
-    print('Version: ' + VERSION)
+    print("Version: " + VERSION)
 
 
 if __name__ == "__main__":
