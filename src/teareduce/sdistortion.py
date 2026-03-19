@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2015-2024 Universidad Complutense de Madrid
+# Copyright 2015-2026 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
@@ -12,7 +12,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.polynomial import Polynomial
 from scipy import ndimage
-from tqdm.auto import tqdm
+import sys
+from tqdm import tqdm
 
 from .imshow import imshow
 from .polfit import polfit_residuals_with_sigma_rejection
@@ -160,7 +161,7 @@ def fit_sdistortion(data, ns_min, ns_max, nc_min, nc_max,
     data_straight = np.zeros((naxis2, naxis1))
     new_pix_borders = -0.5 + np.arange(naxis2 + 1)
 
-    for k in tqdm(range(naxis1)):
+    for k in tqdm(range(naxis1), file=sys.stdout, ncols=80, desc='Correcting S distortion'):
         old_pix_borders = new_pix_borders - (poly_funct_peaks(k) - ypeak_mean)
         flux_borders = np.interp(
             x=new_pix_borders,

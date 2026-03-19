@@ -1,5 +1,5 @@
 #
-# Copyright 2022-2025 Universidad Complutense de Madrid
+# Copyright 2022-2026 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
@@ -10,7 +10,8 @@
 from astropy.io import fits
 import numpy as np
 from pathlib import Path
-from tqdm.auto import tqdm
+import sys
+from tqdm import tqdm
 
 from .robust_std import robust_std
 from .sliceregion import SliceRegion2D
@@ -135,7 +136,7 @@ def ifc_statsummary(ifc, directory, region=None):
             summary[colname] = np.zeros(len(summary))
             summary[colname].info.format = '.3f'
 
-    for i, filename in enumerate(tqdm(summary['file'])):
+    for i, filename in enumerate(tqdm(summary['file'], file=sys.stdout, ncols=80, desc='Statistical summary')):
         data = fits.getdata(directory / Path(filename).name)
         naxis2, naxis1 = data.shape
         region_fullframe = SliceRegion2D(np.s_[0:naxis2, 0:naxis1],

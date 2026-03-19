@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2015-2025 Universidad Complutense de Madrid
+# Copyright 2015-2026 Universidad Complutense de Madrid
 #
 # This file is part of teareduce
 #
@@ -19,7 +19,8 @@ import numpy as np
 from numpy.polynomial import Polynomial
 from pathlib import Path
 from scipy.ndimage import gaussian_filter1d
-from tqdm.auto import tqdm
+import sys
+from tqdm import tqdm
 
 from .ctext import ctext
 from .imshow import imshow
@@ -553,7 +554,7 @@ class TeaWaveCalibration:
         # search for peaks in the 2D image
         dict_xpeaks = dict()
         for ns in tqdm(range(ns_min_fits, ns_max_fits + ns_step, ns_step),
-                       desc='Finding peaks', disable=disable_tqdm):
+                       desc='Finding peaks', disable=disable_tqdm, file=sys.stdout, ncols=80):
             ns1 = ns - self.ns_window // 2
             ns1 = max([ns1, min(ns_min_fits, ns_max_fits)])
             ns2 = ns + self.ns_window // 2
@@ -789,8 +790,7 @@ class TeaWaveCalibration:
         xfit = np.arange(self._naxis2)[self._valid_scans]
         if len(xfit) <= self.degree_cdistortion:
             raise ValueError(f'Insufficient number of points to fit a polynomial of degree {self.degree_cdistortion}')
-        for i in tqdm(range(self._nlines_reference),
-                      desc='Fitting C distortion', disable=disable_tqdm):
+        for i in tqdm(range(self._nlines_reference), file=sys.stdout, ncols=80, desc='Fitting C distortion', disable=disable_tqdm):
             yfit = self._xpeaks_all_lines_array[self._valid_scans, i]
             poly, yres, reject = polfit_residuals_with_sigma_rejection(
                 x=xfit,
@@ -1176,7 +1176,7 @@ class TeaWaveCalibration:
         self._array_crval1_linear = np.zeros(self._naxis2) * self.peak_wavelengths.unit
         self._array_cdelt1_linear = np.zeros(self._naxis2) * self.peak_wavelengths.unit / u.pixel
         self._array_crmax1_linear = np.zeros(self._naxis2) * self.peak_wavelengths.unit
-        for k in tqdm(range(self._naxis2), desc='Computing wavelength calibration', disable=disable_tqdm):
+        for k in tqdm(range(self._naxis2), desc='Wavelength calibration', file=sys.stdout, ncols=80, disable=disable_tqdm):
             xpeaks = np.zeros(self._nlines_reference) * u.pixel
             for i in range(self._nlines_reference):
                 poly_cdistortion = self._list_poly_cdistortion[i]
@@ -1435,7 +1435,7 @@ class TeaWaveCalibration:
 
         for k in tqdm(range(naxis2),
                       desc='Applying wavelength calibration',
-                      disable=disable_tqdm):
+                      disable=disable_tqdm, file=sys.stdout, ncols=80):
             poly = Polynomial(self._array_poly_wav[k])
             old_wl_borders = poly(old_x_borders_fits) * self.peak_wavelengths.unit
             flux_borders = np.interp(
