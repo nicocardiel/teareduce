@@ -157,7 +157,8 @@ def fit_sdistortion(
     data_straight = np.zeros((naxis2, naxis1))
     new_pix_borders = -0.5 + np.arange(naxis2 + 1)
 
-    for k in tqdm(range(naxis1), file=sys.stdout, ncols=80, desc="Correcting S distortion"):
+    print(">>> Correcting S distortion...")
+    for k in tqdm(range(naxis1), file=sys.stdout, ncols=80):
         old_pix_borders = new_pix_borders - (poly_funct_peaks(k) - ypeak_mean)
         flux_borders = np.interp(
             x=new_pix_borders, xp=old_pix_borders, fp=accum_flux[:, k], left=0, right=accum_flux[-1, k]

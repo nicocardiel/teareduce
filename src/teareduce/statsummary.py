@@ -146,7 +146,8 @@ def ifc_statsummary(ifc, directory, region=None):
             summary[colname] = np.zeros(len(summary))
             summary[colname].info.format = ".3f"
 
-    for i, filename in enumerate(tqdm(summary["file"], file=sys.stdout, ncols=80, desc="Statistical summary")):
+    print(">>> Computing statistical summary for each file...")
+    for i, filename in enumerate(tqdm(summary["file"], file=sys.stdout, ncols=80)):
         data = fits.getdata(directory / Path(filename).name)
         naxis2, naxis1 = data.shape
         region_fullframe = SliceRegion2D(np.s_[0:naxis2, 0:naxis1], mode="python")

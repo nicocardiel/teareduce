@@ -130,7 +130,7 @@ def interpolate(data, mask_crfound, dilation=0, interp_method=None, npoints=None
         num_cr_cleaned = num_features
     elif interp_method in ["x", "y", "s", "d", "m"]:
         num_cr_cleaned = 0
-        for cr_index in tqdm(range(1, num_features + 1), disable=not debug, file=sys.out, ncols=80):
+        for cr_index in tqdm(range(1, num_features + 1), disable=not debug, file=sys.stdout, ncols=80):
             if interp_method in ["x", "y"]:
                 if 2 * npoints <= degree:
                     raise ValueError("2*npoints must be greater than degree for polynomial interpolation.")

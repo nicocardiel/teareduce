@@ -559,9 +559,9 @@ class TeaWaveCalibration:
 
         # search for peaks in the 2D image
         dict_xpeaks = dict()
+        print(">>> Searching for peaks in the 2D image...")
         for ns in tqdm(
             range(ns_min_fits, ns_max_fits + ns_step, ns_step),
-            desc="Finding peaks",
             disable=disable_tqdm,
             file=sys.stdout,
             ncols=80,
@@ -803,8 +803,9 @@ class TeaWaveCalibration:
         xfit = np.arange(self._naxis2)[self._valid_scans]
         if len(xfit) <= self.degree_cdistortion:
             raise ValueError(f"Insufficient number of points to fit a polynomial of degree {self.degree_cdistortion}")
+        print(">>> Fitting C distortion...")
         for i in tqdm(
-            range(self._nlines_reference), file=sys.stdout, ncols=80, desc="Fitting C distortion", disable=disable_tqdm
+            range(self._nlines_reference), file=sys.stdout, ncols=80, disable=disable_tqdm
         ):
             yfit = self._xpeaks_all_lines_array[self._valid_scans, i]
             poly, yres, reject = polfit_residuals_with_sigma_rejection(
@@ -1193,8 +1194,9 @@ class TeaWaveCalibration:
         self._array_crval1_linear = np.zeros(self._naxis2) * self.peak_wavelengths.unit
         self._array_cdelt1_linear = np.zeros(self._naxis2) * self.peak_wavelengths.unit / u.pixel
         self._array_crmax1_linear = np.zeros(self._naxis2) * self.peak_wavelengths.unit
+        print(">>> Fitting wavelength calibration for each spectrum...")
         for k in tqdm(
-            range(self._naxis2), desc="Wavelength calibration", file=sys.stdout, ncols=80, disable=disable_tqdm
+            range(self._naxis2), file=sys.stdout, ncols=80, disable=disable_tqdm
         ):
             xpeaks = np.zeros(self._nlines_reference) * u.pixel
             for i in range(self._nlines_reference):
@@ -1450,8 +1452,9 @@ class TeaWaveCalibration:
 
         old_x_borders_fits = np.arange(naxis1 + 1) + 0.5  # FITS convention
 
+        print(">>> Applying wavelength calibration to the whole image...")
         for k in tqdm(
-            range(naxis2), desc="Wavelength calibration", disable=disable_tqdm, file=sys.stdout, ncols=80
+            range(naxis2), disable=disable_tqdm, file=sys.stdout, ncols=80
         ):
             poly = Polynomial(self._array_poly_wav[k])
             old_wl_borders = poly(old_x_borders_fits) * self.peak_wavelengths.unit
