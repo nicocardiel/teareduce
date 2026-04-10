@@ -17,7 +17,6 @@ from tkinter import simpledialog
 import sys
 
 from astropy.io import fits
-from more_itertools import only
 
 try:
     import PyCosmic
