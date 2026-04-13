@@ -108,8 +108,8 @@ def fft_correct_fringe(
     Parameters
     ----------
     data : ndarray, shape (ny, nx)
-        Input 2D image array (flat-divided CCD frame).  Must be float-
-        convertible; will be cast to float64 internally.
+        Input 2D image array. Must be float-convertible; will be cast to
+        float64 internally.
     freq_radius : int
         Radius of the circular low-pass mask in frequency-space pixels.
         Larger values capture coarser fringe patterns; smaller values are
@@ -442,7 +442,7 @@ def _plot_correction(
     fig.patch.set_facecolor("white")
 
     titles = [
-        "Original  (flat-divided)",
+        "Original",
         "Power spectrum  [before mask]",
         "Power spectrum  [after mask]",
         "Fringe pattern  (normalised)",
@@ -590,13 +590,16 @@ def _build_parser():
         ),
     )
     parser.add_argument(
-        "--delta_alpha",
-        help="Increment to be applied to Tukey alpha for the mixing window used in border replacement when kmedian > 0.",
+        "--delta-alpha",
+        help=(
+            "Increment to be applied to Tukey alpha for the mixing window used "
+            "in border replacement when kmedian > 0. Default: 0.1."
+        ),
         type=float,
         default=0.1,
     )
     parser.add_argument(
-        "--output_fringe",
+        "--output-fringe",
         help="Output FITS file for the estimated fringe pattern.",
         type=str,
         default=None,
@@ -627,11 +630,12 @@ def main():
     if args.verbose:
         print(f"Image: {ny} × {nx} px")
         print(
-            f"Params: freq_radius={args.freq_radius}, "
-            f"tukey_alpha={args.tukey_alpha}, "
-            f"corner_sharpness={args.corner_sharpness}, "
-            f"kmedian={args.kmedian}, "
-            f"delta_alpha={args.delta_alpha}"
+            f"Params:\n"
+            f"- freq_radius: {args.freq_radius}\n"
+            f"- tukey_alpha: {args.tukey_alpha}\n"
+            f"- corner_sharpness: {args.corner_sharpness}\n"
+            f"- kmedian: {args.kmedian}\n"
+            f"- delta_alpha: {args.delta_alpha}"
         )
 
     # Run correction
