@@ -145,7 +145,8 @@ def correct_fringe(data, freq_radius=25, tukey_alpha=0.05, corner_sharpness=4, k
         Size of the median filter kernel used to replace the borders of the
         resulting fringe map with the median-filtered value to mitigate edge
         artefacts. This is optional since the Tukey window should already suppress
-        edge discontinuities, but it can be helpful in some cases.
+        edge discontinuities, but it can be helpful in some cases. This number
+        must be odd and positive; if zero or negative, no median filtering is applied.
     verbose : bool
         If True, print diagnostic information about the correction process.
     plots : bool
@@ -165,8 +166,18 @@ def correct_fringe(data, freq_radius=25, tukey_alpha=0.05, corner_sharpness=4, k
     data_corrected : ndarray, shape (ny, nx)
         Corrected image: data / fringe_norm.
     """
+    if kmedian < 0:
+        raise ValueError("kmedian must be zero or a positive odd integer")
+    if kmedian > 0 and kmedian % 2 == 0:
+        raise ValueError("kmedian must be an odd integer to have a well-defined centre pixel")
+
     data = np.asarray(data, dtype=np.float64)
     ny, nx = data.shape
+
+    if kmedian > min(ny, nx):
+        raise ValueError(
+            f"kmedian must be smaller than the image dimensions (got kmedian={kmedian}, image size={data.shape})"
+        )
 
     # Subtract median (remove DC offset)
     data_zeromean = data - np.median(data)
