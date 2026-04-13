@@ -7,30 +7,7 @@
 # License-Filename: LICENSE.txt
 #
 
-"""
-fft_fringe_correction.py
-========================
-Second-order flatfield correction via FFT low-pass filtering.
-
-CLI usage
----------
-    python fft_fringe_correction.py input.fits output.fits \
-        --freq-radius 25 --tukey-alpha 0.05 --corner-sharpness 4 --kmedian 0 --verbose --plots
-
-Jupyter / script usage
-----------------------
-    from fft_fringe_correction import correct_fringe
-
-    fringe_norm, data_corrected = correct_fringe(
-        data,
-        freq_radius      = 25,
-        tukey_alpha      = 0.05,
-        corner_sharpness = 4,
-        kmedian          = 0,
-        verbose          = True,
-        plots            = True,
-    )
-"""
+"""Second-order flatfield correction via FFT low-pass filtering."""
 
 import argparse
 
@@ -39,11 +16,13 @@ from astropy.visualization import ZScaleInterval
 from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
+from rich import print
+from rich_argparse import RichHelpFormatter
 from scipy.ndimage import median_filter
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CORE FUNCTIONS
+# Auxiliary functions
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -98,7 +77,9 @@ def tukey_radial_2d(ny, nx, alpha=0.30, p=6):
     )
 
 
-def correct_fringe(data, freq_radius=25, tukey_alpha=0.05, corner_sharpness=4, kmedian=0, verbose=False, plots=False):
+def fft_correct_fringe(
+    data, freq_radius=25, tukey_alpha=0.05, corner_sharpness=4, kmedian=0, delta_alpha=0.1, verbose=False, plots=False
+):
     """
     Apply a second-order flatfield correction by isolating and removing the
     large-scale fringe / illumination pattern via FFT low-pass filtering.
@@ -147,6 +128,9 @@ def correct_fringe(data, freq_radius=25, tukey_alpha=0.05, corner_sharpness=4, k
         artefacts. This is optional since the Tukey window should already suppress
         edge discontinuities, but it can be helpful in some cases. This number
         must be odd and positive; if zero or negative, no median filtering is applied.
+    delta_alpha : float
+        Increment to be applied to Tukey alpha for the mixing window used
+        in border replacement when kmedian > 0 (ignored otherwise).
     verbose : bool
         If True, print diagnostic information about the correction process.
     plots : bool
@@ -224,7 +208,7 @@ def correct_fringe(data, freq_radius=25, tukey_alpha=0.05, corner_sharpness=4, k
         # Use a slightly larger alpha for the mixing window to ensure
         # smooth blending of the median and FFT fringe maps, especially
         # if the original alpha is small and may not fully suppress edge artefacts.
-        tukey_alpha_mix = tukey_alpha + 0.1
+        tukey_alpha_mix = tukey_alpha + delta_alpha
         tukey_alpha_mix = min(tukey_alpha_mix, 1.0)  # cap the alpha to avoid exceeding 1.0
         # Define mixing window that transitions from 1 at the centre to 0 at the edges,
         # with a slightly larger alpha to ensure smooth blending.
@@ -546,7 +530,7 @@ def _plot_correction(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CLI ENTRY POINT
+# CLI entry point
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -558,24 +542,14 @@ def _build_parser():
             "Isolates the large-scale fringe / illumination pattern, normalises\n"
             "it to unit median, and divides the input image by the result."
         ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=(
-            "Examples\n"
-            "--------\n"
-            "  # Correct with default parameters and show diagnostic plots\n"
-            "  python fft_fringe_correction.py flat_divided.fits corrected.fits --plots\n\n"
-            "  # Override all parameters, run silently\n"
-            "  python fft_fringe_correction.py flat_divided.fits corrected.fits \\\n"
-            "      --freq-radius 20 --tukey-alpha 0.2 --corner-sharpness 8\n"
-        ),
+        formatter_class=RichHelpFormatter,
     )
-    parser.add_argument("input", help="Input FITS file (flat-divided image).")
+    parser.add_argument("input", help="Input FITS file.")
     parser.add_argument("output", help="Output FITS file (corrected image).")
     parser.add_argument(
         "--freq-radius",
         type=int,
         default=25,
-        metavar="R",
         help=(
             "Radius of the circular low-pass mask in frequency-space pixels. "
             "Larger values capture coarser fringe patterns. "
@@ -587,7 +561,6 @@ def _build_parser():
         "--tukey-alpha",
         type=float,
         default=0.05,
-        metavar="A",
         help=(
             "Fraction of the normalised log-Power radius over which the cosine taper "
             "of the Tukey window acts.  0 = rectangular (no apodisation); "
@@ -598,7 +571,6 @@ def _build_parser():
         "--corner-sharpness",
         type=float,
         default=4,
-        metavar="P",
         help=(
             "Order p of the log-Power norm used to build the 2D Tukey window.  "
             "Higher values make iso-weight contours more square-like and "
@@ -609,7 +581,6 @@ def _build_parser():
         "--kmedian",
         type=int,
         default=0,
-        metavar="K",
         help=(
             "Size of the median filter kernel used to replace the borders of the "
             "resulting fringe map with the median-filtered value to mitigate edge "
@@ -617,6 +588,18 @@ def _build_parser():
             "suppress edge discontinuities, but it can be helpful in some cases.  "
             "Default: 0 (no median filtering)."
         ),
+    )
+    parser.add_argument(
+        "--delta_alpha",
+        help="Increment to be applied to Tukey alpha for the mixing window used in border replacement when kmedian > 0.",
+        type=float,
+        default=0.1,
+    )
+    parser.add_argument(
+        "--output_fringe",
+        help="Output FITS file for the estimated fringe pattern.",
+        type=str,
+        default=None,
     )
     parser.add_argument(
         "--verbose",
@@ -635,42 +618,61 @@ def main():
     parser = _build_parser()
     args = parser.parse_args()
 
-    # ── Load input FITS ───────────────────────────────────────────────────────
-    print(f"Reading  : {args.input}")
+    # Load input FITS
+    print(f"Reading: {args.input}")
     hdu = fits.open(args.input)
     data = hdu[0].data.astype(np.float64)
     header = hdu[0].header
     ny, nx = data.shape
     if args.verbose:
-        print(f"Image    : {ny} × {nx} px")
+        print(f"Image: {ny} × {nx} px")
         print(
-            f"Params   : freq_radius={args.freq_radius}, "
+            f"Params: freq_radius={args.freq_radius}, "
             f"tukey_alpha={args.tukey_alpha}, "
             f"corner_sharpness={args.corner_sharpness}, "
-            f"kmedian={args.kmedian}"
+            f"kmedian={args.kmedian}, "
+            f"delta_alpha={args.delta_alpha}"
         )
 
-    # ── Run correction ────────────────────────────────────────────────────────
-    fringe_pattern, data_corrected = correct_fringe(
+    # Run correction
+    fringe_pattern, data_corrected = fft_correct_fringe(
         data,
         freq_radius=args.freq_radius,
         tukey_alpha=args.tukey_alpha,
         corner_sharpness=args.corner_sharpness,
         kmedian=args.kmedian,
+        delta_alpha=args.delta_alpha,
         verbose=args.verbose,
         plots=args.plots,
     )
 
-    # ── Save output FITS ──────────────────────────────────────────────────────
+    # Save output FITS
     hdu_out = fits.PrimaryHDU(data_corrected.astype(np.float32), header=header)
-    hdu_out.header["HISTORY"] = (
-        f"FFT low-pass fringe correction: "
-        f"radial Tukey alpha={args.tukey_alpha} p={args.corner_sharpness}, "
-        f"mask radius={args.freq_radius} px, "
-        f"kmedian={args.kmedian}"
-    )
+    hdu_out.header["HISTORY"] = "-------------------"
+    hdu_out.header["HISTORY"] = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    hdu_out.header["HISTORY"] = "FFT low-pass fringe correction:"
+    hdu_out.header["HISTORY"] = f"- radial Tukey alpha={args.tukey_alpha}"
+    hdu_out.header["HISTORY"] = f"- p={args.corner_sharpness}"
+    hdu_out.header["HISTORY"] = f"- mask radius={args.freq_radius} px"
+    hdu_out.header["HISTORY"] = f"- kmedian={args.kmedian}"
+    hdu_out.header["HISTORY"] = f"- delta_alpha={args.delta_alpha}"
     hdu_out.writeto(args.output, overwrite=True)
-    print(f"Saved    : {args.output}")
+    print(f"Saved: {args.output}")
+
+    # Optionally save the fringe pattern as a separate FITS file
+    if args.output_fringe:
+        hdu_fringe = fits.PrimaryHDU(fringe_pattern.astype(np.float32), header=header)
+        hdu_fringe.header["HISTORY"] = "-------------------"
+        hdu_fringe.header["HISTORY"] = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        hdu_fringe.header["HISTORY"] = "Estimated fringe pattern from FFT low-pass filtering:"
+        hdu_fringe.header["HISTORY"] = f"- input: {args.input}"
+        hdu_fringe.header["HISTORY"] = f"- radial Tukey alpha={args.tukey_alpha}"
+        hdu_fringe.header["HISTORY"] = f"- p={args.corner_sharpness}"
+        hdu_fringe.header["HISTORY"] = f"- mask radius={args.freq_radius} px"
+        hdu_fringe.header["HISTORY"] = f"- kmedian={args.kmedian}"
+        hdu_fringe.header["HISTORY"] = f"- delta_alpha={args.delta_alpha}"
+        hdu_fringe.writeto(args.output_fringe, overwrite=True)
+        print(f"Saved: {args.output_fringe}")
 
 
 if __name__ == "__main__":
