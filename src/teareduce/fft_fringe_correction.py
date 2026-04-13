@@ -357,17 +357,29 @@ def _plot_window(data_zeromean, data_windowed, window_2d, tukey_alpha, corner_sh
     ax.plot(idx, raw, color="#888888", lw=0.8, label="zero-mean")
     ax.plot(idx, win, color="#1565c0", lw=0.8, label="windowed")
     ax.set_ylim(ymin, ymax)
-    ax2 = ax.twinx()
-    ax2.plot(idx, wd, color="#c04d00", lw=1.0, ls="--", label="window weight")
-    ax2.axhline(0, color="#cccccc", linewidth=0.5)
-    ax2.axhline(1.0, color="#cccccc", linewidth=0.5, linestyle=":")
     ax.set_xlim(0, dlen - 1)
     ax.set_xlabel("diagonal pixel index")
-    ax.set_ylabel("normalised value")
-    ax.legend(
-        fontsize=8, framealpha=0.8, labelcolor="#1a1a2e", facecolor="white", edgecolor="#bbbbbb", loc="upper center"
+    ax.set_ylabel("image value")
+    # add a secondary y-axis for the window weight and plot it on top
+    ax2 = ax.twinx()
+    ax2.plot(idx, wd, color="#c04d00", lw=1.0, ls="-", label="window weight")
+    ax2.axhline(0.0, color="#c04d00", linewidth=0.5, linestyle=":")
+    ax2.axhline(1.0, color="#c04d00", linewidth=0.5, linestyle=":")
+    ax2.set_ylabel("window weight", color="#c04d00")
+    ax2.tick_params(colors="#c04d00")
+    # combine legends from both axes
+    handles1, labels1 = ax.get_legend_handles_labels()
+    handles2, labels2 = ax2.get_legend_handles_labels()
+    ax2.legend(
+        handles1 + handles2,
+        labels1 + labels2,
+        fontsize=8,
+        framealpha=0.8,
+        labelcolor="#1a1a2e",
+        facecolor="white",
+        edgecolor="#bbbbbb",
+        loc="lower center",
     )
-
     fig.suptitle(
         f"Radial Tukey window (α = {tukey_alpha}, p = {corner_sharpness})" " — construction and effect on the image",
         color="#1a1a2e",
@@ -384,6 +396,8 @@ def _plot_correction(
     data, power_before, power_after, fringe_norm, data_corrected, cx, cy, freq_radius, tukey_alpha, corner_sharpness
 ):
     """Figure 2: FFT fringe correction overview."""
+    ny, nx = data.shape
+
     fig, axes = plt.subplots(2, 3, figsize=(12, 7.4))
     fig.patch.set_facecolor("white")
 
@@ -398,14 +412,31 @@ def _plot_correction(
     for ax, title in zip(axes.flat, titles):
         _style_ax(ax, title)
 
-    def _mask_circle(ax, cx, cy, r):
+    # Wavenumber axes for the power spectrum panels.
+    # After fftshift the array runs from -N//2 to N//2-1 in each dimension.
+    # Passing 'extent' to imshow replaces pixel indices with wavenumbers.
+    # extent = [left, right, bottom, top] in data coordinates.
+    spec_extent = [-nx // 2, nx // 2, -ny // 2, ny // 2]
+
+    def _mask_circle(ax, r):
+        # After fftshift the DC peak is at wavenumber (0, 0).
         circle = plt.Circle(
-            (cx, cy), r, edgecolor="#1565c0", facecolor="none", linewidth=1.5, linestyle="--", label=f"mask  r = {r} px"
+            (0, 0),
+            r,
+            edgecolor="#1565c0",
+            facecolor="none",
+            linewidth=1.5,
+            linestyle=":",
+            label=f"mask  r = {r} cycles",
         )
         ax.add_patch(circle)
         ax.legend(
             loc="upper right", fontsize=7, framealpha=0.8, labelcolor="#1a1a2e", facecolor="white", edgecolor="#bbbbbb"
         )
+
+    def _spec_axis_labels(ax):
+        ax.set_xlabel("$k_x$  (cycles / image width)", fontsize=8)
+        ax.set_ylabel("$k_y$  (cycles / image height)", fontsize=8)
 
     # ── (0,0): original image ─────────────────────────────────────────────────
     ax = axes[0, 0]
@@ -415,15 +446,17 @@ def _plot_correction(
     # ── (0,1): power spectrum before mask ─────────────────────────────────────
     ax = axes[0, 1]
     lp_b, vmin_p, vmax_p = _log_power(power_before)
-    im = ax.imshow(lp_b, cmap="inferno", origin="lower", aspect="equal", vmin=vmin_p, vmax=vmax_p)
-    _mask_circle(ax, cx, cy, freq_radius)
+    im = ax.imshow(lp_b, cmap="inferno", origin="lower", aspect="equal", vmin=vmin_p, vmax=vmax_p, extent=spec_extent)
+    _mask_circle(ax, freq_radius)
+    _spec_axis_labels(ax)
     _add_colorbar(fig, ax, im, label="log₁₀(power)")
 
     # ── (0,2): power spectrum after mask ──────────────────────────────────────
     ax = axes[0, 2]
     lp_a, _, _ = _log_power(power_after)
-    im = ax.imshow(lp_a, cmap="inferno", origin="lower", aspect="equal", vmin=vmin_p, vmax=vmax_p)
-    _mask_circle(ax, cx, cy, freq_radius)
+    im = ax.imshow(lp_a, cmap="inferno", origin="lower", aspect="equal", vmin=vmin_p, vmax=vmax_p, extent=spec_extent)
+    _mask_circle(ax, freq_radius)
+    _spec_axis_labels(ax)
     _add_colorbar(fig, ax, im, label="log₁₀(power)")
 
     # ── (1,0): normalised fringe map ──────────────────────────────────────────
