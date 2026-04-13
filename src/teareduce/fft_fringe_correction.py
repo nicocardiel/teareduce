@@ -117,8 +117,8 @@ def correct_fringe(data, freq_radius=25, tukey_alpha=0.05, corner_sharpness=4, k
          inside a circular mask of radius ``freq_radius`` (in frequency-space
          pixels), which captures the large-scale fringe pattern.
       4. Inverse-transforming to recover the fringe map in image space.
-      5. Optionally replacing the borders of the fringe map with the median-filtered 
-         value to mitigate edge artefacts (since the Tukey window may not fully 
+      5. Optionally replacing the borders of the fringe map with the median-filtered
+         value to mitigate edge artefacts (since the Tukey window may not fully
          suppress them, especially if alpha is small).
       6. Normalising the fringe map to unit median so it acts as a pure
          multiplicative correction factor.
@@ -142,9 +142,9 @@ def correct_fringe(data, freq_radius=25, tukey_alpha=0.05, corner_sharpness=4, k
         values make the iso-weight contours more square-like and attenuate
         the corners more aggressively.
     kmedian : int
-        Size of the median filter kernel used to replace the borders of the 
-        resulting fringe map with the median-filtered value to mitigate edge 
-        artefacts. This is optional since the Tukey window should already suppress 
+        Size of the median filter kernel used to replace the borders of the
+        resulting fringe map with the median-filtered value to mitigate edge
+        artefacts. This is optional since the Tukey window should already suppress
         edge discontinuities, but it can be helpful in some cases.
     verbose : bool
         If True, print diagnostic information about the correction process.
@@ -157,10 +157,11 @@ def correct_fringe(data, freq_radius=25, tukey_alpha=0.05, corner_sharpness=4, k
 
     Returns
     -------
-    fringe_norm : ndarray, shape (ny, nx)
-        Normalised fringe map (median = 1).  Values above 1 indicate pixels
-        where the detector over-responded relative to the flat-field; values
-        below 1 indicate under-response.
+    fringe_pattern : ndarray, shape (ny, nx)
+        Reconstructed fringe pattern (before normalisation).
+        This is the large-scale pattern isolated by the FFT low-pass filtering,
+        living on the same flux scale as the input image
+        (i.e. with the median level restored).
     data_corrected : ndarray, shape (ny, nx)
         Corrected image: data / fringe_norm.
     """
@@ -175,6 +176,8 @@ def correct_fringe(data, freq_radius=25, tukey_alpha=0.05, corner_sharpness=4, k
     data_windowed = data_zeromean * window_2d
 
     # Compute 2D FFT and power spectrum
+    # Note: the FFT of a real-valued image is symmetric, so we only need
+    # to look at the shifted version to apply the circular mask correctly.
     F_shifted = np.fft.fftshift(np.fft.fft2(data_windowed))
     power_before = np.abs(F_shifted) ** 2
 
@@ -190,7 +193,7 @@ def correct_fringe(data, freq_radius=25, tukey_alpha=0.05, corner_sharpness=4, k
     fringe_raw = np.real(np.fft.ifft2(np.fft.ifftshift(F_masked)))
 
     # Restore the median level so the fringe map lives on the same flux scale
-    fringe_pattern = fringe_raw + np.median(data)
+    fringe_fft = fringe_raw + np.median(data)
 
     # Optional: replace borders with median-filtered values to mitigate edge artefacts
     if kmedian > 0:
@@ -198,19 +201,33 @@ def correct_fringe(data, freq_radius=25, tukey_alpha=0.05, corner_sharpness=4, k
             print("Computing median-filtered fringe map for border replacement")
             print("(this may take a moment)")
         time_ini = datetime.now()
+        # The median filter will smooth the fringe map and provide a more stable
+        # estimate of the large-scale pattern at the edges, which can be affected
+        # by artefacts from the FFT masking. The Tukey window should already suppress
+        # these artefacts, but this step can help ensure a cleaner correction,
+        # especially if the original alpha is small.
         fringe_median = median_filter(data, size=kmedian)
         time_end = datetime.now()
         if verbose:
             print(f"Median filter completed in {(time_end - time_ini).total_seconds():.1f} seconds")
-        tukey_alpha_mix = tukey_alpha + 0.1  # slightly larger alpha for the mixing window to ensure smooth blending
+        # Use a slightly larger alpha for the mixing window to ensure
+        # smooth blending of the median and FFT fringe maps, especially
+        # if the original alpha is small and may not fully suppress edge artefacts.
+        tukey_alpha_mix = tukey_alpha + 0.1
         tukey_alpha_mix = min(tukey_alpha_mix, 1.0)  # cap the alpha to avoid exceeding 1.0
+        # Define mixing window that transitions from 1 at the centre to 0 at the edges,
+        # with a slightly larger alpha to ensure smooth blending.
         window_2d_mix = tukey_radial_2d(ny, nx, alpha=tukey_alpha_mix, p=corner_sharpness)
-        fringe_mix = fringe_pattern * window_2d_mix + fringe_median * (1 - window_2d_mix)
+        # Blend the FFT fringe map and the median-filtered fringe map using the mixing window.
+        fringe_pattern = fringe_fft * window_2d_mix + fringe_median * (1 - window_2d_mix)
     else:
-        fringe_mix = fringe_pattern
+        fringe_pattern = fringe_fft
 
-    # Normalise and apply the multiplicative correction
-    fringe_norm = fringe_mix / np.median(fringe_mix)
+    # Normalise the fringe map to unit median so it acts as a pure
+    # multiplicative correction factor (i.e. the median level of the
+    # corrected image will match the original).
+    fringe_norm = fringe_pattern / np.median(fringe_pattern)
+    # Apply the multiplicative correction to the original data (not the zero-mean version)
     data_corrected = data / fringe_norm
 
     if verbose:
@@ -233,11 +250,11 @@ def correct_fringe(data, freq_radius=25, tukey_alpha=0.05, corner_sharpness=4, k
             corner_sharpness,
         )
 
-    return fringe_norm, data_corrected
+    return fringe_pattern, data_corrected
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PRIVATE PLOTTING HELPERS
+# Private plotting helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -623,7 +640,7 @@ def main():
         )
 
     # ── Run correction ────────────────────────────────────────────────────────
-    fringe_norm, data_corrected = correct_fringe(
+    fringe_pattern, data_corrected = correct_fringe(
         data,
         freq_radius=args.freq_radius,
         tukey_alpha=args.tukey_alpha,
