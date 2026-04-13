@@ -60,6 +60,7 @@ Repository = "https://github.com/nicocardiel/teareduce.git"
 
 [project.scripts]
 tea-cleanest = "teareduce.cleanest.__main__:main"
+tea-fft_fringe_correction = "teareduce.fft_fringe_correction:main"
 
 [tool.setuptools.dynamic]
 version = {attr = "teareduce.version.VERSION"}
