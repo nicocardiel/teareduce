@@ -15,7 +15,7 @@ Second-order flatfield correction via FFT low-pass filtering.
 CLI usage
 ---------
     python fft_fringe_correction.py input.fits output.fits \
-        --freq-radius 30 --tukey-alpha 0.3 --corner-sharpness 6
+        --freq-radius 25 --tukey-alpha 0.05 --corner-sharpness 4 --plots
 
 Jupyter / script usage
 ----------------------
@@ -23,9 +23,9 @@ Jupyter / script usage
 
     fringe_norm, data_corrected = correct_fringe(
         data,
-        freq_radius      = 30,
-        tukey_alpha      = 0.3,
-        corner_sharpness = 6,
+        freq_radius      = 25,
+        tukey_alpha      = 0.05,
+        corner_sharpness = 4,
         plots            = True,
     )
 """
@@ -47,7 +47,7 @@ from astropy.visualization import ZScaleInterval
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def tukey_radial_2d(ny, nx, alpha=0.3, p=6):
+def tukey_radial_2d(ny, nx, alpha=0.30, p=6):
     """
     Build a 2D radial Tukey (tapered cosine) window using the Lp norm.
 
@@ -55,7 +55,7 @@ def tukey_radial_2d(ny, nx, alpha=0.3, p=6):
     the corners of the image more aggressively than the edge midpoints,
     matching the vignetting pattern of instruments such as CAFOS.
 
-    The Lp distance from the centre for normalised coordinates (x,y) ∈ [-1,1]:
+    The Log-Power distance from the centre for normalised coordinates (x,y) ∈ [-1,1]:
 
         r = ( |x|^p + |y|^p )^(1/p)
 
@@ -76,7 +76,7 @@ def tukey_radial_2d(ny, nx, alpha=0.3, p=6):
         Fraction of the normalised radius over which the cosine taper acts.
         0 = rectangular (no apodisation); 1 = full Hann-like cosine.
     p : float
-        Lp norm order. p=2 gives circular iso-contours; higher p gives
+        Log-Power norm order. p=2 gives circular iso-contours; higher p gives
         more square-like contours with faster corner attenuation.
 
     Returns
@@ -98,7 +98,7 @@ def tukey_radial_2d(ny, nx, alpha=0.3, p=6):
     )
 
 
-def correct_fringe(data, freq_radius=30, tukey_alpha=0.3, corner_sharpness=6, plots=False):
+def correct_fringe(data, freq_radius=25, tukey_alpha=0.05, corner_sharpness=4, plots=False):
     """
     Apply a second-order flatfield correction by isolating and removing the
     large-scale fringe / illumination pattern via FFT low-pass filtering.
@@ -132,13 +132,12 @@ def correct_fringe(data, freq_radius=30, tukey_alpha=0.3, corner_sharpness=6, pl
         more conservative.  Rule of thumb: r ≈ N / λ where λ is the
         characteristic fringe scale in pixels and N = min(ny, nx).
     tukey_alpha : float
-        Fraction of the normalised Lp radius over which the cosine taper of
-        the Tukey window acts.  0 = rectangular; 1 = Hann-like.  Values in
-        [0.1, 0.4] work well for CAFOS.
+        Fraction of the normalised Log-Power radius over which the cosine taper of
+        the Tukey window acts.  0 = rectangular; 1 = Hann-like.
     corner_sharpness : float
-        Order p of the Lp norm used to build the 2D Tukey window.  Higher
+        Order p of the Log-Power norm used to build the 2D Tukey window.  Higher
         values make the iso-weight contours more square-like and attenuate
-        the corners more aggressively.  p=6 is a good default for CAFOS.
+        the corners more aggressively.
     plots : bool
         If True, produce and display two diagnostic figures:
           • Figure 1 — Tukey window construction and effect on the image.
@@ -264,7 +263,7 @@ def _plot_window(data_zeromean, data_windowed, window_2d, tukey_alpha, corner_sh
 
     titles = [
         f"2D radial Tukey window  (α={tukey_alpha}, p={corner_sharpness})",
-        "Lp iso-contours for different p values",
+        "Log-Power iso-contours for different p values",
         "Window profile  (corner vs. edge midpoint)",
         "Original image  (zero-mean)",
         "Windowed image  (zero-mean)",
@@ -279,7 +278,7 @@ def _plot_window(data_zeromean, data_windowed, window_2d, tukey_alpha, corner_sh
     _add_colorbar(fig, ax, im, label="weight  [0 – 1]")
     ax.contour(window_2d, levels=[0.5], colors="#1565c0", linewidths=1.0, linestyles="--")
 
-    # ── (0,1): Lp iso-contours for several p values ───────────────────────────
+    # ── (0,1): Log-Power iso-contours for several p values ───────────────────
     ax = axes[0, 1]
     y_c = np.linspace(-1.4, 1.4, 400)
     x_c = np.linspace(-1.4, 1.4, 400)
@@ -293,8 +292,8 @@ def _plot_window(data_zeromean, data_windowed, window_2d, tukey_alpha, corner_sh
     r_sel = (np.abs(Xc) ** corner_sharpness + np.abs(Yc) ** corner_sharpness) ** (1.0 / corner_sharpness)
     ax.contour(x_c, y_c, r_sel, levels=[1.0], colors=["#1a1a2e"], linewidths=2.0, linestyles="-")
     ax.plot([], [], color="#1a1a2e", linewidth=2.0, label=f"p = {corner_sharpness}  ← selected")
-    ax.set_xlim(-1.4, 1.4)
-    ax.set_ylim(-1.4, 1.4)
+    ax.set_xlim(-1.0, 1.0)
+    ax.set_ylim(-1.0, 1.0)
     ax.set_aspect("equal")
     ax.axhline(0, color="#cccccc", linewidth=0.5)
     ax.axvline(0, color="#cccccc", linewidth=0.5)
@@ -353,12 +352,15 @@ def _plot_window(data_zeromean, data_windowed, window_2d, tukey_alpha, corner_sh
     raw = data_zeromean[idx, idx]
     win = data_windowed[idx, idx]
     wd = window_2d[idx, idx]
-    norm = np.max(np.abs(raw))
-    ax.plot(idx, raw / norm, color="#888888", lw=0.8, label="zero-mean (norm.)")
-    ax.plot(idx, win / norm, color="#1565c0", lw=0.8, label="windowed  (norm.)")
-    ax.plot(idx, wd, color="#c04d00", lw=1.0, ls="--", label="window weight")
-    ax.axhline(0, color="#cccccc", linewidth=0.5)
-    ax.axhline(1.0, color="#cccccc", linewidth=0.5, linestyle=":")
+    ax.plot(idx, win, color="#ffffff", lw=0.8)
+    ymin, ymax = ax.get_ylim()
+    ax.plot(idx, raw, color="#888888", lw=0.8, label="zero-mean")
+    ax.plot(idx, win, color="#1565c0", lw=0.8, label="windowed")
+    ax.set_ylim(ymin, ymax)
+    ax2 = ax.twinx()
+    ax2.plot(idx, wd, color="#c04d00", lw=1.0, ls="--", label="window weight")
+    ax2.axhline(0, color="#cccccc", linewidth=0.5)
+    ax2.axhline(1.0, color="#cccccc", linewidth=0.5, linestyle=":")
     ax.set_xlim(0, dlen - 1)
     ax.set_xlabel("diagonal pixel index")
     ax.set_ylabel("normalised value")
@@ -483,35 +485,35 @@ def _build_parser():
     parser.add_argument(
         "--freq-radius",
         type=int,
-        default=30,
+        default=25,
         metavar="R",
         help=(
             "Radius of the circular low-pass mask in frequency-space pixels. "
             "Larger values capture coarser fringe patterns. "
             "Rule of thumb: R ≈ N / λ where λ is the fringe scale in pixels "
-            "and N = min(image height, image width).  Default: 30."
+            "and N = min(image height, image width).  Default: 25."
         ),
     )
     parser.add_argument(
         "--tukey-alpha",
         type=float,
-        default=0.3,
+        default=0.05,
         metavar="A",
         help=(
-            "Fraction of the normalised Lp radius over which the cosine taper "
+            "Fraction of the normalised log-Power radius over which the cosine taper "
             "of the Tukey window acts.  0 = rectangular (no apodisation); "
-            "1 = full Hann-like cosine.  Default: 0.3."
+            "1 = full Hann-like cosine.  Default: 0.05."
         ),
     )
     parser.add_argument(
         "--corner-sharpness",
         type=float,
-        default=6,
+        default=4,
         metavar="P",
         help=(
-            "Order p of the Lp norm used to build the 2D Tukey window.  "
+            "Order p of the log-Power norm used to build the 2D Tukey window.  "
             "Higher values make iso-weight contours more square-like and "
-            "attenuate corners more aggressively.  Default: 6."
+            "attenuate corners more aggressively.  Default: 4."
         ),
     )
     parser.add_argument(
