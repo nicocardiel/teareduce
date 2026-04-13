@@ -651,6 +651,7 @@ def main():
     hdu_out.header["HISTORY"] = "-------------------"
     hdu_out.header["HISTORY"] = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     hdu_out.header["HISTORY"] = "FFT low-pass fringe correction:"
+    hdu_out.header["HISTORY"] = f"- input: {args.input}"
     hdu_out.header["HISTORY"] = f"- radial Tukey alpha={args.tukey_alpha}"
     hdu_out.header["HISTORY"] = f"- p={args.corner_sharpness}"
     hdu_out.header["HISTORY"] = f"- mask radius={args.freq_radius} px"
